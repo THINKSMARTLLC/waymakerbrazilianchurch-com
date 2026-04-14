@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { UserPlus, Search, Eye, Edit, CreditCard } from "lucide-react";
 import { useState } from "react";
 
-export const Route = createFileRoute("/members")({
+export const Route = createFileRoute("/members/")({
   head: () => ({
     meta: [
       { title: "Members — ChurchFlow" },

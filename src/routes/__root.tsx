@@ -1,4 +1,5 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { AppLayout } from "@/components/AppLayout";
 
 import appCss from "../styles.css?url";
 
@@ -31,14 +32,11 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "ChurchFlow — Church Financial Management" },
+      { name: "description", content: "Simple church financial management for recurring donations, member management, and payment tracking." },
+      { property: "og:title", content: "ChurchFlow" },
+      { property: "og:description", content: "Church financial management made simple." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
@@ -48,7 +46,7 @@ export const Route = createRootRoute({
     ],
   }),
   shellComponent: RootShell,
-  component: RootComponent,
+  component: AppLayout,
   notFoundComponent: NotFoundComponent,
 });
 
@@ -64,8 +62,4 @@ function RootShell({ children }: { children: React.ReactNode }) {
       </body>
     </html>
   );
-}
-
-function RootComponent() {
-  return <Outlet />;
 }

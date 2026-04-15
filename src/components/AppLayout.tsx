@@ -6,22 +6,24 @@ import {
   Menu,
   X,
   Church,
+  LogOut,
 } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
-  { label: "Dashboard", to: "/", icon: LayoutDashboard },
-  { label: "Members", to: "/members", icon: Users },
-  { label: "Reports", to: "/reports", icon: FileBarChart },
+  { label: "Dashboard", to: "/" as const, icon: LayoutDashboard },
+  { label: "Membros", to: "/members" as const, icon: Users },
+  { label: "Relatórios", to: "/reports" as const, icon: FileBarChart },
 ];
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const { user, signOut } = useAuth();
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm md:hidden"
@@ -29,7 +31,6 @@ export function AppLayout() {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-sidebar-border bg-sidebar transition-transform md:static md:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -42,10 +43,7 @@ export function AppLayout() {
           <span className="font-display text-lg font-semibold text-foreground tracking-tight">
             ChurchFlow
           </span>
-          <button
-            className="ml-auto md:hidden text-muted-foreground"
-            onClick={() => setSidebarOpen(false)}
-          >
+          <button className="ml-auto md:hidden text-muted-foreground" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -74,17 +72,22 @@ export function AppLayout() {
         <div className="border-t border-sidebar-border p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-              A
+              {user?.email?.charAt(0).toUpperCase() || "A"}
             </div>
-            <div className="text-sm">
-              <p className="font-medium text-foreground">Admin</p>
-              <p className="text-xs text-muted-foreground">admin@church.org</p>
+            <div className="flex-1 min-w-0 text-sm">
+              <p className="font-medium text-foreground truncate">{user?.email || "Admin"}</p>
             </div>
+            <button
+              onClick={signOut}
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-destructive transition-colors"
+              title="Sair"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </aside>
 
-      {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-16 shrink-0 items-center border-b border-border bg-card px-4 md:px-6">
           <button
@@ -94,11 +97,8 @@ export function AppLayout() {
             <Menu className="h-5 w-5" />
           </button>
           <h1 className="page-header">
-            {navItems.find(
-              (item) =>
-                item.to === "/"
-                  ? location.pathname === "/"
-                  : location.pathname.startsWith(item.to)
+            {navItems.find((item) =>
+              item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to)
             )?.label || "ChurchFlow"}
           </h1>
         </header>

@@ -1,8 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { UserPlus, Search, Eye, Edit, CreditCard } from "lucide-react";
+import { UserPlus, Search, Eye, Edit, CreditCard, MoreVertical, UserX, UserCheck } from "lucide-react";
 import { useState, useEffect, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/members/")({
   head: () => ({
@@ -19,6 +25,7 @@ type Member = Database["public"]["Tables"]["members"]["Row"];
 function MembersPage() {
   const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,6 +41,12 @@ function MembersPage() {
   useEffect(() => {
     fetchMembers();
   }, []);
+
+  const toggleStatus = async (member: Member) => {
+    const newStatus = member.status === "active" ? "inactive" : "active";
+    await supabase.from("members").update({ status: newStatus }).eq("id", member.id);
+    fetchMembers();
+  };
 
   const filtered = members.filter(
     (m) =>
@@ -115,6 +128,32 @@ function MembersPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </Link>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                              <MoreVertical className="h-4 w-4" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setEditingMember(member)}>
+                              <Edit className="h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => toggleStatus(member)}>
+                              {member.status === "active" ? (
+                                <>
+                                  <UserX className="h-4 w-4" />
+                                  Desativar
+                                </>
+                              ) : (
+                                <>
+                                  <UserCheck className="h-4 w-4" />
+                                  Reativar
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </td>
                   </tr>
@@ -125,14 +164,16 @@ function MembersPage() {
         )}
       </div>
 
-      {showAddModal && <AddMemberModal onClose={() => setShowAddModal(false)} onSaved={fetchMembers} />}
+      {showAddModal && <MemberFormModal onClose={() => setShowAddModal(false)} onSaved={fetchMembers} />}
+      {editingMember && <MemberFormModal member={editingMember} onClose={() => setEditingMember(null)} onSaved={fetchMembers} />}
     </div>
   );
 }
 
-function AddMemberModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClose: () => void; onSaved: () => void }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const isEditing = !!member;
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -140,12 +181,16 @@ function AddMemberModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
     setError("");
 
     const form = new FormData(e.currentTarget);
-    const { error } = await supabase.from("members").insert({
+    const payload = {
       name: form.get("name") as string,
       email: (form.get("email") as string) || null,
       phone: (form.get("phone") as string) || null,
       payment_type: form.get("payment_type") as "card" | "cash",
-    });
+    };
+
+    const { error } = isEditing
+      ? await supabase.from("members").update(payload).eq("id", member.id)
+      : await supabase.from("members").insert(payload);
 
     if (error) {
       setError(error.message);
@@ -159,24 +204,26 @@ function AddMemberModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-4">
       <div className="card-elevated w-full max-w-md p-6">
-        <h2 className="font-display text-lg font-semibold text-foreground mb-5">Novo Membro</h2>
+        <h2 className="font-display text-lg font-semibold text-foreground mb-5">
+          {isEditing ? "Editar Membro" : "Novo Membro"}
+        </h2>
         <form className="space-y-4" onSubmit={handleSubmit}>
           {error && <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">Nome</label>
-            <input name="name" type="text" required className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Nome completo" />
+            <input name="name" type="text" required defaultValue={member?.name ?? ""} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Nome completo" />
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">Email</label>
-            <input name="email" type="email" className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" placeholder="email@exemplo.com" />
+            <input name="email" type="email" defaultValue={member?.email ?? ""} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" placeholder="email@exemplo.com" />
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">Telefone</label>
-            <input name="phone" type="tel" className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" placeholder="(11) 99999-0000" />
+            <input name="phone" type="tel" defaultValue={member?.phone ?? ""} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" placeholder="(11) 99999-0000" />
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">Método de Pagamento</label>
-            <select name="payment_type" className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+            <select name="payment_type" defaultValue={member?.payment_type ?? "card"} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
               <option value="card">Cartão</option>
               <option value="cash">Dinheiro</option>
             </select>
@@ -186,7 +233,7 @@ function AddMemberModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
               Cancelar
             </button>
             <button type="submit" disabled={saving} className="btn-google flex-1 disabled:opacity-50">
-              {saving ? "Salvando..." : "Salvar"}
+              {saving ? "Salvando..." : isEditing ? "Atualizar" : "Salvar"}
             </button>
           </div>
         </form>

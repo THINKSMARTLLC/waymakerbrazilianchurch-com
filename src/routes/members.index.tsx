@@ -4,7 +4,7 @@ import { useState, useEffect, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
-export const Route = createFileRoute("/members")({
+export const Route = createFileRoute("/members/")({
   head: () => ({
     meta: [
       { title: "Membros — ChurchFlow" },

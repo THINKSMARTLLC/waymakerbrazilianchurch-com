@@ -7,11 +7,14 @@ import {
   X,
   Church,
   LogOut,
+  Shield,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
+import { logActivity } from "@/lib/activityLog";
 
-const navItems = [
+const baseNavItems = [
   { label: "Dashboard", to: "/" as const, icon: LayoutDashboard },
   { label: "Membros", to: "/members" as const, icon: Users },
   { label: "Relatórios", to: "/reports" as const, icon: FileBarChart },

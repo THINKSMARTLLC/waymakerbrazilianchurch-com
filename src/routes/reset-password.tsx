@@ -32,12 +32,25 @@ function ResetPasswordPage() {
     e.preventDefault();
     setError("");
     if (password.length < 8) return setError("A senha deve ter no mínimo 8 caracteres.");
+    if (!/[A-Za-z]/.test(password)) return setError("A senha deve conter pelo menos uma letra.");
+    if (!/[0-9]/.test(password)) return setError("A senha deve conter pelo menos um número.");
     if (password !== confirm) return setError("As senhas não coincidem.");
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
-    if (error) setError(error.message);
-    else navigate({ to: "/" });
+    if (error) {
+      // Surface clearer message for common Supabase rejections
+      const msg = error.message?.toLowerCase() ?? "";
+      if (msg.includes("pwned") || msg.includes("compromised") || msg.includes("weak")) {
+        setError("Esta senha foi encontrada em vazamentos de dados. Escolha outra senha.");
+      } else if (msg.includes("same") || msg.includes("different")) {
+        setError("A nova senha deve ser diferente da senha atual.");
+      } else {
+        setError(error.message);
+      }
+      return;
+    }
+    navigate({ to: "/" });
   };
 
   return (

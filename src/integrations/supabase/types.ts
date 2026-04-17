@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          page_accessed: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          page_accessed?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          page_accessed?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       members: {
         Row: {
           created_at: string
@@ -123,6 +153,45 @@ export type Database = {
           },
         ]
       }
+      user_profiles: {
+        Row: {
+          church_name: string | null
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          last_login_at: string | null
+          phone: string | null
+          status: Database["public"]["Enums"]["account_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          church_name?: string | null
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          last_login_at?: string | null
+          phone?: string | null
+          status?: Database["public"]["Enums"]["account_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          church_name?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          last_login_at?: string | null
+          phone?: string | null
+          status?: Database["public"]["Enums"]["account_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -156,9 +225,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_active_staff: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
+      account_status: "pending" | "active" | "suspended"
       app_role:
         | "admin"
         | "finance_manager"
@@ -297,6 +369,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_status: ["pending", "active", "suspended"],
       app_role: [
         "admin",
         "finance_manager",

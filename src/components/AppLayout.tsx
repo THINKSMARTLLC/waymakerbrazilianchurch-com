@@ -5,7 +5,6 @@ import {
   FileBarChart,
   Menu,
   X,
-  Church,
   LogOut,
   Shield,
 } from "lucide-react";
@@ -13,6 +12,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { logActivity } from "@/lib/activityLog";
+import wayMakerLogo from "@/assets/waymaker-logo.png";
 
 const baseNavItems = [
   { label: "Dashboard", to: "/" as const, icon: LayoutDashboard },

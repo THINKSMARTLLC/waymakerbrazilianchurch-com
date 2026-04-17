@@ -99,7 +99,7 @@ function AuthGate() {
 }
 
 function StatusGate() {
-  const { status, loading } = useUserRole();
+  const { status, loading, isSuperAdmin } = useUserRole();
   const location = useLocation();
 
   if (loading) {
@@ -108,6 +108,15 @@ function StatusGate() {
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
+  }
+
+  // Super admins always bypass status gating
+  if (isSuperAdmin) {
+    if (location.pathname === "/pending" && typeof window !== "undefined") {
+      window.location.replace("/admin");
+      return null;
+    }
+    return <AppLayout />;
   }
 
   if (status === "suspended") {

@@ -12,6 +12,7 @@ import {
 import { formatUSD } from "@/lib/format";
 import { RecordPaymentModal } from "@/components/RecordPaymentModal";
 import { ContributionsModal } from "@/components/ContributionsModal";
+import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, type MemberPaymentStatus } from "@/lib/memberStatus";
 
 export const Route = createFileRoute("/members/")({
   head: () => ({
@@ -28,7 +29,7 @@ type Member = Database["public"]["Tables"]["members"]["Row"];
 interface MemberWithStatus extends Member {
   last_payment_date: string | null;
   last_payment_method: string | null;
-  is_on_time: boolean;
+  payment_status: MemberPaymentStatus;
 }
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
@@ -72,17 +73,13 @@ function MembersPage() {
       }
     }
 
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
     const withStatus: MemberWithStatus[] = list.map((m) => {
       const last = lastByMember.get(m.id);
-      const isOnTime = last ? new Date(last.payment_date) >= sevenDaysAgo : false;
       return {
         ...m,
         last_payment_date: last?.payment_date ?? null,
         last_payment_method: last?.payment_method ?? null,
-        is_on_time: isOnTime,
+        payment_status: computeMemberStatus(last?.payment_date ?? null),
       };
     });
 
@@ -179,14 +176,10 @@ function MembersPage() {
                       </td>
                       <td className="px-5 py-3.5">
                         <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                            member.is_on_time
-                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                              : "bg-destructive/10 text-destructive"
-                          }`}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClasses(member.payment_status)}`}
                         >
-                          <span className={`h-1.5 w-1.5 rounded-full ${member.is_on_time ? "bg-emerald-500" : "bg-destructive"}`} />
-                          {member.is_on_time ? "On Time" : "Late"}
+                          <span className={`h-1.5 w-1.5 rounded-full ${statusDotClasses(member.payment_status)}`} />
+                          {STATUS_LABEL[member.payment_status]}
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
@@ -266,6 +259,7 @@ function MembersPage() {
           memberId={viewingHistoryFor.id}
           memberName={viewingHistoryFor.name}
           onClose={() => setViewingHistoryFor(null)}
+          onChanged={fetchMembers}
         />
       )}
     </div>

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { UserPlus, Search, Eye, Edit, CreditCard, MoreVertical, UserX, UserCheck } from "lucide-react";
-import { useState, useEffect, type FormEvent } from "react";
+import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History } from "lucide-react";
+import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import {
@@ -9,12 +9,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { formatUSD } from "@/lib/format";
+import { RecordPaymentModal } from "@/components/RecordPaymentModal";
+import { ContributionsModal } from "@/components/ContributionsModal";
 
 export const Route = createFileRoute("/members/")({
   head: () => ({
     meta: [
-      { title: "Membros — ChurchFlow" },
-      { name: "description", content: "Gerenciar membros da igreja" },
+      { title: "Members — ChurchFlow" },
+      { name: "description", content: "Manage church members and weekly contributions" },
     ],
   }),
   component: MembersPage,
@@ -22,19 +25,68 @@ export const Route = createFileRoute("/members/")({
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 
+interface MemberWithStatus extends Member {
+  last_payment_date: string | null;
+  last_payment_method: string | null;
+  is_on_time: boolean;
+}
+
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  cash: "Cash",
+  zelle: "Zelle",
+  venmo: "Venmo",
+  card: "Card",
+  stripe: "Card",
+};
+
 function MembersPage() {
   const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
-  const [members, setMembers] = useState<Member[]>([]);
+  const [recordingFor, setRecordingFor] = useState<Member | null>(null);
+  const [viewingHistoryFor, setViewingHistoryFor] = useState<Member | null>(null);
+  const [members, setMembers] = useState<MemberWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchMembers = async () => {
-    const { data } = await supabase
+    const { data: membersData } = await supabase
       .from("members")
       .select("*")
       .order("created_at", { ascending: false });
-    setMembers(data || []);
+
+    const list = membersData || [];
+    const ids = list.map((m) => m.id);
+
+    let lastByMember = new Map<string, { payment_date: string; payment_method: string }>();
+    if (ids.length > 0) {
+      const { data: paymentsData } = await supabase
+        .from("payments")
+        .select("member_id, payment_date, payment_method")
+        .in("member_id", ids)
+        .order("payment_date", { ascending: false });
+
+      for (const p of paymentsData || []) {
+        if (!lastByMember.has(p.member_id)) {
+          lastByMember.set(p.member_id, { payment_date: p.payment_date, payment_method: p.payment_method });
+        }
+      }
+    }
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const withStatus: MemberWithStatus[] = list.map((m) => {
+      const last = lastByMember.get(m.id);
+      const isOnTime = last ? new Date(last.payment_date) >= sevenDaysAgo : false;
+      return {
+        ...m,
+        last_payment_date: last?.payment_date ?? null,
+        last_payment_method: last?.payment_method ?? null,
+        is_on_time: isOnTime,
+      };
+    });
+
+    setMembers(withStatus);
     setLoading(false);
   };
 
@@ -48,10 +100,14 @@ function MembersPage() {
     fetchMembers();
   };
 
-  const filtered = members.filter(
-    (m) =>
-      m.name.toLowerCase().includes(search.toLowerCase()) ||
-      (m.email || "").toLowerCase().includes(search.toLowerCase())
+  const filtered = useMemo(
+    () =>
+      members.filter(
+        (m) =>
+          m.name.toLowerCase().includes(search.toLowerCase()) ||
+          (m.email || "").toLowerCase().includes(search.toLowerCase())
+      ),
+    [members, search]
   );
 
   return (
@@ -61,7 +117,7 @@ function MembersPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Buscar membros..."
+            placeholder="Search members..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-xl border border-input bg-card py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -69,7 +125,7 @@ function MembersPage() {
         </div>
         <button onClick={() => setShowAddModal(true)} className="btn-google inline-flex items-center gap-2">
           <UserPlus className="h-4 w-4" />
-          Novo Membro
+          New Member
         </button>
       </div>
 
@@ -80,84 +136,114 @@ function MembersPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">
-            {members.length === 0 ? "Nenhum membro cadastrado ainda." : "Nenhum resultado encontrado."}
+            {members.length === 0 ? "No members yet." : "No results."}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="table-header px-5 py-3 text-left">Nome</th>
-                  <th className="table-header px-5 py-3 text-left hidden sm:table-cell">Email</th>
-                  <th className="table-header px-5 py-3 text-left hidden md:table-cell">Telefone</th>
-                  <th className="table-header px-5 py-3 text-left">Pagamento</th>
+                  <th className="table-header px-5 py-3 text-left">Name</th>
+                  <th className="table-header px-5 py-3 text-left hidden lg:table-cell">Email</th>
+                  <th className="table-header px-5 py-3 text-left hidden xl:table-cell">Phone</th>
+                  <th className="table-header px-5 py-3 text-right">Weekly</th>
+                  <th className="table-header px-5 py-3 text-right hidden md:table-cell">Monthly</th>
+                  <th className="table-header px-5 py-3 text-left hidden md:table-cell">Last Payment</th>
+                  <th className="table-header px-5 py-3 text-left hidden sm:table-cell">Method</th>
                   <th className="table-header px-5 py-3 text-left">Status</th>
-                  <th className="table-header px-5 py-3 text-right">Ações</th>
+                  <th className="table-header px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((member) => (
-                  <tr key={member.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-primary">
-                          {member.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                {filtered.map((member) => {
+                  const weekly = Number(member.weekly_contribution_usd) || 0;
+                  return (
+                    <tr key={member.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-primary">
+                            {member.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                          </div>
+                          <span className="text-sm font-medium text-foreground">{member.name}</span>
                         </div>
-                        <span className="text-sm font-medium text-foreground">{member.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5 text-sm text-muted-foreground hidden sm:table-cell">{member.email}</td>
-                    <td className="px-5 py-3.5 text-sm text-muted-foreground hidden md:table-cell">{member.phone}</td>
-                    <td className="px-5 py-3.5">
-                      <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground capitalize">
-                        {member.payment_type === "card" ? <CreditCard className="h-3.5 w-3.5" /> : <span className="text-xs">💵</span>}
-                        {member.payment_type === "card" ? "Cartão" : "Dinheiro"}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className={`status-badge ${member.status === "active" ? "status-active" : "status-inactive"}`}>
-                        {member.status === "active" ? "Ativo" : "Inativo"}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center justify-end gap-1">
-                        <Link
-                          to="/members/$memberId"
-                          params={{ memberId: member.id }}
-                          className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      </td>
+                      <td className="px-5 py-3.5 text-sm text-muted-foreground hidden lg:table-cell">{member.email}</td>
+                      <td className="px-5 py-3.5 text-sm text-muted-foreground hidden xl:table-cell">{member.phone}</td>
+                      <td className="px-5 py-3.5 text-sm text-foreground text-right tabular-nums">{formatUSD(weekly)}</td>
+                      <td className="px-5 py-3.5 text-sm text-muted-foreground text-right tabular-nums hidden md:table-cell">{formatUSD(weekly * 4)}</td>
+                      <td className="px-5 py-3.5 text-sm text-muted-foreground hidden md:table-cell">
+                        {member.last_payment_date ? new Date(member.last_payment_date).toLocaleDateString("en-US") : "—"}
+                      </td>
+                      <td className="px-5 py-3.5 text-sm text-muted-foreground hidden sm:table-cell">
+                        {member.last_payment_method ? (PAYMENT_METHOD_LABEL[member.last_payment_method] ?? member.last_payment_method) : "—"}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                            member.is_on_time
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                              : "bg-destructive/10 text-destructive"
+                          }`}
                         >
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-                              <MoreVertical className="h-4 w-4" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setEditingMember(member)}>
-                              <Edit className="h-4 w-4" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => toggleStatus(member)}>
-                              {member.status === "active" ? (
-                                <>
-                                  <UserX className="h-4 w-4" />
-                                  Desativar
-                                </>
-                              ) : (
-                                <>
-                                  <UserCheck className="h-4 w-4" />
-                                  Reativar
-                                </>
-                              )}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          <span className={`h-1.5 w-1.5 rounded-full ${member.is_on_time ? "bg-emerald-500" : "bg-destructive"}`} />
+                          {member.is_on_time ? "On Time" : "Late"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => setRecordingFor(member)}
+                            className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                            title="Record Payment"
+                          >
+                            <DollarSign className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => setViewingHistoryFor(member)}
+                            className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                            title="View Contributions"
+                          >
+                            <History className="h-4 w-4" />
+                          </button>
+                          <Link
+                            to="/members/$memberId"
+                            params={{ memberId: member.id }}
+                            className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                            title="View Profile"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                                <MoreVertical className="h-4 w-4" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setEditingMember(member)}>
+                                <Edit className="h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => toggleStatus(member)}>
+                                {member.status === "active" ? (
+                                  <>
+                                    <UserX className="h-4 w-4" />
+                                    Deactivate
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserCheck className="h-4 w-4" />
+                                    Reactivate
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -166,6 +252,22 @@ function MembersPage() {
 
       {showAddModal && <MemberFormModal onClose={() => setShowAddModal(false)} onSaved={fetchMembers} />}
       {editingMember && <MemberFormModal member={editingMember} onClose={() => setEditingMember(null)} onSaved={fetchMembers} />}
+      {recordingFor && (
+        <RecordPaymentModal
+          memberId={recordingFor.id}
+          memberName={recordingFor.name}
+          defaultAmount={Number(recordingFor.weekly_contribution_usd) || undefined}
+          onClose={() => setRecordingFor(null)}
+          onSaved={fetchMembers}
+        />
+      )}
+      {viewingHistoryFor && (
+        <ContributionsModal
+          memberId={viewingHistoryFor.id}
+          memberName={viewingHistoryFor.name}
+          onClose={() => setViewingHistoryFor(null)}
+        />
+      )}
     </div>
   );
 }
@@ -189,6 +291,7 @@ function detectCountryFromPhone(phone: string | null): { country: CountryKey; nu
 function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClose: () => void; onSaved: () => void }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [weekly, setWeekly] = useState<string>(String(member?.weekly_contribution_usd ?? ""));
   const isEditing = !!member;
 
   const initial = detectCountryFromPhone(member?.phone ?? null);
@@ -207,6 +310,9 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
     return `${dial}${digits}`;
   };
 
+  const weeklyNum = Number(weekly) || 0;
+  const monthlyNum = weeklyNum * 4;
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSaving(true);
@@ -218,6 +324,7 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
       email: (form.get("email") as string) || null,
       phone: buildE164(),
       payment_type: form.get("payment_type") as "card" | "cash",
+      weekly_contribution_usd: weeklyNum,
     };
 
     const { error } = isEditing
@@ -235,22 +342,22 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-4">
-      <div className="card-elevated w-full max-w-md p-6">
+      <div className="card-elevated w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
         <h2 className="font-display text-lg font-semibold text-foreground mb-5">
-          {isEditing ? "Editar Membro" : "Novo Membro"}
+          {isEditing ? "Edit Member" : "New Member"}
         </h2>
         <form className="space-y-4" onSubmit={handleSubmit}>
           {error && <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Nome</label>
-            <input name="name" type="text" required defaultValue={member?.name ?? ""} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Nome completo" />
+            <label className="block text-sm font-medium text-foreground mb-1.5">Name</label>
+            <input name="name" type="text" required defaultValue={member?.name ?? ""} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Full name" />
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">Email</label>
-            <input name="email" type="email" defaultValue={member?.email ?? ""} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" placeholder="email@exemplo.com" />
+            <input name="email" type="email" defaultValue={member?.email ?? ""} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" placeholder="email@example.com" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Telefone</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Phone</label>
             <div className="flex gap-2">
               <select
                 value={country}
@@ -282,23 +389,40 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
                 placeholder={country === "US" ? "215 555 1234" : country === "BR" ? "11 99999 9999" : "phone number"}
               />
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Saved as: {buildE164() ?? "—"}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Weekly Contribution (USD)</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={weekly}
+                onChange={(e) => setWeekly(e.target.value)}
+                placeholder="0.00"
+                className="w-full rounded-xl border border-input bg-background pl-7 pr-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Monthly (auto): <span className="font-medium text-foreground">{formatUSD(monthlyNum)}</span>
             </p>
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Método de Pagamento</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Default Payment Method</label>
             <select name="payment_type" defaultValue={member?.payment_type ?? "card"} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
-              <option value="card">Cartão</option>
-              <option value="cash">Dinheiro</option>
+              <option value="card">Card</option>
+              <option value="cash">Cash</option>
             </select>
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors">
-              Cancelar
+              Cancel
             </button>
             <button type="submit" disabled={saving} className="btn-google flex-1 disabled:opacity-50">
-              {saving ? "Salvando..." : isEditing ? "Atualizar" : "Salvar"}
+              {saving ? "Saving..." : isEditing ? "Update" : "Save"}
             </button>
           </div>
         </form>

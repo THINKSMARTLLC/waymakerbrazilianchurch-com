@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { Church } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activityLog";
+import wayMakerLogo from "@/assets/waymaker-logo.png";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({
@@ -15,19 +16,49 @@ export const Route = createFileRoute("/signup")({
 });
 
 const ROLES = [
-  { value: "church_admin", label: "Pastor / Admin da Igreja" },
-  { value: "finance_manager", label: "Financeiro" },
   { value: "member", label: "Membro" },
+  { value: "deacon", label: "Diácono" },
+  { value: "worker", label: "Obreiro" },
+  { value: "intercessor", label: "Intercessor" },
+  { value: "treasurer", label: "Tesoureiro" },
+  { value: "singer", label: "Cantor" },
+  { value: "musician", label: "Músico" },
+  { value: "other", label: "Outro" },
 ] as const;
+
+const DEPARTMENTS = [
+  { value: "kids", label: "Kids" },
+  { value: "youth", label: "Jovens" },
+  { value: "finance", label: "Financeiro" },
+  { value: "worship", label: "Louvor" },
+  { value: "cleaning", label: "Limpeza" },
+  { value: "kitchen", label: "Cozinha" },
+  { value: "other", label: "Outro" },
+] as const;
+
+const COUNTRIES = [
+  { value: "+1", label: "🇺🇸 United States (+1)" },
+  { value: "+55", label: "🇧🇷 Brasil (+55)" },
+  { value: "other", label: "Outro (código manual)" },
+] as const;
+
+// Roles that grant staff/admin access — these still need the existing requested_role mapping
+const STAFF_ROLE_REQUEST = "member"; // signup form only creates members; staff are provisioned by admins
 
 function SignupPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     fullName: "",
     email: "",
+    countryCode: "+1",
+    customCountryCode: "",
     phone: "",
     churchName: "",
+    dateOfBirth: "",
+    address: "",
+    emergencyContact: "",
     role: "member",
+    department: "kids",
     password: "",
     confirmPassword: "",
   });
@@ -50,6 +81,14 @@ function SignupPage() {
       return;
     }
 
+    const code = form.countryCode === "other" ? form.customCountryCode.trim() : form.countryCode;
+    if (!code || !/^\+?\d{1,4}$/.test(code.startsWith("+") ? code : `+${code}`)) {
+      setError("Código do país inválido.");
+      return;
+    }
+    const normalizedCode = code.startsWith("+") ? code : `+${code}`;
+    const fullPhone = `${normalizedCode} ${form.phone.replace(/^\+?\d{1,4}\s*/, "").trim()}`;
+
     setLoading(true);
     const { data, error: signupError } = await supabase.auth.signUp({
       email: form.email,
@@ -58,9 +97,14 @@ function SignupPage() {
         emailRedirectTo: `${window.location.origin}/`,
         data: {
           full_name: form.fullName,
-          phone: form.phone,
+          phone: fullPhone,
           church_name: form.churchName,
-          requested_role: form.role,
+          requested_role: STAFF_ROLE_REQUEST,
+          date_of_birth: form.dateOfBirth || null,
+          address: form.address,
+          emergency_contact: form.emergencyContact,
+          member_role: form.role,
+          department: form.department,
         },
       },
     });
@@ -72,28 +116,36 @@ function SignupPage() {
     }
 
     if (data.user) {
-      await logActivity("signup", { role: form.role });
+      await logActivity("signup", { role: form.role, department: form.department });
     }
 
     setLoading(false);
-    // For staff roles, profile is "pending" — show notice; member is active.
-    if (form.role === "member") {
-      navigate({ to: "/" });
-    } else {
-      navigate({ to: "/pending" });
-    }
+    navigate({ to: "/" });
   };
+
+  const [logoError, setLogoError] = useState(false);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary">
-            <Church className="h-7 w-7 text-primary-foreground" />
+          <div className="mx-auto mb-4 flex items-center justify-center">
+            {logoError ? (
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary">
+                <Church className="h-7 w-7 text-primary-foreground" />
+              </div>
+            ) : (
+              <img
+                src={wayMakerLogo}
+                alt="WAY MAKER FLOW logo"
+                className="max-h-20 w-auto object-contain"
+                onError={() => setLogoError(true)}
+              />
+            )}
           </div>
-          <h1 className="font-display text-2xl font-semibold text-foreground">Criar Conta</h1>
+          <h1 className="font-display text-2xl font-semibold text-foreground">WAY MAKER FLOW</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Comece a gerenciar sua igreja em minutos
+            Criar conta — comece a gerenciar sua igreja em minutos
           </p>
         </div>
 
@@ -110,19 +162,70 @@ function SignupPage() {
           <Field label="Email">
             <input type="email" required value={form.email} onChange={update("email")} className={fieldCls} />
           </Field>
+
           <Field label="Telefone">
-            <input type="tel" required value={form.phone} onChange={update("phone")} className={fieldCls} />
+            <div className="flex gap-2">
+              <select
+                value={form.countryCode}
+                onChange={update("countryCode")}
+                className={`${fieldCls} max-w-[42%]`}
+              >
+                {COUNTRIES.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+              <input
+                type="tel"
+                required
+                value={form.phone}
+                onChange={update("phone")}
+                placeholder="(99) 99999-9999"
+                className={`${fieldCls} flex-1`}
+              />
+            </div>
+            {form.countryCode === "other" && (
+              <input
+                required
+                value={form.customCountryCode}
+                onChange={update("customCountryCode")}
+                placeholder="Código do país (ex: +351)"
+                className={`${fieldCls} mt-2`}
+              />
+            )}
           </Field>
+
+          <Field label="Data de Nascimento">
+            <input type="date" required value={form.dateOfBirth} onChange={update("dateOfBirth")} className={fieldCls} />
+          </Field>
+
+          <Field label="Endereço">
+            <input required value={form.address} onChange={update("address")} className={fieldCls} placeholder="Rua, número, cidade" />
+          </Field>
+
+          <Field label="Contato de Emergência">
+            <input required value={form.emergencyContact} onChange={update("emergencyContact")} className={fieldCls} placeholder="Nome e telefone" />
+          </Field>
+
           <Field label="Nome da Igreja">
             <input required value={form.churchName} onChange={update("churchName")} className={fieldCls} />
           </Field>
-          <Field label="Função">
+
+          <Field label="Cargo">
             <select value={form.role} onChange={update("role")} className={fieldCls}>
               {ROLES.map((r) => (
                 <option key={r.value} value={r.value}>{r.label}</option>
               ))}
             </select>
           </Field>
+
+          <Field label="Departamento">
+            <select value={form.department} onChange={update("department")} className={fieldCls}>
+              {DEPARTMENTS.map((d) => (
+                <option key={d.value} value={d.value}>{d.label}</option>
+              ))}
+            </select>
+          </Field>
+
           <Field label="Senha (mín. 8 caracteres)">
             <input type="password" required minLength={8} value={form.password} onChange={update("password")} className={fieldCls} />
           </Field>

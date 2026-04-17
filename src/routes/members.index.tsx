@@ -439,11 +439,31 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
           </div>
 
           <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Contribution Frequency</label>
+            <select
+              value={frequency}
+              onChange={(e) => setFrequency(e.target.value as ContributionFrequency)}
+              className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              {(Object.keys(FREQUENCY_LABEL) as ContributionFrequency[]).map((k) => (
+                <option key={k} value={k}>{FREQUENCY_LABEL[k]}</option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {frequency === "weekly" && "Late after 7 days without payment."}
+              {frequency === "monthly" && "Late after 30 days without payment."}
+              {frequency === "one_time" && "Never marked Late once a payment is recorded."}
+              {frequency === "flexible" && "Always shown as Active regardless of payment timing."}
+            </p>
+          </div>
+
+          <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">Default Payment Method</label>
             <select name="payment_type" defaultValue={member?.payment_type ?? "card"} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
               <option value="card">Card</option>
               <option value="cash">Cash</option>
             </select>
+            <p className="mt-1 text-xs text-muted-foreground">Members can pay via Card, Cash, Zelle, Venmo, PayPal, or Other when recording a payment.</p>
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors">

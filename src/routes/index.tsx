@@ -20,9 +20,10 @@ export const Route = createFileRoute("/")({
 function DashboardPage() {
   const [stats, setStats] = useState({
     totalMembers: 0,
-    paidThisMonth: 0,
-    pastDue: 0,
-    totalDonations: 0,
+    weeklyExpected: 0,
+    monthlyExpected: 0,
+    collectedThisMonth: 0,
+    outstanding: 0,
   });
 
   useEffect(() => {
@@ -30,19 +31,23 @@ function DashboardPage() {
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
 
-      const [membersRes, paymentsRes, pastDueRes] = await Promise.all([
-        supabase.from("members").select("id", { count: "exact", head: true }),
+      const [membersRes, paymentsRes] = await Promise.all([
+        supabase.from("members").select("id, weekly_contribution_usd, status"),
         supabase.from("payments").select("amount").gte("payment_date", startOfMonth).eq("status", "paid"),
-        supabase.from("payments").select("id", { count: "exact", head: true }).eq("status", "past_due"),
       ]);
 
-      const totalDonations = (paymentsRes.data || []).reduce((sum, p) => sum + Number(p.amount), 0);
+      const activeMembers = (membersRes.data || []).filter((m) => m.status === "active");
+      const weeklyExpected = activeMembers.reduce((s, m) => s + Number(m.weekly_contribution_usd || 0), 0);
+      const monthlyExpected = weeklyExpected * 4;
+      const collectedThisMonth = (paymentsRes.data || []).reduce((sum, p) => sum + Number(p.amount), 0);
+      const outstanding = Math.max(monthlyExpected - collectedThisMonth, 0);
 
       setStats({
-        totalMembers: membersRes.count || 0,
-        paidThisMonth: (paymentsRes.data || []).length,
-        pastDue: pastDueRes.count || 0,
-        totalDonations,
+        totalMembers: (membersRes.data || []).length,
+        weeklyExpected,
+        monthlyExpected,
+        collectedThisMonth,
+        outstanding,
       });
     }
     fetchStats();
@@ -51,14 +56,11 @@ function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total de Membros" value={String(stats.totalMembers)} icon={Users} />
-        <StatCard title="Pagos Este Mês" value={String(stats.paidThisMonth)} icon={DollarSign} />
-        <StatCard title="Em Atraso" value={String(stats.pastDue)} icon={AlertTriangle} />
-        <StatCard
-          title="Doações do Mês"
-          value={formatUSD(stats.totalDonations)}
-          icon={TrendingUp}
-        />
+        <StatCard title="Total Members" value={String(stats.totalMembers)} icon={Users} />
+        <StatCard title="Weekly Expected" value={formatUSD(stats.weeklyExpected)} icon={TrendingUp} />
+        <StatCard title="Monthly Expected" value={formatUSD(stats.monthlyExpected)} icon={DollarSign} />
+        <StatCard title="Collected This Month" value={formatUSD(stats.collectedThisMonth)} icon={DollarSign} />
+        <StatCard title="Outstanding" value={formatUSD(stats.outstanding)} icon={AlertTriangle} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

@@ -179,6 +179,7 @@ function MembersPage() {
                   <th className="table-header px-5 py-3 text-left hidden md:table-cell">Last Payment</th>
                   <th className="table-header px-5 py-3 text-left hidden sm:table-cell">Method</th>
                   <th className="table-header px-5 py-3 text-left">Status</th>
+                  <th className="table-header px-5 py-3 text-left">Payment</th>
                   <th className="table-header px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -204,6 +205,11 @@ function MembersPage() {
                       </td>
                       <td className="px-5 py-3.5 text-sm text-muted-foreground hidden sm:table-cell">
                         {member.last_payment_method ? (PAYMENT_METHOD_LABEL[member.last_payment_method] ?? member.last_payment_method) : "—"}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className={`status-badge ${member.status === "active" ? "status-active" : "status-inactive"}`}>
+                          {member.status === "active" ? "Active" : "Inactive"}
+                        </span>
                       </td>
                       <td className="px-5 py-3.5">
                         <span

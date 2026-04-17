@@ -113,11 +113,12 @@ function MemberProfilePage() {
                 <th className="table-header px-5 py-3 text-left">Valor</th>
                 <th className="table-header px-5 py-3 text-left">Método</th>
                 <th className="table-header px-5 py-3 text-left">Status</th>
+                <th className="table-header px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
               {payments.map((p) => (
-                <tr key={p.id} className="border-b border-border last:border-0">
+                <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="px-5 py-3 text-sm text-foreground">
                     {new Date(p.payment_date).toLocaleDateString("en-US")}
                   </td>
@@ -125,12 +126,31 @@ function MemberProfilePage() {
                     {formatUSD(p.amount)}
                   </td>
                   <td className="px-5 py-3 text-sm text-muted-foreground">
-                    {p.payment_method === "stripe" ? "Cartão" : "Dinheiro"}
+                    {PAYMENT_METHOD_LABEL[p.payment_method] ?? p.payment_method}
                   </td>
                   <td className="px-5 py-3">
                     <span className={`status-badge status-${p.status === "past_due" ? "past-due" : p.status}`}>
                       {p.status === "paid" ? "Pago" : p.status === "pending" ? "Pendente" : "Em atraso"}
                     </span>
+                  </td>
+                  <td className="px-5 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => setEditingPayment(p)}
+                        className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                        title="Edit Payment"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeletePayment(p.id)}
+                        disabled={deletingId === p.id}
+                        className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50"
+                        title="Delete Payment"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -143,6 +163,13 @@ function MemberProfilePage() {
         <CashDonationModal
           memberId={memberId}
           onClose={() => setShowCashModal(false)}
+          onSaved={fetchData}
+        />
+      )}
+      {editingPayment && (
+        <EditPaymentModal
+          payment={editingPayment}
+          onClose={() => setEditingPayment(null)}
           onSaved={fetchData}
         />
       )}

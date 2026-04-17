@@ -1,7 +1,9 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { Church } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/lib/activityLog";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -30,9 +32,16 @@ function LoginPage() {
     if (error) {
       setError(error.message);
       setLoading(false);
-    } else {
-      navigate({ to: "/" });
+      return;
     }
+
+    // Update last_login_at + log
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from("user_profiles").update({ last_login_at: new Date().toISOString() }).eq("user_id", user.id);
+      await logActivity("login");
+    }
+    navigate({ to: "/" });
   };
 
   return (
@@ -43,14 +52,12 @@ function LoginPage() {
             <Church className="h-7 w-7 text-primary-foreground" />
           </div>
           <h1 className="font-display text-2xl font-semibold text-foreground">ChurchFlow</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Faça login para continuar</p>
+          <p className="mt-1 text-sm text-muted-foreground">Gestão financeira simples para sua igreja</p>
         </div>
 
         <form onSubmit={handleSubmit} className="card-elevated p-6 space-y-4">
           {error && (
-            <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {error}
-            </div>
+            <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>
           )}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">Email</label>
@@ -60,11 +67,16 @@ function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="admin@church.org"
+              placeholder="voce@igreja.org"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Senha</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-sm font-medium text-foreground">Senha</label>
+              <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+                Esqueceu a senha?
+              </Link>
+            </div>
             <input
               type="password"
               required
@@ -74,14 +86,26 @@ function LoginPage() {
               placeholder="••••••••"
             />
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-google w-full disabled:opacity-50"
-          >
+          <button type="submit" disabled={loading} className="btn-google w-full disabled:opacity-50">
             {loading ? "Entrando..." : "Entrar"}
           </button>
+
+          <div className="relative my-2">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+            <div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">ou</span></div>
+          </div>
+
+          <Link
+            to="/signup"
+            className="flex w-full items-center justify-center rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+          >
+            Criar Conta
+          </Link>
         </form>
+
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          Ao entrar, você aceita nossos termos de uso e política de privacidade.
+        </p>
       </div>
     </div>
   );

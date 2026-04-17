@@ -1,9 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, CreditCard, DollarSign, Mail, Phone } from "lucide-react";
+import { ArrowLeft, CreditCard, DollarSign, Mail, Phone, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { formatUSD } from "@/lib/format";
+import { EditPaymentModal } from "@/components/EditPaymentModal";
+import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses } from "@/lib/memberStatus";
+import { PAYMENT_METHOD_LABEL } from "@/components/RecordPaymentModal";
 
 export const Route = createFileRoute("/members/$memberId")({
   head: () => ({
@@ -24,6 +27,8 @@ function MemberProfilePage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCashModal, setShowCashModal] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchData = async () => {
     const [memberRes, paymentsRes] = await Promise.all([

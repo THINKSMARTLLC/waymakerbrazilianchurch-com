@@ -1,9 +1,11 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { Church } from "lucide-react";
+import { useState as useImgState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { logActivity } from "@/lib/activityLog";
 import { supabase } from "@/integrations/supabase/client";
+import wayMakerLogo from "@/assets/waymaker-logo.png";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -22,6 +24,7 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [logoError, setLogoError] = useImgState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -48,8 +51,19 @@ function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary">
-            <Church className="h-7 w-7 text-primary-foreground" />
+          <div className="mx-auto mb-4 flex items-center justify-center">
+            {logoError ? (
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary">
+                <Church className="h-7 w-7 text-primary-foreground" />
+              </div>
+            ) : (
+              <img
+                src={wayMakerLogo}
+                alt="WAY MAKER FLOW logo"
+                className="max-h-20 w-auto object-contain"
+                onError={() => setLogoError(true)}
+              />
+            )}
           </div>
           <h1 className="font-display text-2xl font-semibold text-foreground">WAY MAKER FLOW</h1>
           <p className="mt-1 text-sm text-muted-foreground">Gestão financeira simples para sua igreja</p>

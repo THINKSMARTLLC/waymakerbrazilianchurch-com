@@ -60,7 +60,7 @@ export function EditPaymentModal({ payment, onClose, onSaved }: Props) {
         payment_method: form.get("payment_method") as PaymentMethod,
         contribution_type: form.get("contribution_type") as "tithe",
         notes: (form.get("notes") as string) || null,
-      })
+      } as never)
       .eq("id", payment.id);
 
     if (updateError) {

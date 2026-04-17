@@ -46,6 +46,7 @@ export type Database = {
       }
       members: {
         Row: {
+          contribution_frequency: Database["public"]["Enums"]["contribution_frequency"]
           created_at: string
           email: string | null
           id: string
@@ -58,6 +59,7 @@ export type Database = {
           weekly_contribution_usd: number
         }
         Insert: {
+          contribution_frequency?: Database["public"]["Enums"]["contribution_frequency"]
           created_at?: string
           email?: string | null
           id?: string
@@ -70,6 +72,7 @@ export type Database = {
           weekly_contribution_usd?: number
         }
         Update: {
+          contribution_frequency?: Database["public"]["Enums"]["contribution_frequency"]
           created_at?: string
           email?: string | null
           id?: string
@@ -86,8 +89,10 @@ export type Database = {
       payments: {
         Row: {
           amount: number
+          base_amount: number | null
           contribution_type: Database["public"]["Enums"]["contribution_type"]
           created_at: string
+          extra_amount: number
           id: string
           member_id: string
           notes: string | null
@@ -99,8 +104,10 @@ export type Database = {
         }
         Insert: {
           amount: number
+          base_amount?: number | null
           contribution_type?: Database["public"]["Enums"]["contribution_type"]
           created_at?: string
+          extra_amount?: number
           id?: string
           member_id: string
           notes?: string | null
@@ -112,8 +119,10 @@ export type Database = {
         }
         Update: {
           amount?: number
+          base_amount?: number | null
           contribution_type?: Database["public"]["Enums"]["contribution_type"]
           created_at?: string
+          extra_amount?: number
           id?: string
           member_id?: string
           notes?: string | null
@@ -252,6 +261,7 @@ export type Database = {
         | "super_admin"
         | "church_admin"
         | "member"
+      contribution_frequency: "weekly" | "monthly" | "one_time" | "flexible"
       contribution_type:
         | "tithe"
         | "offering"
@@ -260,7 +270,14 @@ export type Database = {
         | "event_contribution"
         | "other"
       member_status: "active" | "inactive"
-      payment_method: "stripe" | "cash" | "zelle" | "venmo" | "card"
+      payment_method:
+        | "stripe"
+        | "cash"
+        | "zelle"
+        | "venmo"
+        | "card"
+        | "paypal"
+        | "other"
       payment_status: "paid" | "pending" | "past_due"
       payment_type: "card" | "cash"
       subscription_status: "active" | "canceled" | "past_due"
@@ -399,6 +416,7 @@ export const Constants = {
         "church_admin",
         "member",
       ],
+      contribution_frequency: ["weekly", "monthly", "one_time", "flexible"],
       contribution_type: [
         "tithe",
         "offering",
@@ -408,7 +426,15 @@ export const Constants = {
         "other",
       ],
       member_status: ["active", "inactive"],
-      payment_method: ["stripe", "cash", "zelle", "venmo", "card"],
+      payment_method: [
+        "stripe",
+        "cash",
+        "zelle",
+        "venmo",
+        "card",
+        "paypal",
+        "other",
+      ],
       payment_status: ["paid", "pending", "past_due"],
       payment_type: ["card", "cash"],
       subscription_status: ["active", "canceled", "past_due"],

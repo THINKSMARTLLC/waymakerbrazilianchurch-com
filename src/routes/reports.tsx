@@ -58,6 +58,7 @@ function ReportsPage() {
 
   // Latest payment dates per member (for status filter — uses ALL payments, not just filtered range)
   const [lastByMember, setLastByMember] = useState<Map<string, string>>(new Map());
+  const [freqByMember, setFreqByMember] = useState<Map<string, "weekly" | "monthly" | "one_time" | "flexible">>(new Map());
 
   // Edit modal
   const [editing, setEditing] = useState<Payment | null>(null);
@@ -88,6 +89,16 @@ function ReportsPage() {
     }
     setLastByMember(map);
 
+    // Fetch frequency per member for status calc
+    const { data: memberFreq } = await supabase
+      .from("members")
+      .select("id, contribution_frequency");
+    const freqMap = new Map<string, "weekly" | "monthly" | "one_time" | "flexible">();
+    for (const m of (memberFreq as { id: string; contribution_frequency: "weekly" | "monthly" | "one_time" | "flexible" }[]) || []) {
+      freqMap.set(m.id, m.contribution_frequency ?? "weekly");
+    }
+    setFreqByMember(freqMap);
+
     setLoading(false);
   };
 
@@ -114,12 +125,12 @@ function ReportsPage() {
         if (normalized !== methodFilter) return false;
       }
       if (statusFilter !== "all" && p.members) {
-        const status = computeMemberStatus(lastByMember.get(p.members.id) ?? null);
+        const status = computeMemberStatus(lastByMember.get(p.members.id) ?? null, freqByMember.get(p.members.id) ?? "weekly");
         if (status !== statusFilter) return false;
       }
       return true;
     });
-  }, [payments, nameFilter, methodFilter, statusFilter, lastByMember]);
+  }, [payments, nameFilter, methodFilter, statusFilter, lastByMember, freqByMember]);
 
   // Metrics — distinct members from filtered payments
   const distinctPaidMembers = useMemo(() => {
@@ -145,11 +156,11 @@ function ReportsPage() {
     const ids = new Set<string>();
     for (const p of filteredPayments) {
       if (!p.members) continue;
-      const status = computeMemberStatus(lastByMember.get(p.members.id) ?? null);
+      const status = computeMemberStatus(lastByMember.get(p.members.id) ?? null, freqByMember.get(p.members.id) ?? "weekly");
       if (status === "late") ids.add(p.members.id);
     }
     return ids.size;
-  }, [filteredPayments, lastByMember]);
+  }, [filteredPayments, lastByMember, freqByMember]);
 
   // Grouped view
   const grouped = useMemo(() => {
@@ -264,6 +275,8 @@ function ReportsPage() {
             <option value="zelle">Zelle</option>
             <option value="venmo">Venmo</option>
             <option value="card">Card</option>
+            <option value="paypal">PayPal</option>
+            <option value="other">Other</option>
           </select>
         </div>
         <div>
@@ -277,6 +290,7 @@ function ReportsPage() {
             <option value="on_time">On Time</option>
             <option value="late">Late</option>
             <option value="no_payment">No Payment Yet</option>
+            <option value="active">Active</option>
           </select>
         </div>
         <div>
@@ -319,7 +333,7 @@ function ReportsPage() {
                 </thead>
                 <tbody>
                   {grouped.map((g) => {
-                    const status = computeMemberStatus(lastByMember.get(g.id) ?? null);
+                    const status = computeMemberStatus(lastByMember.get(g.id) ?? null, freqByMember.get(g.id) ?? "weekly");
                     return (
                       <tr key={g.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
                         <td className="px-5 py-3 text-sm font-medium text-foreground">{g.name}</td>

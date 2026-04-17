@@ -12,9 +12,16 @@ import {
 import { formatUSD } from "@/lib/format";
 import { RecordPaymentModal } from "@/components/RecordPaymentModal";
 import { ContributionsModal } from "@/components/ContributionsModal";
-import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, type MemberPaymentStatus } from "@/lib/memberStatus";
+import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, FREQUENCY_LABEL, type MemberPaymentStatus, type ContributionFrequency } from "@/lib/memberStatus";
+
+interface MembersSearch {
+  status?: MemberPaymentStatus;
+}
 
 export const Route = createFileRoute("/members/")({
+  validateSearch: (search: Record<string, unknown>): MembersSearch => ({
+    status: (search.status as MemberPaymentStatus | undefined) ?? undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Members — WAY MAKER FLOW" },
@@ -38,16 +45,24 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
   venmo: "Venmo",
   card: "Card",
   stripe: "Card",
+  paypal: "PayPal",
+  other: "Other",
 };
 
 function MembersPage() {
+  const { status: statusParam } = Route.useSearch();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<MemberPaymentStatus | "all">(statusParam ?? "all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [recordingFor, setRecordingFor] = useState<Member | null>(null);
   const [viewingHistoryFor, setViewingHistoryFor] = useState<Member | null>(null);
   const [members, setMembers] = useState<MemberWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (statusParam) setStatusFilter(statusParam);
+  }, [statusParam]);
 
   const fetchMembers = async () => {
     const { data: membersData } = await supabase
@@ -75,11 +90,12 @@ function MembersPage() {
 
     const withStatus: MemberWithStatus[] = list.map((m) => {
       const last = lastByMember.get(m.id);
+      const freq = (m as Member & { contribution_frequency?: ContributionFrequency }).contribution_frequency ?? "weekly";
       return {
         ...m,
         last_payment_date: last?.payment_date ?? null,
         last_payment_method: last?.payment_method ?? null,
-        payment_status: computeMemberStatus(last?.payment_date ?? null),
+        payment_status: computeMemberStatus(last?.payment_date ?? null, freq),
       };
     });
 
@@ -99,26 +115,41 @@ function MembersPage() {
 
   const filtered = useMemo(
     () =>
-      members.filter(
-        (m) =>
-          m.name.toLowerCase().includes(search.toLowerCase()) ||
-          (m.email || "").toLowerCase().includes(search.toLowerCase())
-      ),
-    [members, search]
+      members.filter((m) => {
+        if (statusFilter !== "all" && m.payment_status !== statusFilter) return false;
+        if (!search) return true;
+        const q = search.toLowerCase();
+        return m.name.toLowerCase().includes(q) || (m.email || "").toLowerCase().includes(q);
+      }),
+    [members, search, statusFilter]
   );
 
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search members..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-input bg-card py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          />
+        <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search members..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-xl border border-input bg-card py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as MemberPaymentStatus | "all")}
+            className="rounded-xl border border-input bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            aria-label="Filter by status"
+          >
+            <option value="all">All Statuses</option>
+            <option value="on_time">On Time</option>
+            <option value="late">Late</option>
+            <option value="no_payment">No Payment Yet</option>
+            <option value="active">Active</option>
+          </select>
         </div>
         <button onClick={() => setShowAddModal(true)} className="btn-google inline-flex items-center gap-2">
           <UserPlus className="h-4 w-4" />
@@ -286,6 +317,8 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [weekly, setWeekly] = useState<string>(String(member?.weekly_contribution_usd ?? ""));
+  const initialFreq = ((member as Member & { contribution_frequency?: ContributionFrequency })?.contribution_frequency) ?? "weekly";
+  const [frequency, setFrequency] = useState<ContributionFrequency>(initialFreq);
   const isEditing = !!member;
 
   const initial = detectCountryFromPhone(member?.phone ?? null);
@@ -318,12 +351,13 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
       email: (form.get("email") as string) || null,
       phone: buildE164(),
       payment_type: form.get("payment_type") as "card" | "cash",
+      contribution_frequency: frequency,
       weekly_contribution_usd: weeklyNum,
     };
 
     const { error } = isEditing
-      ? await supabase.from("members").update(payload).eq("id", member.id)
-      : await supabase.from("members").insert(payload);
+      ? await supabase.from("members").update(payload as never).eq("id", member.id)
+      : await supabase.from("members").insert(payload as never);
 
     if (error) {
       setError(error.message);
@@ -405,11 +439,31 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
           </div>
 
           <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Contribution Frequency</label>
+            <select
+              value={frequency}
+              onChange={(e) => setFrequency(e.target.value as ContributionFrequency)}
+              className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              {(Object.keys(FREQUENCY_LABEL) as ContributionFrequency[]).map((k) => (
+                <option key={k} value={k}>{FREQUENCY_LABEL[k]}</option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {frequency === "weekly" && "Late after 7 days without payment."}
+              {frequency === "monthly" && "Late after 30 days without payment."}
+              {frequency === "one_time" && "Never marked Late once a payment is recorded."}
+              {frequency === "flexible" && "Always shown as Active regardless of payment timing."}
+            </p>
+          </div>
+
+          <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">Default Payment Method</label>
             <select name="payment_type" defaultValue={member?.payment_type ?? "card"} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
               <option value="card">Card</option>
               <option value="cash">Cash</option>
             </select>
+            <p className="mt-1 text-xs text-muted-foreground">Members can pay via Card, Cash, Zelle, Venmo, PayPal, or Other when recording a payment.</p>
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors">

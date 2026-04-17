@@ -63,7 +63,7 @@ function MemberProfilePage() {
 
   const initials = member.name.split(" ").map((n) => n[0]).join("").slice(0, 2);
   const lastPaymentDate = payments[0]?.payment_date ?? null;
-  const memberStatus = computeMemberStatus(lastPaymentDate);
+  const memberStatus = computeMemberStatus(lastPaymentDate, (member as Member & { contribution_frequency?: "weekly" | "monthly" | "one_time" | "flexible" }).contribution_frequency ?? "weekly");
 
   const handleDeletePayment = async (id: string) => {
     if (!confirm("Are you sure you want to delete this payment?")) return;

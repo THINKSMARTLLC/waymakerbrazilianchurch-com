@@ -6,11 +6,17 @@ interface StatCardProps {
   icon: LucideIcon;
   trend?: string;
   trendUp?: boolean;
+  onClick?: () => void;
 }
 
-export function StatCard({ title, value, icon: Icon, trend, trendUp }: StatCardProps) {
+export function StatCard({ title, value, icon: Icon, trend, trendUp, onClick }: StatCardProps) {
+  const interactive = !!onClick;
+  const Wrapper: "button" | "div" = interactive ? "button" : "div";
   return (
-    <div className="stat-card">
+    <Wrapper
+      onClick={onClick}
+      className={`stat-card text-left w-full ${interactive ? "cursor-pointer hover:shadow-md hover:border-primary/30 transition-all" : ""}`}
+    >
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-muted-foreground">{title}</p>
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent">
@@ -23,6 +29,6 @@ export function StatCard({ title, value, icon: Icon, trend, trendUp }: StatCardP
           {trend}
         </p>
       )}
-    </div>
+    </Wrapper>
   );
 }

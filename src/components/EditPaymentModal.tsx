@@ -18,7 +18,11 @@ const PAYMENT_METHODS = [
   { value: "zelle", label: "Zelle" },
   { value: "venmo", label: "Venmo" },
   { value: "card", label: "Card" },
+  { value: "paypal", label: "PayPal" },
+  { value: "other", label: "Other" },
 ] as const;
+
+type PaymentMethod = (typeof PAYMENT_METHODS)[number]["value"];
 
 interface Props {
   payment: Payment;
@@ -43,12 +47,17 @@ export function EditPaymentModal({ payment, onClose, onSaved }: Props) {
       return;
     }
 
+    const extra = Number(form.get("extra_amount")) || 0;
+    const base = Math.max(amount - extra, 0);
+
     const { error: updateError } = await supabase
       .from("payments")
       .update({
         amount,
+        base_amount: base,
+        extra_amount: extra,
         payment_date: form.get("payment_date") as string,
-        payment_method: form.get("payment_method") as "cash" | "zelle" | "venmo" | "card" | "stripe",
+        payment_method: form.get("payment_method") as PaymentMethod,
         contribution_type: form.get("contribution_type") as "tithe",
         notes: (form.get("notes") as string) || null,
       })
@@ -79,6 +88,12 @@ export function EditPaymentModal({ payment, onClose, onSaved }: Props) {
               <label className="block text-sm font-medium text-foreground mb-1.5">Amount (USD)</label>
               <input name="amount" type="number" step="0.01" min="0.01" required defaultValue={payment.amount} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Extra Amount (USD)</label>
+            <input name="extra_amount" type="number" step="0.01" min="0" defaultValue={Number(payment.extra_amount) || 0} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+            <p className="mt-1 text-xs text-muted-foreground">Amount above the expected base contribution.</p>
           </div>
 
           <div>

@@ -2,6 +2,7 @@ import { Link, useLocation, Outlet } from "@tanstack/react-router";
 import { LayoutDashboard, User, History, LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCurrentMember } from "@/hooks/useCurrentMember";
 import { logActivity } from "@/lib/activityLog";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
 
@@ -15,6 +16,8 @@ export function PortalLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const member = useCurrentMember();
+  const initial = (member?.name || user?.email || "M").charAt(0).toUpperCase();
 
   const handleSignOut = async () => {
     await logActivity("logout");
@@ -73,11 +76,15 @@ export function PortalLayout() {
             to="/portal/profile"
             className="flex items-center gap-3 rounded-lg p-2 hover:bg-muted transition-colors"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-              {user?.email?.charAt(0).toUpperCase() || "M"}
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground overflow-hidden">
+              {member?.profile_photo_url ? (
+                <img src={member.profile_photo_url} alt={member.name} className="h-full w-full object-cover" />
+              ) : (
+                initial
+              )}
             </div>
             <div className="flex-1 min-w-0 text-sm">
-              <p className="font-medium text-foreground truncate">{user?.email || "Membro"}</p>
+              <p className="font-medium text-foreground truncate">{member?.name || user?.email || "Membro"}</p>
               <p className="text-xs text-muted-foreground">Ver perfil</p>
             </div>
           </Link>

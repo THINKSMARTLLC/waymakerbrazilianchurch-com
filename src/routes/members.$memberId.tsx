@@ -7,6 +7,7 @@ import { formatUSD } from "@/lib/format";
 import { EditPaymentModal } from "@/components/EditPaymentModal";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses } from "@/lib/memberStatus";
 import { PAYMENT_METHOD_LABEL } from "@/components/RecordPaymentModal";
+import { formatPhoneDisplay } from "@/lib/phone";
 
 export const Route = createFileRoute("/members/$memberId")({
   head: () => ({
@@ -86,14 +87,18 @@ function MemberProfilePage() {
 
       <div className="card-elevated p-6">
         <div className="flex items-start gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-accent text-lg font-semibold text-primary">
-            {initials}
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-accent text-lg font-semibold text-primary overflow-hidden">
+            {member.profile_photo_url ? (
+              <img src={member.profile_photo_url} alt={member.name} className="h-full w-full object-cover" />
+            ) : (
+              initials
+            )}
           </div>
           <div className="flex-1">
             <h2 className="font-display text-xl font-semibold text-foreground">{member.name}</h2>
             <div className="mt-2 space-y-1.5">
               {member.email && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Mail className="h-4 w-4" /> {member.email}</p>}
-              {member.phone && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Phone className="h-4 w-4" /> {member.phone}</p>}
+              {member.phone && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Phone className="h-4 w-4" /> {formatPhoneDisplay(member.phone)}</p>}
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
                 <CreditCard className="h-4 w-4" /> {member.payment_type === "card" ? "Cartão" : "Dinheiro"}
               </p>

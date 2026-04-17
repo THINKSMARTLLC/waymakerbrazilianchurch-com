@@ -13,6 +13,7 @@ import { formatUSD } from "@/lib/format";
 import { RecordPaymentModal } from "@/components/RecordPaymentModal";
 import { ContributionsModal } from "@/components/ContributionsModal";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, FREQUENCY_LABEL, type MemberPaymentStatus, type ContributionFrequency } from "@/lib/memberStatus";
+import { formatPhoneDisplay } from "@/lib/phone";
 
 interface MembersSearch {
   status?: MemberPaymentStatus;
@@ -189,14 +190,18 @@ function MembersPage() {
                     <tr key={member.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-primary">
-                            {member.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-primary overflow-hidden">
+                            {member.profile_photo_url ? (
+                              <img src={member.profile_photo_url} alt={member.name} className="h-full w-full object-cover" />
+                            ) : (
+                              member.name.split(" ").map((n) => n[0]).join("").slice(0, 2)
+                            )}
                           </div>
                           <span className="text-sm font-medium text-foreground">{member.name}</span>
                         </div>
                       </td>
                       <td className="px-5 py-3.5 text-sm text-muted-foreground hidden lg:table-cell">{member.email}</td>
-                      <td className="px-5 py-3.5 text-sm text-muted-foreground hidden xl:table-cell">{member.phone}</td>
+                      <td className="px-5 py-3.5 text-sm text-muted-foreground hidden xl:table-cell">{formatPhoneDisplay(member.phone)}</td>
                       <td className="px-5 py-3.5 text-sm text-foreground text-right tabular-nums">{formatUSD(weekly)}</td>
                       <td className="px-5 py-3.5 text-sm text-muted-foreground text-right tabular-nums hidden md:table-cell">{formatUSD(weekly * 4)}</td>
                       <td className="px-5 py-3.5 text-sm text-muted-foreground hidden md:table-cell">

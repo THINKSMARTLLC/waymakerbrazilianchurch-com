@@ -91,7 +91,7 @@ export function AppLayout() {
               <p className="font-medium text-foreground truncate">{user?.email || "Admin"}</p>
             </div>
             <button
-              onClick={signOut}
+              onClick={handleSignOut}
               className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-destructive transition-colors"
               title="Sair"
             >

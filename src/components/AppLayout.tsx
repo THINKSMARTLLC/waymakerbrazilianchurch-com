@@ -24,6 +24,16 @@ export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { isSuperAdmin } = useUserRole();
+
+  const navItems = isSuperAdmin
+    ? [...baseNavItems, { label: "Admin", to: "/admin" as const, icon: Shield }]
+    : baseNavItems;
+
+  const handleSignOut = async () => {
+    await logActivity("logout");
+    await signOut();
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

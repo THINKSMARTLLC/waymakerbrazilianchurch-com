@@ -54,6 +54,7 @@ export type Database = {
           phone: string | null
           status: Database["public"]["Enums"]["member_status"]
           updated_at: string
+          weekly_contribution_usd: number
         }
         Insert: {
           created_at?: string
@@ -64,6 +65,7 @@ export type Database = {
           phone?: string | null
           status?: Database["public"]["Enums"]["member_status"]
           updated_at?: string
+          weekly_contribution_usd?: number
         }
         Update: {
           created_at?: string
@@ -74,37 +76,47 @@ export type Database = {
           phone?: string | null
           status?: Database["public"]["Enums"]["member_status"]
           updated_at?: string
+          weekly_contribution_usd?: number
         }
         Relationships: []
       }
       payments: {
         Row: {
           amount: number
+          contribution_type: Database["public"]["Enums"]["contribution_type"]
           created_at: string
           id: string
           member_id: string
+          notes: string | null
           payment_date: string
           payment_method: Database["public"]["Enums"]["payment_method"]
+          recorded_by: string | null
           status: Database["public"]["Enums"]["payment_status"]
           stripe_subscription_id: string | null
         }
         Insert: {
           amount: number
+          contribution_type?: Database["public"]["Enums"]["contribution_type"]
           created_at?: string
           id?: string
           member_id: string
+          notes?: string | null
           payment_date?: string
           payment_method?: Database["public"]["Enums"]["payment_method"]
+          recorded_by?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
           stripe_subscription_id?: string | null
         }
         Update: {
           amount?: number
+          contribution_type?: Database["public"]["Enums"]["contribution_type"]
           created_at?: string
           id?: string
           member_id?: string
+          notes?: string | null
           payment_date?: string
           payment_method?: Database["public"]["Enums"]["payment_method"]
+          recorded_by?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
           stripe_subscription_id?: string | null
         }
@@ -237,8 +249,15 @@ export type Database = {
         | "super_admin"
         | "church_admin"
         | "member"
+      contribution_type:
+        | "tithe"
+        | "offering"
+        | "pastor_salary"
+        | "special_donation"
+        | "event_contribution"
+        | "other"
       member_status: "active" | "inactive"
-      payment_method: "stripe" | "cash"
+      payment_method: "stripe" | "cash" | "zelle" | "venmo" | "card"
       payment_status: "paid" | "pending" | "past_due"
       payment_type: "card" | "cash"
       subscription_status: "active" | "canceled" | "past_due"
@@ -377,8 +396,16 @@ export const Constants = {
         "church_admin",
         "member",
       ],
+      contribution_type: [
+        "tithe",
+        "offering",
+        "pastor_salary",
+        "special_donation",
+        "event_contribution",
+        "other",
+      ],
       member_status: ["active", "inactive"],
-      payment_method: ["stripe", "cash"],
+      payment_method: ["stripe", "cash", "zelle", "venmo", "card"],
       payment_status: ["paid", "pending", "past_due"],
       payment_type: ["card", "cash"],
       subscription_status: ["active", "canceled", "past_due"],

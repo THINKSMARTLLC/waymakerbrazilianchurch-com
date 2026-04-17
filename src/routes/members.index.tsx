@@ -12,9 +12,16 @@ import {
 import { formatUSD } from "@/lib/format";
 import { RecordPaymentModal } from "@/components/RecordPaymentModal";
 import { ContributionsModal } from "@/components/ContributionsModal";
-import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, type MemberPaymentStatus } from "@/lib/memberStatus";
+import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, FREQUENCY_LABEL, type MemberPaymentStatus, type ContributionFrequency } from "@/lib/memberStatus";
+
+interface MembersSearch {
+  status?: MemberPaymentStatus;
+}
 
 export const Route = createFileRoute("/members/")({
+  validateSearch: (search: Record<string, unknown>): MembersSearch => ({
+    status: (search.status as MemberPaymentStatus | undefined) ?? undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Members — WAY MAKER FLOW" },
@@ -38,16 +45,24 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
   venmo: "Venmo",
   card: "Card",
   stripe: "Card",
+  paypal: "PayPal",
+  other: "Other",
 };
 
 function MembersPage() {
+  const { status: statusParam } = Route.useSearch();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<MemberPaymentStatus | "all">(statusParam ?? "all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [recordingFor, setRecordingFor] = useState<Member | null>(null);
   const [viewingHistoryFor, setViewingHistoryFor] = useState<Member | null>(null);
   const [members, setMembers] = useState<MemberWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (statusParam) setStatusFilter(statusParam);
+  }, [statusParam]);
 
   const fetchMembers = async () => {
     const { data: membersData } = await supabase
@@ -75,11 +90,12 @@ function MembersPage() {
 
     const withStatus: MemberWithStatus[] = list.map((m) => {
       const last = lastByMember.get(m.id);
+      const freq = (m as Member & { contribution_frequency?: ContributionFrequency }).contribution_frequency ?? "weekly";
       return {
         ...m,
         last_payment_date: last?.payment_date ?? null,
         last_payment_method: last?.payment_method ?? null,
-        payment_status: computeMemberStatus(last?.payment_date ?? null),
+        payment_status: computeMemberStatus(last?.payment_date ?? null, freq),
       };
     });
 
@@ -99,12 +115,13 @@ function MembersPage() {
 
   const filtered = useMemo(
     () =>
-      members.filter(
-        (m) =>
-          m.name.toLowerCase().includes(search.toLowerCase()) ||
-          (m.email || "").toLowerCase().includes(search.toLowerCase())
-      ),
-    [members, search]
+      members.filter((m) => {
+        if (statusFilter !== "all" && m.payment_status !== statusFilter) return false;
+        if (!search) return true;
+        const q = search.toLowerCase();
+        return m.name.toLowerCase().includes(q) || (m.email || "").toLowerCase().includes(q);
+      }),
+    [members, search, statusFilter]
   );
 
   return (

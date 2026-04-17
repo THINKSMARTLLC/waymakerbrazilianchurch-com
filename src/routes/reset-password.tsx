@@ -4,7 +4,7 @@ import { Church } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/reset-password")({
-  head: () => ({ meta: [{ title: "Nova Senha — ChurchFlow" }] }),
+  head: () => ({ meta: [{ title: "Nova Senha — WAY MAKER FLOW" }] }),
   component: ResetPasswordPage,
 });
 

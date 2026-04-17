@@ -112,7 +112,7 @@ export function AppLayout() {
           <h1 className="page-header">
             {navItems.find((item) =>
               item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to)
-            )?.label || "ChurchFlow"}
+            )?.label || "WAY MAKER FLOW"}
           </h1>
         </header>
 

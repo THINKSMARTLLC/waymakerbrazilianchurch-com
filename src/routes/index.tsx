@@ -10,7 +10,7 @@ import { formatUSD } from "@/lib/format";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Dashboard — ChurchFlow" },
+      { title: "Dashboard — WAY MAKER FLOW" },
       { name: "description", content: "Church financial management dashboard" },
     ],
   }),

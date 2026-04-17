@@ -8,8 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Login — ChurchFlow" },
-      { name: "description", content: "Sign in to ChurchFlow" },
+      { title: "Login — WAY MAKER FLOW" },
+      { name: "description", content: "Sign in to WAY MAKER FLOW" },
     ],
   }),
   component: LoginPage,
@@ -51,7 +51,7 @@ function LoginPage() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary">
             <Church className="h-7 w-7 text-primary-foreground" />
           </div>
-          <h1 className="font-display text-2xl font-semibold text-foreground">ChurchFlow</h1>
+          <h1 className="font-display text-2xl font-semibold text-foreground">WAY MAKER FLOW</h1>
           <p className="mt-1 text-sm text-muted-foreground">Gestão financeira simples para sua igreja</p>
         </div>
 

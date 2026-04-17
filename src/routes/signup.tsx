@@ -7,8 +7,8 @@ import { logActivity } from "@/lib/activityLog";
 export const Route = createFileRoute("/signup")({
   head: () => ({
     meta: [
-      { title: "Criar Conta — ChurchFlow" },
-      { name: "description", content: "Crie sua conta no ChurchFlow" },
+      { title: "Criar Conta — WAY MAKER FLOW" },
+      { name: "description", content: "Crie sua conta no WAY MAKER FLOW" },
     ],
   }),
   component: SignupPage,

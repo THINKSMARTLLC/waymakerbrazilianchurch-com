@@ -54,7 +54,7 @@ export function AppLayout() {
             <img src={wayMakerLogo} alt="Way Maker logo" className="h-9 w-9 object-contain" />
           </div>
           <span className="font-display text-lg font-semibold text-foreground tracking-tight">
-            Way Maker
+            WAY MAKER FLOW
           </span>
           <button className="ml-auto md:hidden text-muted-foreground" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5" />
@@ -112,7 +112,7 @@ export function AppLayout() {
           <h1 className="page-header">
             {navItems.find((item) =>
               item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to)
-            )?.label || "ChurchFlow"}
+            )?.label || "WAY MAKER FLOW"}
           </h1>
         </header>
 

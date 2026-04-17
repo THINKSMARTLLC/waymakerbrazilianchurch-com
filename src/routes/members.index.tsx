@@ -16,7 +16,7 @@ import { ContributionsModal } from "@/components/ContributionsModal";
 export const Route = createFileRoute("/members/")({
   head: () => ({
     meta: [
-      { title: "Members — ChurchFlow" },
+      { title: "Members — WAY MAKER FLOW" },
       { name: "description", content: "Manage church members and weekly contributions" },
     ],
   }),

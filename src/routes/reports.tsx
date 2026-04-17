@@ -7,7 +7,7 @@ import { formatUSD } from "@/lib/format";
 export const Route = createFileRoute("/reports")({
   head: () => ({
     meta: [
-      { title: "Relatórios — ChurchFlow" },
+      { title: "Relatórios — WAY MAKER FLOW" },
       { name: "description", content: "Relatórios financeiros e doações" },
     ],
   }),

@@ -317,6 +317,8 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [weekly, setWeekly] = useState<string>(String(member?.weekly_contribution_usd ?? ""));
+  const initialFreq = ((member as Member & { contribution_frequency?: ContributionFrequency })?.contribution_frequency) ?? "weekly";
+  const [frequency, setFrequency] = useState<ContributionFrequency>(initialFreq);
   const isEditing = !!member;
 
   const initial = detectCountryFromPhone(member?.phone ?? null);
@@ -349,12 +351,13 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
       email: (form.get("email") as string) || null,
       phone: buildE164(),
       payment_type: form.get("payment_type") as "card" | "cash",
+      contribution_frequency: frequency,
       weekly_contribution_usd: weeklyNum,
     };
 
     const { error } = isEditing
-      ? await supabase.from("members").update(payload).eq("id", member.id)
-      : await supabase.from("members").insert(payload);
+      ? await supabase.from("members").update(payload as never).eq("id", member.id)
+      : await supabase.from("members").insert(payload as never);
 
     if (error) {
       setError(error.message);

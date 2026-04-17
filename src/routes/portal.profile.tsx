@@ -16,7 +16,7 @@ interface MemberData {
 }
 
 export const Route = createFileRoute("/portal/profile")({
-  component: MemberProfile;
+  component: MemberProfile,
 });
 
 function MemberProfile() {

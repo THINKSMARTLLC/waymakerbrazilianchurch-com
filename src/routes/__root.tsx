@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts, useLocation } from
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { AppLayout } from "@/components/AppLayout";
+import { PortalLayout } from "@/components/PortalLayout";
 
 import appCss from "../styles.css?url";
 
@@ -99,7 +100,7 @@ function AuthGate() {
 }
 
 function StatusGate() {
-  const { status, loading, isSuperAdmin } = useUserRole();
+  const { status, loading, isSuperAdmin, isStaff, roles } = useUserRole();
   const location = useLocation();
 
   if (loading) {
@@ -129,6 +130,16 @@ function StatusGate() {
       window.location.replace("/pending");
     }
     return null;
+  }
+
+  // Members (non-staff) get the personal portal — keep them out of admin pages
+  const isMemberOnly = !isStaff && roles.includes("member");
+  if (isMemberOnly) {
+    if (!location.pathname.startsWith("/portal")) {
+      if (typeof window !== "undefined") window.location.replace("/portal");
+      return null;
+    }
+    return <PortalLayout />;
   }
 
   return <AppLayout />;

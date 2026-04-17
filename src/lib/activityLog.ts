@@ -22,13 +22,15 @@ export async function logActivity(
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase.from("activity_logs").insert({
-      user_id: user.id,
-      user_email: user.email,
-      action,
-      page_accessed: pageAccessed ?? (typeof window !== "undefined" ? window.location.pathname : null),
-      metadata: metadata ?? null,
-    });
+    await supabase.from("activity_logs").insert([
+      {
+        user_id: user.id,
+        user_email: user.email ?? null,
+        action,
+        page_accessed: pageAccessed ?? (typeof window !== "undefined" ? window.location.pathname : null),
+        metadata: (metadata ?? null) as never,
+      },
+    ]);
   } catch (err) {
     console.warn("Failed to log activity", err);
   }

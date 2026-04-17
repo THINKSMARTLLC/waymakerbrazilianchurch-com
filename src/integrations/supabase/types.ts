@@ -49,9 +49,12 @@ export type Database = {
           address: string | null
           contribution_frequency: Database["public"]["Enums"]["contribution_frequency"]
           created_at: string
+          date_of_birth: string | null
+          department: string | null
           email: string | null
           emergency_contact: string | null
           id: string
+          member_role: string | null
           name: string
           payment_type: Database["public"]["Enums"]["payment_type"]
           phone: string | null
@@ -65,9 +68,12 @@ export type Database = {
           address?: string | null
           contribution_frequency?: Database["public"]["Enums"]["contribution_frequency"]
           created_at?: string
+          date_of_birth?: string | null
+          department?: string | null
           email?: string | null
           emergency_contact?: string | null
           id?: string
+          member_role?: string | null
           name: string
           payment_type?: Database["public"]["Enums"]["payment_type"]
           phone?: string | null
@@ -81,9 +87,12 @@ export type Database = {
           address?: string | null
           contribution_frequency?: Database["public"]["Enums"]["contribution_frequency"]
           created_at?: string
+          date_of_birth?: string | null
+          department?: string | null
           email?: string | null
           emergency_contact?: string | null
           id?: string
+          member_role?: string | null
           name?: string
           payment_type?: Database["public"]["Enums"]["payment_type"]
           phone?: string | null

@@ -3,6 +3,7 @@ import { ArrowLeft, CreditCard, DollarSign, Mail, Phone } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { formatUSD } from "@/lib/format";
 
 export const Route = createFileRoute("/members/$memberId")({
   head: () => ({
@@ -118,10 +119,10 @@ function MemberProfilePage() {
               {payments.map((p) => (
                 <tr key={p.id} className="border-b border-border last:border-0">
                   <td className="px-5 py-3 text-sm text-foreground">
-                    {new Date(p.payment_date).toLocaleDateString("pt-BR")}
+                    {new Date(p.payment_date).toLocaleDateString("en-US")}
                   </td>
                   <td className="px-5 py-3 text-sm font-medium text-foreground">
-                    R$ {Number(p.amount).toFixed(2)}
+                    {formatUSD(p.amount)}
                   </td>
                   <td className="px-5 py-3 text-sm text-muted-foreground">
                     {p.payment_method === "stripe" ? "Cartão" : "Dinheiro"}
@@ -183,7 +184,7 @@ function CashDonationModal({ memberId, onClose, onSaved }: { memberId: string; o
         <form className="space-y-4" onSubmit={handleSubmit}>
           {error && <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Valor (R$)</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Amount (USD)</label>
             <input name="amount" type="number" step="0.01" min="0.01" required className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" placeholder="100.00" />
           </div>
           <div>

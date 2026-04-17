@@ -170,10 +170,42 @@ function MembersPage() {
   );
 }
 
+type CountryKey = "US" | "BR" | "OTHER";
+const COUNTRIES: Record<CountryKey, { label: string; dial: string; flag: string }> = {
+  US: { label: "United States", dial: "+1", flag: "🇺🇸" },
+  BR: { label: "Brazil", dial: "+55", flag: "🇧🇷" },
+  OTHER: { label: "Other", dial: "", flag: "🌎" },
+};
+
+function detectCountryFromPhone(phone: string | null): { country: CountryKey; number: string } {
+  if (!phone) return { country: "US", number: "" };
+  const trimmed = phone.trim();
+  if (trimmed.startsWith("+1")) return { country: "US", number: trimmed.slice(2).trim() };
+  if (trimmed.startsWith("+55")) return { country: "BR", number: trimmed.slice(3).trim() };
+  if (trimmed.startsWith("+")) return { country: "OTHER", number: trimmed };
+  return { country: "US", number: trimmed };
+}
+
 function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClose: () => void; onSaved: () => void }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const isEditing = !!member;
+
+  const initial = detectCountryFromPhone(member?.phone ?? null);
+  const [country, setCountry] = useState<CountryKey>(initial.country);
+  const [phoneNumber, setPhoneNumber] = useState(initial.number);
+  const [otherDial, setOtherDial] = useState(country === "OTHER" && initial.number.startsWith("+")
+    ? initial.number.split(" ")[0]
+    : "+");
+
+  const buildE164 = (): string | null => {
+    const digits = phoneNumber.replace(/\D/g, "");
+    if (!digits) return null;
+    if (country === "US") return `+1${digits}`;
+    if (country === "BR") return `+55${digits}`;
+    const dial = otherDial.startsWith("+") ? otherDial.replace(/[^\d+]/g, "") : `+${otherDial.replace(/\D/g, "")}`;
+    return `${dial}${digits}`;
+  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -184,7 +216,7 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
     const payload = {
       name: form.get("name") as string,
       email: (form.get("email") as string) || null,
-      phone: (form.get("phone") as string) || null,
+      phone: buildE164(),
       payment_type: form.get("payment_type") as "card" | "cash",
     };
 
@@ -219,7 +251,40 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">Telefone</label>
-            <input name="phone" type="tel" defaultValue={member?.phone ?? ""} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" placeholder="(11) 99999-0000" />
+            <div className="flex gap-2">
+              <select
+                value={country}
+                onChange={(e) => setCountry(e.target.value as CountryKey)}
+                className="rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                aria-label="Country"
+              >
+                {(Object.keys(COUNTRIES) as CountryKey[]).map((k) => (
+                  <option key={k} value={k}>
+                    {COUNTRIES[k].flag} {COUNTRIES[k].label} {COUNTRIES[k].dial && `(${COUNTRIES[k].dial})`}
+                  </option>
+                ))}
+              </select>
+              {country === "OTHER" && (
+                <input
+                  type="text"
+                  value={otherDial}
+                  onChange={(e) => setOtherDial(e.target.value)}
+                  placeholder="+44"
+                  className="w-20 rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  aria-label="Dial code"
+                />
+              )}
+              <input
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder={country === "US" ? "215 555 1234" : country === "BR" ? "11 99999 9999" : "phone number"}
+              />
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Saved as: {buildE164() ?? "—"}
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">Método de Pagamento</label>

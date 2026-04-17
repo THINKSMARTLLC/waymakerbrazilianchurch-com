@@ -38,7 +38,7 @@ export function DonationsChart() {
               tickFormatter={(v) => `$${v / 1000}k`}
             />
             <Tooltip
-              formatter={(value: number) => [`$${value.toLocaleString()}`, "Donations"]}
+              formatter={(value: number) => [new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value), "Donations"]}
               contentStyle={{
                 borderRadius: "12px",
                 border: "1px solid oklch(0.92 0.005 240)",

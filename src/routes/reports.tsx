@@ -94,11 +94,11 @@ function ReportsPage() {
         </div>
         <div className="stat-card">
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><CreditCard className="h-4 w-4" />Doações Cartão</div>
-          <p className="mt-1 font-display text-2xl font-semibold text-foreground">R$ {cardTotal.toFixed(2)}</p>
+          <p className="mt-1 font-display text-2xl font-semibold text-foreground">{formatUSD(cardTotal)}</p>
         </div>
         <div className="stat-card">
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><DollarSign className="h-4 w-4" />Doações Dinheiro</div>
-          <p className="mt-1 font-display text-2xl font-semibold text-foreground">R$ {cashTotal.toFixed(2)}</p>
+          <p className="mt-1 font-display text-2xl font-semibold text-foreground">{formatUSD(cashTotal)}</p>
         </div>
       </div>
 
@@ -128,7 +128,7 @@ function ReportsPage() {
                   {paid.map((p) => (
                     <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
                       <td className="px-5 py-3 text-sm font-medium text-foreground">{p.members?.name || "—"}</td>
-                      <td className="px-5 py-3 text-sm text-foreground">R$ {Number(p.amount).toFixed(2)}</td>
+                      <td className="px-5 py-3 text-sm text-foreground">{formatUSD(p.amount)}</td>
                       <td className="px-5 py-3 text-sm text-muted-foreground hidden sm:table-cell">{p.payment_method === "stripe" ? "Cartão" : "Dinheiro"}</td>
                       <td className="px-5 py-3 text-sm text-muted-foreground hidden sm:table-cell">{new Date(p.payment_date).toLocaleDateString("pt-BR")}</td>
                     </tr>
@@ -155,8 +155,8 @@ function ReportsPage() {
                   {pastDue.map((p) => (
                     <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
                       <td className="px-5 py-3 text-sm font-medium text-foreground">{p.members?.name || "—"}</td>
-                      <td className="px-5 py-3 text-sm text-foreground">R$ {Number(p.amount).toFixed(2)}</td>
-                      <td className="px-5 py-3 text-sm text-muted-foreground hidden sm:table-cell">{new Date(p.payment_date).toLocaleDateString("pt-BR")}</td>
+                      <td className="px-5 py-3 text-sm text-foreground">{formatUSD(p.amount)}</td>
+                      <td className="px-5 py-3 text-sm text-muted-foreground hidden sm:table-cell">{new Date(p.payment_date).toLocaleDateString("en-US")}</td>
                     </tr>
                   ))}
                 </tbody>

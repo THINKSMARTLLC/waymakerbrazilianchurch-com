@@ -5,6 +5,7 @@ import { DonationsChart } from "@/components/DonationsChart";
 import { QuickActions } from "@/components/QuickActions";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { formatUSD } from "@/lib/format";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -55,7 +56,7 @@ function DashboardPage() {
         <StatCard title="Em Atraso" value={String(stats.pastDue)} icon={AlertTriangle} />
         <StatCard
           title="Doações do Mês"
-          value={`R$ ${stats.totalDonations.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+          value={formatUSD(stats.totalDonations)}
           icon={TrendingUp}
         />
       </div>

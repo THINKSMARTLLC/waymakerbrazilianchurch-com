@@ -7,11 +7,14 @@ import {
   X,
   Church,
   LogOut,
+  Shield,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
+import { logActivity } from "@/lib/activityLog";
 
-const navItems = [
+const baseNavItems = [
   { label: "Dashboard", to: "/" as const, icon: LayoutDashboard },
   { label: "Membros", to: "/members" as const, icon: Users },
   { label: "Relatórios", to: "/reports" as const, icon: FileBarChart },
@@ -21,6 +24,16 @@ export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { isSuperAdmin } = useUserRole();
+
+  const navItems = isSuperAdmin
+    ? [...baseNavItems, { label: "Admin", to: "/admin" as const, icon: Shield }]
+    : baseNavItems;
+
+  const handleSignOut = async () => {
+    await logActivity("logout");
+    await signOut();
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -78,7 +91,7 @@ export function AppLayout() {
               <p className="font-medium text-foreground truncate">{user?.email || "Admin"}</p>
             </div>
             <button
-              onClick={signOut}
+              onClick={handleSignOut}
               className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-destructive transition-colors"
               title="Sair"
             >

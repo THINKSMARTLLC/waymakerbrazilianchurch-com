@@ -1,8 +1,11 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts, useLocation } from "@tanstack/react-router";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { AppLayout } from "@/components/AppLayout";
 
 import appCss from "../styles.css?url";
+
+const PUBLIC_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
 function NotFoundComponent() {
   return (
@@ -64,6 +67,7 @@ function RootComponent() {
 function AuthGate() {
   const { user, loading } = useAuth();
   const location = useLocation();
+  const isPublic = PUBLIC_ROUTES.includes(location.pathname);
 
   if (loading) {
     return (
@@ -73,24 +77,58 @@ function AuthGate() {
     );
   }
 
-  // Allow login page without auth
-  if (location.pathname === "/login") {
-    return <Outlet />;
-  }
+  if (isPublic) return <Outlet />;
 
-  // Redirect to login if not authenticated
   if (!user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
           <p className="text-muted-foreground mb-4">Você precisa fazer login para acessar o sistema.</p>
-          <Link to="/login" className="btn-google inline-block">
-            Ir para Login
-          </Link>
+          <Link to="/login" className="btn-google inline-block">Ir para Login</Link>
         </div>
       </div>
     );
   }
 
+  return <StatusGate />;
+}
+
+function StatusGate() {
+  const { status, loading } = useUserRole();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (status === "suspended") {
+    return <BlockedScreen reason="Sua conta foi suspensa. Entre em contato com o administrador." />;
+  }
+
+  if (status === "pending") {
+    if (location.pathname === "/pending") return <Outlet />;
+    if (typeof window !== "undefined" && location.pathname !== "/pending") {
+      window.location.replace("/pending");
+    }
+    return null;
+  }
+
   return <AppLayout />;
+}
+
+function BlockedScreen({ reason }: { reason: string }) {
+  const { signOut } = useAuth();
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="max-w-md text-center">
+        <h1 className="font-display text-2xl font-semibold text-destructive mb-3">Acesso bloqueado</h1>
+        <p className="text-muted-foreground mb-6">{reason}</p>
+        <button onClick={signOut} className="btn-google">Sair</button>
+      </div>
+    </div>
+  );
 }

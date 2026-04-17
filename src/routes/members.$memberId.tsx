@@ -1,9 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, CreditCard, DollarSign, Mail, Phone } from "lucide-react";
+import { ArrowLeft, CreditCard, DollarSign, Mail, Phone, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { formatUSD } from "@/lib/format";
+import { EditPaymentModal } from "@/components/EditPaymentModal";
+import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses } from "@/lib/memberStatus";
+import { PAYMENT_METHOD_LABEL } from "@/components/RecordPaymentModal";
 
 export const Route = createFileRoute("/members/$memberId")({
   head: () => ({
@@ -24,6 +27,8 @@ function MemberProfilePage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCashModal, setShowCashModal] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchData = async () => {
     const [memberRes, paymentsRes] = await Promise.all([
@@ -57,6 +62,20 @@ function MemberProfilePage() {
   }
 
   const initials = member.name.split(" ").map((n) => n[0]).join("").slice(0, 2);
+  const lastPaymentDate = payments[0]?.payment_date ?? null;
+  const memberStatus = computeMemberStatus(lastPaymentDate);
+
+  const handleDeletePayment = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this payment?")) return;
+    setDeletingId(id);
+    const { error } = await supabase.from("payments").delete().eq("id", id);
+    setDeletingId(null);
+    if (error) {
+      alert(`Failed to delete: ${error.message}`);
+      return;
+    }
+    fetchData();
+  };
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -80,9 +99,15 @@ function MemberProfilePage() {
               </p>
             </div>
           </div>
-          <span className={`status-badge ${member.status === "active" ? "status-active" : "status-inactive"}`}>
-            {member.status === "active" ? "Ativo" : "Inativo"}
-          </span>
+          <div className="flex flex-col items-end gap-2">
+            <span className={`status-badge ${member.status === "active" ? "status-active" : "status-inactive"}`}>
+              {member.status === "active" ? "Ativo" : "Inativo"}
+            </span>
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClasses(memberStatus)}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${statusDotClasses(memberStatus)}`} />
+              {STATUS_LABEL[memberStatus]}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -113,11 +138,12 @@ function MemberProfilePage() {
                 <th className="table-header px-5 py-3 text-left">Valor</th>
                 <th className="table-header px-5 py-3 text-left">Método</th>
                 <th className="table-header px-5 py-3 text-left">Status</th>
+                <th className="table-header px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
               {payments.map((p) => (
-                <tr key={p.id} className="border-b border-border last:border-0">
+                <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="px-5 py-3 text-sm text-foreground">
                     {new Date(p.payment_date).toLocaleDateString("en-US")}
                   </td>
@@ -125,12 +151,31 @@ function MemberProfilePage() {
                     {formatUSD(p.amount)}
                   </td>
                   <td className="px-5 py-3 text-sm text-muted-foreground">
-                    {p.payment_method === "stripe" ? "Cartão" : "Dinheiro"}
+                    {PAYMENT_METHOD_LABEL[p.payment_method] ?? p.payment_method}
                   </td>
                   <td className="px-5 py-3">
                     <span className={`status-badge status-${p.status === "past_due" ? "past-due" : p.status}`}>
                       {p.status === "paid" ? "Pago" : p.status === "pending" ? "Pendente" : "Em atraso"}
                     </span>
+                  </td>
+                  <td className="px-5 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => setEditingPayment(p)}
+                        className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                        title="Edit Payment"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeletePayment(p.id)}
+                        disabled={deletingId === p.id}
+                        className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50"
+                        title="Delete Payment"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -143,6 +188,13 @@ function MemberProfilePage() {
         <CashDonationModal
           memberId={memberId}
           onClose={() => setShowCashModal(false)}
+          onSaved={fetchData}
+        />
+      )}
+      {editingPayment && (
+        <EditPaymentModal
+          payment={editingPayment}
+          onClose={() => setEditingPayment(null)}
           onSaved={fetchData}
         />
       )}

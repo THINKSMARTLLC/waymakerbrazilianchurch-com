@@ -62,6 +62,20 @@ function MemberProfilePage() {
   }
 
   const initials = member.name.split(" ").map((n) => n[0]).join("").slice(0, 2);
+  const lastPaymentDate = payments[0]?.payment_date ?? null;
+  const memberStatus = computeMemberStatus(lastPaymentDate);
+
+  const handleDeletePayment = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this payment?")) return;
+    setDeletingId(id);
+    const { error } = await supabase.from("payments").delete().eq("id", id);
+    setDeletingId(null);
+    if (error) {
+      alert(`Failed to delete: ${error.message}`);
+      return;
+    }
+    fetchData();
+  };
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -85,9 +99,15 @@ function MemberProfilePage() {
               </p>
             </div>
           </div>
-          <span className={`status-badge ${member.status === "active" ? "status-active" : "status-inactive"}`}>
-            {member.status === "active" ? "Ativo" : "Inativo"}
-          </span>
+          <div className="flex flex-col items-end gap-2">
+            <span className={`status-badge ${member.status === "active" ? "status-active" : "status-inactive"}`}>
+              {member.status === "active" ? "Ativo" : "Inativo"}
+            </span>
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClasses(memberStatus)}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${statusDotClasses(memberStatus)}`} />
+              {STATUS_LABEL[memberStatus]}
+            </span>
+          </div>
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { DollarSign, CreditCard, Users, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { formatUSD } from "@/lib/format";
 
 export const Route = createFileRoute("/reports")({
   head: () => ({

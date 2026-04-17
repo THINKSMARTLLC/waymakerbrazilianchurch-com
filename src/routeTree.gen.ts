@@ -12,12 +12,16 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as PortalRouteImport } from './routes/portal'
 import { Route as PendingRouteImport } from './routes/pending'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as MembersIndexRouteImport } from './routes/members.index'
+import { Route as PortalProfileRouteImport } from './routes/portal.profile'
+import { Route as PortalContributionsRouteImport } from './routes/portal.contributions'
 import { Route as MembersMemberIdRouteImport } from './routes/members.$memberId'
 
 const SignupRoute = SignupRouteImport.update({
@@ -33,6 +37,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PendingRoute = PendingRouteImport.update({
@@ -60,10 +69,25 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortalIndexRoute = PortalIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalRoute,
+} as any)
 const MembersIndexRoute = MembersIndexRouteImport.update({
   id: '/members/',
   path: '/members/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PortalProfileRoute = PortalProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalContributionsRoute = PortalContributionsRouteImport.update({
+  id: '/contributions',
+  path: '/contributions',
+  getParentRoute: () => PortalRoute,
 } as any)
 const MembersMemberIdRoute = MembersMemberIdRouteImport.update({
   id: '/members/$memberId',
@@ -77,11 +101,15 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/pending': typeof PendingRoute
+  '/portal': typeof PortalRouteWithChildren
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/members/$memberId': typeof MembersMemberIdRoute
+  '/portal/contributions': typeof PortalContributionsRoute
+  '/portal/profile': typeof PortalProfileRoute
   '/members/': typeof MembersIndexRoute
+  '/portal/': typeof PortalIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -93,7 +121,10 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/members/$memberId': typeof MembersMemberIdRoute
+  '/portal/contributions': typeof PortalContributionsRoute
+  '/portal/profile': typeof PortalProfileRoute
   '/members': typeof MembersIndexRoute
+  '/portal': typeof PortalIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -102,11 +133,15 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/pending': typeof PendingRoute
+  '/portal': typeof PortalRouteWithChildren
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/members/$memberId': typeof MembersMemberIdRoute
+  '/portal/contributions': typeof PortalContributionsRoute
+  '/portal/profile': typeof PortalProfileRoute
   '/members/': typeof MembersIndexRoute
+  '/portal/': typeof PortalIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -116,11 +151,15 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/pending'
+    | '/portal'
     | '/reports'
     | '/reset-password'
     | '/signup'
     | '/members/$memberId'
+    | '/portal/contributions'
+    | '/portal/profile'
     | '/members/'
+    | '/portal/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -132,7 +171,10 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/members/$memberId'
+    | '/portal/contributions'
+    | '/portal/profile'
     | '/members'
+    | '/portal'
   id:
     | '__root__'
     | '/'
@@ -140,11 +182,15 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/pending'
+    | '/portal'
     | '/reports'
     | '/reset-password'
     | '/signup'
     | '/members/$memberId'
+    | '/portal/contributions'
+    | '/portal/profile'
     | '/members/'
+    | '/portal/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -153,6 +199,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   PendingRoute: typeof PendingRoute
+  PortalRoute: typeof PortalRouteWithChildren
   ReportsRoute: typeof ReportsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
@@ -181,6 +228,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pending': {
@@ -218,12 +272,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portal/': {
+      id: '/portal/'
+      path: '/'
+      fullPath: '/portal/'
+      preLoaderRoute: typeof PortalIndexRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/members/': {
       id: '/members/'
       path: '/members'
       fullPath: '/members/'
       preLoaderRoute: typeof MembersIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/portal/profile': {
+      id: '/portal/profile'
+      path: '/profile'
+      fullPath: '/portal/profile'
+      preLoaderRoute: typeof PortalProfileRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/contributions': {
+      id: '/portal/contributions'
+      path: '/contributions'
+      fullPath: '/portal/contributions'
+      preLoaderRoute: typeof PortalContributionsRouteImport
+      parentRoute: typeof PortalRoute
     }
     '/members/$memberId': {
       id: '/members/$memberId'
@@ -235,12 +310,28 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface PortalRouteChildren {
+  PortalContributionsRoute: typeof PortalContributionsRoute
+  PortalProfileRoute: typeof PortalProfileRoute
+  PortalIndexRoute: typeof PortalIndexRoute
+}
+
+const PortalRouteChildren: PortalRouteChildren = {
+  PortalContributionsRoute: PortalContributionsRoute,
+  PortalProfileRoute: PortalProfileRoute,
+  PortalIndexRoute: PortalIndexRoute,
+}
+
+const PortalRouteWithChildren =
+  PortalRoute._addFileChildren(PortalRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   PendingRoute: PendingRoute,
+  PortalRoute: PortalRouteWithChildren,
   ReportsRoute: ReportsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,

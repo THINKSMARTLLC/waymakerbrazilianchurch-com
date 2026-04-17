@@ -142,13 +142,12 @@ function MembersPage() {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as MemberPaymentStatus | "all")}
             className="rounded-xl border border-input bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            aria-label="Filter by status"
+            aria-label="Filter by payment status"
           >
-            <option value="all">All Statuses</option>
+            <option value="all">All Payment Statuses</option>
             <option value="on_time">On Time</option>
             <option value="late">Late</option>
             <option value="no_payment">No Payment Yet</option>
-            <option value="active">Active</option>
           </select>
         </div>
         <button onClick={() => setShowAddModal(true)} className="btn-google inline-flex items-center gap-2">
@@ -179,6 +178,7 @@ function MembersPage() {
                   <th className="table-header px-5 py-3 text-left hidden md:table-cell">Last Payment</th>
                   <th className="table-header px-5 py-3 text-left hidden sm:table-cell">Method</th>
                   <th className="table-header px-5 py-3 text-left">Status</th>
+                  <th className="table-header px-5 py-3 text-left">Payment</th>
                   <th className="table-header px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -204,6 +204,11 @@ function MembersPage() {
                       </td>
                       <td className="px-5 py-3.5 text-sm text-muted-foreground hidden sm:table-cell">
                         {member.last_payment_method ? (PAYMENT_METHOD_LABEL[member.last_payment_method] ?? member.last_payment_method) : "—"}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className={`status-badge ${member.status === "active" ? "status-active" : "status-inactive"}`}>
+                          {member.status === "active" ? "Active" : "Inactive"}
+                        </span>
                       </td>
                       <td className="px-5 py-3.5">
                         <span

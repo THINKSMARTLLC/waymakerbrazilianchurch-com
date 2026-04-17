@@ -92,7 +92,7 @@ export function EditPaymentModal({ payment, onClose, onSaved }: Props) {
 
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">Extra Amount (USD)</label>
-            <input name="extra_amount" type="number" step="0.01" min="0" defaultValue={Number(payment.extra_amount) || 0} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+            <input name="extra_amount" type="number" step="0.01" min="0" defaultValue={Number((payment as Payment & { extra_amount?: number }).extra_amount) || 0} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
             <p className="mt-1 text-xs text-muted-foreground">Amount above the expected base contribution.</p>
           </div>
 

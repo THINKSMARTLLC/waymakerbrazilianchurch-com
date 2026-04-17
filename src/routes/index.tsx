@@ -3,6 +3,7 @@ import { Users, DollarSign, AlertTriangle, TrendingUp } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { DonationsChart } from "@/components/DonationsChart";
 import { QuickActions } from "@/components/QuickActions";
+import { NewSignupsBanner } from "@/components/NewSignupsBanner";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatUSD } from "@/lib/format";
@@ -55,6 +56,7 @@ function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <NewSignupsBanner />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total Members" value={String(stats.totalMembers)} icon={Users} />
         <StatCard title="Weekly Expected" value={formatUSD(stats.weeklyExpected)} icon={TrendingUp} />

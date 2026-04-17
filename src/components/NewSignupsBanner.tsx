@@ -1,0 +1,74 @@
+import { useEffect, useState } from "react";
+import { UserPlus, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
+
+interface SignupRow {
+  id: string;
+  user_email: string | null;
+  created_at: string;
+  metadata: { full_name?: string; phone?: string } | null;
+}
+
+export function NewSignupsBanner() {
+  const { isSuperAdmin, loading } = useUserRole();
+  const [rows, setRows] = useState<SignupRow[]>([]);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    if (loading || !isSuperAdmin) return;
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    (async () => {
+      const { data } = await supabase
+        .from("activity_logs")
+        .select("id, user_email, created_at, metadata")
+        .eq("action", "new_member_registered")
+        .gte("created_at", since)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      setRows((data as SignupRow[]) || []);
+    })();
+  }, [isSuperAdmin, loading]);
+
+  if (loading || !isSuperAdmin || dismissed || rows.length === 0) return null;
+
+  return (
+    <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+            <UserPlus className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-display text-sm font-semibold text-foreground">
+              {rows.length} new member{rows.length === 1 ? "" : "s"} registered (last 24h)
+            </h3>
+            <ul className="mt-2 space-y-1">
+              {rows.slice(0, 5).map((r) => {
+                const name = r.metadata?.full_name || r.user_email || "Unknown";
+                return (
+                  <li key={r.id} className="text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">{name}</span>
+                    {r.user_email && r.user_email !== name ? ` · ${r.user_email}` : ""}
+                    {" · "}
+                    {new Date(r.created_at).toLocaleString("en-US")}
+                  </li>
+                );
+              })}
+              {rows.length > 5 && (
+                <li className="text-xs text-muted-foreground">+ {rows.length - 5} more</li>
+              )}
+            </ul>
+          </div>
+        </div>
+        <button
+          onClick={() => setDismissed(true)}
+          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
+          aria-label="Dismiss"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}

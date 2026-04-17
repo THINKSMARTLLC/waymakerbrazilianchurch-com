@@ -54,6 +54,7 @@ export type Database = {
           phone: string | null
           status: Database["public"]["Enums"]["member_status"]
           updated_at: string
+          user_id: string | null
           weekly_contribution_usd: number
         }
         Insert: {
@@ -65,6 +66,7 @@ export type Database = {
           phone?: string | null
           status?: Database["public"]["Enums"]["member_status"]
           updated_at?: string
+          user_id?: string | null
           weekly_contribution_usd?: number
         }
         Update: {
@@ -76,6 +78,7 @@ export type Database = {
           phone?: string | null
           status?: Database["public"]["Enums"]["member_status"]
           updated_at?: string
+          user_id?: string | null
           weekly_contribution_usd?: number
         }
         Relationships: []

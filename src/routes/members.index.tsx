@@ -142,13 +142,12 @@ function MembersPage() {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as MemberPaymentStatus | "all")}
             className="rounded-xl border border-input bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            aria-label="Filter by status"
+            aria-label="Filter by payment status"
           >
-            <option value="all">All Statuses</option>
+            <option value="all">All Payment Statuses</option>
             <option value="on_time">On Time</option>
             <option value="late">Late</option>
             <option value="no_payment">No Payment Yet</option>
-            <option value="active">Active</option>
           </select>
         </div>
         <button onClick={() => setShowAddModal(true)} className="btn-google inline-flex items-center gap-2">

@@ -139,7 +139,7 @@ function StatusGate() {
       if (typeof window !== "undefined") window.location.replace("/portal");
       return null;
     }
-    return <PortalLayout />;
+    return <Outlet />;
   }
 
   return <AppLayout />;

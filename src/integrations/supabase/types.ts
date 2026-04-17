@@ -46,39 +46,48 @@ export type Database = {
       }
       members: {
         Row: {
+          address: string | null
           contribution_frequency: Database["public"]["Enums"]["contribution_frequency"]
           created_at: string
           email: string | null
+          emergency_contact: string | null
           id: string
           name: string
           payment_type: Database["public"]["Enums"]["payment_type"]
           phone: string | null
+          profile_photo_url: string | null
           status: Database["public"]["Enums"]["member_status"]
           updated_at: string
           user_id: string | null
           weekly_contribution_usd: number
         }
         Insert: {
+          address?: string | null
           contribution_frequency?: Database["public"]["Enums"]["contribution_frequency"]
           created_at?: string
           email?: string | null
+          emergency_contact?: string | null
           id?: string
           name: string
           payment_type?: Database["public"]["Enums"]["payment_type"]
           phone?: string | null
+          profile_photo_url?: string | null
           status?: Database["public"]["Enums"]["member_status"]
           updated_at?: string
           user_id?: string | null
           weekly_contribution_usd?: number
         }
         Update: {
+          address?: string | null
           contribution_frequency?: Database["public"]["Enums"]["contribution_frequency"]
           created_at?: string
           email?: string | null
+          emergency_contact?: string | null
           id?: string
           name?: string
           payment_type?: Database["public"]["Enums"]["payment_type"]
           phone?: string | null
+          profile_photo_url?: string | null
           status?: Database["public"]["Enums"]["member_status"]
           updated_at?: string
           user_id?: string | null

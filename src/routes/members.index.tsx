@@ -280,8 +280,9 @@ function MembersPage() {
               <tbody>
                 {filtered.map((member) => {
                   const weekly = Number(member.weekly_contribution_usd) || 0;
+                  const dupGroup = groupByMemberId.get(member.id);
                   return (
-                    <tr key={member.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                    <tr key={member.id} className={`border-b border-border last:border-0 hover:bg-muted/50 transition-colors ${dupGroup ? "bg-amber-50/50 dark:bg-amber-950/20" : ""}`}>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-primary overflow-hidden">
@@ -291,7 +292,20 @@ function MembersPage() {
                               member.name.split(" ").map((n) => n[0]).join("").slice(0, 2)
                             )}
                           </div>
-                          <span className="text-sm font-medium text-foreground">{member.name}</span>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-sm font-medium text-foreground truncate">{member.name}</span>
+                            {dupGroup && (
+                              <button
+                                type="button"
+                                onClick={() => openGroupForMember(member.id)}
+                                className="mt-0.5 inline-flex items-center gap-1 self-start rounded-full bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-900 transition-colors"
+                                title={`Possible duplicate (matched by ${dupGroup.reason.join(", ")})`}
+                              >
+                                <AlertTriangle className="h-3 w-3" />
+                                Duplicate detected
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="px-5 py-3.5 text-sm text-muted-foreground hidden lg:table-cell">{member.email}</td>

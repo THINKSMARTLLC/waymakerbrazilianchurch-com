@@ -51,7 +51,8 @@ const AB_VARIATIONS = {
   ctas: ["Quero dar o primeiro passo", "Quero conhecer essa igreja", "Quero viver isso"],
 };
 
-const WHATSAPP_URL = "https://wa.me/?text=Ol%C3%A1%2C%20quero%20conhecer%20a%20Way%20Maker%20Church";
+const WHATSAPP_URL =
+  'https://wa.me/15512237610?text=Olá,%20quero%20mais%20informações%20sobre%20a%20igreja%20Way%20Maker.%20“Porque%20sou%20eu%20que%20sei%20os%20planos%20que%20tenho%20para%20vocês”,%20diz%20o%20Senhor,%20“planos%20de%20fazê-los%20prosperar%20e%20não%20de%20lhes%20causar%20dano,%20planos%20de%20dar-lhes%20esperança%20e%20um%20futuro.”%20(Jeremias%2029:11)';
 
 function LandingPage() {
   // Smooth scroll

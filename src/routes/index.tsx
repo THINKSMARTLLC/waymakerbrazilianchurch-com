@@ -613,6 +613,24 @@ function LandingPage() {
           </Link>
         </div>
       </footer>
+
+      {/* FLOATING WHATSAPP BUTTON */}
+      <a
+        href={WHATSAPP_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Fale conosco no WhatsApp"
+        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] shadow-lg shadow-black/30 ring-4 ring-[#25D366]/20 transition hover:scale-110 sm:bottom-6 sm:right-6 sm:h-16 sm:w-16"
+        style={{ animation: "wmc-pulse 2.4s ease-in-out infinite" }}
+      >
+        <img src={whatsappIcon} alt="" className="h-9 w-9 sm:h-10 sm:w-10" />
+      </a>
+      <style>{`
+        @keyframes wmc-pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.55), 0 10px 25px -5px rgba(0,0,0,0.3); }
+          50% { box-shadow: 0 0 0 14px rgba(37, 211, 102, 0), 0 10px 25px -5px rgba(0,0,0,0.3); }
+        }
+      `}</style>
     </div>
   );
 }

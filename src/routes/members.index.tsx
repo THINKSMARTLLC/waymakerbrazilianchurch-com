@@ -20,13 +20,17 @@ import { DuplicateWarning } from "@/components/DuplicateWarning";
 import { MergeMembersModal } from "@/components/MergeMembersModal";
 import { DuplicateResolutionModal } from "@/components/DuplicateResolutionModal";
 
+type LifecycleFilter = "active" | "inactive" | "all";
+
 interface MembersSearch {
   status?: MemberPaymentStatus;
+  lifecycle?: LifecycleFilter;
 }
 
 export const Route = createFileRoute("/members/")({
   validateSearch: (search: Record<string, unknown>): MembersSearch => ({
     status: (search.status as MemberPaymentStatus | undefined) ?? undefined,
+    lifecycle: (search.lifecycle as LifecycleFilter | undefined) ?? undefined,
   }),
   head: () => ({
     meta: [

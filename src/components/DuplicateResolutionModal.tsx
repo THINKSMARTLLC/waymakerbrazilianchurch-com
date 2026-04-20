@@ -156,10 +156,13 @@ export function DuplicateResolutionModal({
               <AlertTriangle className="h-5 w-5 text-amber-600" />
             </div>
             <div>
-              <h2 className="font-display text-lg font-semibold text-foreground">This member appears duplicated</h2>
+              <h2 className="font-display text-lg font-semibold text-foreground">
+                {isWarning ? "Shared phone number detected" : "This member appears duplicated"}
+              </h2>
               <p className="text-sm text-muted-foreground mt-1">
-                {members.length} records match by {reasons.join(" + ") || "similar data"}. Pick which to keep
-                and which to merge into it. No data is deleted until you confirm.
+                {isWarning
+                  ? `${members.length} members share the same phone number but have different names/emails. They likely live together (e.g. family) — both records can coexist. No merge is offered.`
+                  : `${members.length} records match by ${reasons.join(" + ") || "similar data"}. Pick which to keep and which to merge into it. No data is deleted until you confirm.`}
               </p>
             </div>
           </div>

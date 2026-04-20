@@ -7,6 +7,7 @@ import { logActivity } from "@/lib/activityLog";
 import { CreateUserModal } from "@/components/CreateUserModal";
 import { useServerFn } from "@tanstack/react-start";
 import { generateRecoveryForEmail } from "@/lib/adminUsers.functions";
+import { formatDate, formatDateTime } from "@/lib/datetime";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -176,10 +177,10 @@ function AdminPage() {
                     </td>
                     <td className="px-4 py-3"><StatusBadge status={u.status} /></td>
                     <td className="px-4 py-3 text-muted-foreground text-xs">
-                      {new Date(u.created_at).toLocaleDateString("pt-BR")}
+                      {formatDate(u.created_at)}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs">
-                      {u.last_login_at ? new Date(u.last_login_at).toLocaleString("pt-BR") : "—"}
+                      {u.last_login_at ? formatDateTime(u.last_login_at) : "—"}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
@@ -292,7 +293,7 @@ function ActivityLogSection() {
               <span className="text-muted-foreground"> · {l.user_email ?? "—"}</span>
               {l.page_accessed && <span className="text-xs text-muted-foreground"> · {l.page_accessed}</span>}
             </div>
-            <span className="text-xs text-muted-foreground">{new Date(l.created_at).toLocaleString("pt-BR")}</span>
+            <span className="text-xs text-muted-foreground">{formatDateTime(l.created_at)}</span>
           </div>
         ))}
       </div>

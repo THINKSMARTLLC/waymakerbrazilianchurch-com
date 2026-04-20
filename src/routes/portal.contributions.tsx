@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatUSD } from "@/lib/format";
+import { formatLocalDateOnly } from "@/lib/datetime";
 
 interface Payment {
   id: string;
@@ -83,7 +84,7 @@ function ContributionsHistory() {
                 {payments.map((p) => (
                   <tr key={p.id} className="border-t border-border">
                     <td className="px-4 py-3 text-foreground">
-                      {new Date(p.payment_date).toLocaleDateString("pt-BR")}
+                      {formatLocalDateOnly(p.payment_date)}
                     </td>
                     <td className="px-4 py-3 capitalize text-foreground">{p.contribution_type.replace("_", " ")}</td>
                     <td className="px-4 py-3 capitalize text-muted-foreground">{p.payment_method}</td>

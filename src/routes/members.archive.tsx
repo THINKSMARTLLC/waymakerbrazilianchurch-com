@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { toTitleCase } from "@/lib/format";
 import { formatPhoneDisplay } from "@/lib/phone";
+import { formatDate, formatLocalDateOnly } from "@/lib/datetime";
 import {
   reactivateMember,
   deleteMemberPermanently,
@@ -187,10 +188,10 @@ function ArchivePage() {
                     <td className="px-5 py-3.5 text-sm text-muted-foreground hidden md:table-cell">{m.email || "—"}</td>
                     <td className="px-5 py-3.5 text-sm text-muted-foreground hidden lg:table-cell">{formatPhoneDisplay(m.phone) || "—"}</td>
                     <td className="px-5 py-3.5 text-sm text-muted-foreground hidden md:table-cell">
-                      {m.last_payment_date ? new Date(m.last_payment_date).toLocaleDateString("en-US") : "—"}
+                      {m.last_payment_date ? formatLocalDateOnly(m.last_payment_date) : "—"}
                     </td>
                     <td className="px-5 py-3.5 text-sm text-muted-foreground">
-                      {m.inactivated_at ? new Date(m.inactivated_at).toLocaleDateString("en-US") : "—"}
+                      {m.inactivated_at ? formatDate(m.inactivated_at) : "—"}
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center justify-end gap-2">

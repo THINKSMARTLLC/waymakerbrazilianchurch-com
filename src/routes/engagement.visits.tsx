@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, Check, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toTitleCase } from "@/lib/format";
+import { formatLocalDateOnly } from "@/lib/datetime";
 
 export const Route = createFileRoute("/engagement/visits")({
   head: () => ({
@@ -121,7 +122,7 @@ function VisitsPage() {
                     <div>
                       <p className="font-medium text-foreground">{memberName(v.member_id)}</p>
                       <p className="text-xs text-muted-foreground">
-                        Agendada para {new Date(v.scheduled_date).toLocaleDateString("pt-BR")}
+                        Agendada para {formatLocalDateOnly(v.scheduled_date)}
                         {v.notes ? ` · ${v.notes}` : ""}
                       </p>
                     </div>
@@ -158,7 +159,7 @@ function VisitsPage() {
                     <div>
                       <p className="font-medium text-foreground">{memberName(v.member_id)}</p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(v.scheduled_date).toLocaleDateString("pt-BR")} · {v.status === "completed" ? "Concluída" : "Cancelada"}
+                        {formatLocalDateOnly(v.scheduled_date)} · {v.status === "completed" ? "Concluída" : "Cancelada"}
                         {v.notes ? ` · ${v.notes}` : ""}
                       </p>
                     </div>

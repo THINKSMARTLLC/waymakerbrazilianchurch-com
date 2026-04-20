@@ -8,6 +8,7 @@ import { CheckInModal } from "@/components/CheckInModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatUSD } from "@/lib/format";
+import { formatLocalDateOnly } from "@/lib/datetime";
 import { ACTIVITY_ICON, ACTIVITY_LABEL, calculatePoints, type ActivityType } from "@/lib/engagement";
 
 const MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -182,7 +183,7 @@ function MemberDashboard() {
                     <p className="text-xs text-muted-foreground capitalize">{p.payment_method}</p>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {new Date(p.payment_date).toLocaleDateString("pt-BR")}
+                    {formatLocalDateOnly(p.payment_date)}
                   </span>
                 </li>
               ))}
@@ -223,7 +224,7 @@ function MemberDashboard() {
                     </div>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {new Date(a.activity_date).toLocaleDateString("pt-BR")}
+                    {formatLocalDateOnly(a.activity_date)}
                   </span>
                 </li>
               ))}

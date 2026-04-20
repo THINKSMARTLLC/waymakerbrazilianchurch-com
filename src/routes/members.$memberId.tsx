@@ -12,6 +12,7 @@ import { formatPhoneDisplay } from "@/lib/phone";
 import { useUserRole } from "@/hooks/useUserRole";
 import { parseEmergencyContact, relationshipLabel, isLegacyEmergencyContact } from "@/lib/emergencyContact";
 import { getBirthdayInfo } from "@/lib/birthday";
+import { formatLocalDateOnly } from "@/lib/datetime";
 
 function FieldRow({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string | null | undefined }) {
   const display = value && String(value).trim() ? String(value) : null;
@@ -198,7 +199,7 @@ function MemberProfilePage() {
         <div className="card-elevated p-6">
           <h3 className="font-display text-base font-medium text-foreground mb-4">Informações Pessoais</h3>
           <div className="space-y-4">
-            <FieldRow icon={Calendar} label="Data de Nascimento" value={member.date_of_birth ? new Date(member.date_of_birth + "T00:00:00").toLocaleDateString("pt-BR") : null} />
+            <FieldRow icon={Calendar} label="Data de Nascimento" value={member.date_of_birth ? formatLocalDateOnly(member.date_of_birth) : null} />
             <FieldRow icon={MapPin} label="Endereço" value={member.address} />
             <EmergencyBlock raw={member.emergency_contact} />
           </div>
@@ -256,7 +257,7 @@ function MemberProfilePage() {
               {payments.map((p) => (
                 <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="px-5 py-3 text-sm text-foreground">
-                    {new Date(p.payment_date).toLocaleDateString("en-US")}
+                    {formatLocalDateOnly(p.payment_date)}
                   </td>
                   <td className="px-5 py-3 text-sm font-medium text-foreground">
                     {formatUSD(p.amount)}

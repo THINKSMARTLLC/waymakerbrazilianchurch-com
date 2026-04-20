@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check } from "lucide-react";
+import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check, AlertTriangle } from "lucide-react";
 import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -14,9 +14,10 @@ import { RecordPaymentModal } from "@/components/RecordPaymentModal";
 import { ContributionsModal } from "@/components/ContributionsModal";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, FREQUENCY_LABEL, type MemberPaymentStatus, type ContributionFrequency } from "@/lib/memberStatus";
 import { formatPhoneDisplay } from "@/lib/phone";
-import { findDuplicates, generateTempAccessCode, type DuplicateMatch } from "@/lib/duplicates";
+import { findDuplicates, findDuplicateGroups, generateTempAccessCode, type DuplicateMatch, type DuplicateGroup } from "@/lib/duplicates";
 import { DuplicateWarning } from "@/components/DuplicateWarning";
 import { MergeMembersModal } from "@/components/MergeMembersModal";
+import { DuplicateResolutionModal } from "@/components/DuplicateResolutionModal";
 
 interface MembersSearch {
   status?: MemberPaymentStatus;
@@ -65,6 +66,8 @@ function MembersPage() {
   const [viewingHistoryFor, setViewingHistoryFor] = useState<Member | null>(null);
   const [members, setMembers] = useState<MemberWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
+  const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[]>([]);
+  const [activeDupGroup, setActiveDupGroup] = useState<DuplicateGroup | null>(null);
 
   useEffect(() => {
     if (statusParam) setStatusFilter(statusParam);
@@ -141,6 +144,7 @@ function MembersPage() {
     });
 
     setMembers(withStatus);
+    setDuplicateGroups(findDuplicateGroups(list));
     setLoading(false);
   };
 
@@ -165,6 +169,23 @@ function MembersPage() {
       }),
     [members, search, statusFilter, selectedMemberId]
   );
+
+  // Map member.id -> the duplicate group it belongs to (if any).
+  const groupByMemberId = useMemo(() => {
+    const map = new Map<string, DuplicateGroup>();
+    for (const g of duplicateGroups) for (const id of g.memberIds) map.set(id, g);
+    return map;
+  }, [duplicateGroups]);
+
+  const totalDuplicateMembers = useMemo(
+    () => duplicateGroups.reduce((sum, g) => sum + g.memberIds.length, 0),
+    [duplicateGroups],
+  );
+
+  const openGroupForMember = (memberId: string) => {
+    const g = groupByMemberId.get(memberId);
+    if (g) setActiveDupGroup(g);
+  };
 
   return (
     <div className="space-y-5">
@@ -209,6 +230,27 @@ function MembersPage() {
         </button>
       </div>
 
+      {duplicateGroups.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setActiveDupGroup(duplicateGroups[0])}
+          className="w-full flex items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/40 px-4 py-3 text-left hover:bg-amber-100 dark:hover:bg-amber-950/60 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                {duplicateGroups.length} possible duplicate{duplicateGroups.length > 1 ? " groups" : " group"} detected
+              </p>
+              <p className="text-xs text-amber-800 dark:text-amber-200">
+                {totalDuplicateMembers} records share email, phone, or very similar names. Click to review and merge safely.
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-medium text-amber-900 dark:text-amber-100 underline">Review</span>
+        </button>
+      )}
+
       <div className="card-elevated overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -238,8 +280,9 @@ function MembersPage() {
               <tbody>
                 {filtered.map((member) => {
                   const weekly = Number(member.weekly_contribution_usd) || 0;
+                  const dupGroup = groupByMemberId.get(member.id);
                   return (
-                    <tr key={member.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                    <tr key={member.id} className={`border-b border-border last:border-0 hover:bg-muted/50 transition-colors ${dupGroup ? "bg-amber-50/50 dark:bg-amber-950/20" : ""}`}>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-primary overflow-hidden">
@@ -249,7 +292,20 @@ function MembersPage() {
                               member.name.split(" ").map((n) => n[0]).join("").slice(0, 2)
                             )}
                           </div>
-                          <span className="text-sm font-medium text-foreground">{member.name}</span>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-sm font-medium text-foreground truncate">{member.name}</span>
+                            {dupGroup && (
+                              <button
+                                type="button"
+                                onClick={() => openGroupForMember(member.id)}
+                                className="mt-0.5 inline-flex items-center gap-1 self-start rounded-full bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-900 transition-colors"
+                                title={`Possible duplicate (matched by ${dupGroup.reason.join(", ")})`}
+                              >
+                                <AlertTriangle className="h-3 w-3" />
+                                Duplicate detected
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="px-5 py-3.5 text-sm text-muted-foreground hidden lg:table-cell">{member.email}</td>
@@ -335,6 +391,20 @@ function MembersPage() {
           </div>
         )}
       </div>
+
+      {activeDupGroup && (
+        <DuplicateResolutionModal
+          members={activeDupGroup.memberIds
+            .map((id) => members.find((m) => m.id === id))
+            .filter((m): m is MemberWithStatus => !!m)}
+          reasons={activeDupGroup.reason}
+          onClose={() => setActiveDupGroup(null)}
+          onResolved={() => {
+            setActiveDupGroup(null);
+            fetchMembers();
+          }}
+        />
+      )}
 
       {showAddModal && <MemberFormModal onClose={() => setShowAddModal(false)} onSaved={fetchMembers} />}
       {editingMember && <MemberFormModal member={editingMember} onClose={() => setEditingMember(null)} onSaved={fetchMembers} />}

@@ -66,6 +66,8 @@ function MembersPage() {
   const [viewingHistoryFor, setViewingHistoryFor] = useState<Member | null>(null);
   const [members, setMembers] = useState<MemberWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
+  const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[]>([]);
+  const [activeDupGroup, setActiveDupGroup] = useState<DuplicateGroup | null>(null);
 
   useEffect(() => {
     if (statusParam) setStatusFilter(statusParam);

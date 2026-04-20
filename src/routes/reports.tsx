@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
-import { DollarSign, CreditCard, Users, AlertTriangle, Receipt, Pencil, Trash2, UserX } from "lucide-react";
+import { DollarSign, CreditCard, Users, AlertTriangle, Receipt, Pencil, Trash2, UserX, Download } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { exportPaymentsCSV, exportPaymentsXLSX } from "@/lib/dataExportImport";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { formatUSD, toTitleCase } from "@/lib/format";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, type MemberPaymentStatus } from "@/lib/memberStatus";
@@ -255,6 +258,16 @@ function ReportsPage() {
     <div className="space-y-6">
       {/* Period filter */}
       <div className="flex flex-wrap items-center gap-2">
+        <PeriodAndExport
+          filter={filter}
+          setFilter={setFilter}
+          customStart={customStart}
+          setCustomStart={setCustomStart}
+          customEnd={customEnd}
+          setCustomEnd={setCustomEnd}
+        />
+      </div>
+      <div style={{ display: "none" }}>
         {[
           { value: "this_month" as const, label: "This Month" },
           { value: "last_month" as const, label: "Last Month" },

@@ -409,6 +409,7 @@ function MembersPage() {
             .map((id) => members.find((m) => m.id === id))
             .filter((m): m is MemberWithStatus => !!m)}
           reasons={activeDupGroup.reason}
+          severity={activeDupGroup.severity}
           onClose={() => setActiveDupGroup(null)}
           onResolved={() => {
             setActiveDupGroup(null);

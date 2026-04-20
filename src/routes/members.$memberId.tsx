@@ -139,6 +139,17 @@ function MemberProfilePage() {
               <span className={`h-1.5 w-1.5 rounded-full ${statusDotClasses(memberStatus)}`} />
               {STATUS_LABEL[memberStatus]}
             </span>
+            {(() => {
+              const bi = getBirthdayInfo(member.date_of_birth);
+              if (bi?.daysUntil === 0) {
+                return (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                    <Cake className="h-3 w-3" /> Aniversário Hoje 🎂
+                  </span>
+                );
+              }
+              return null;
+            })()}
           </div>
         </div>
       </div>
@@ -149,7 +160,7 @@ function MemberProfilePage() {
           <div className="space-y-4">
             <FieldRow icon={Calendar} label="Data de Nascimento" value={member.date_of_birth ? new Date(member.date_of_birth + "T00:00:00").toLocaleDateString("pt-BR") : null} />
             <FieldRow icon={MapPin} label="Endereço" value={member.address} />
-            <FieldRow icon={AlertCircle} label="Contato de Emergência" value={member.emergency_contact} />
+            <EmergencyBlock raw={member.emergency_contact} />
           </div>
         </div>
 

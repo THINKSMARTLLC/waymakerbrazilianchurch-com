@@ -51,7 +51,8 @@ const AB_VARIATIONS = {
   ctas: ["Quero dar o primeiro passo", "Quero conhecer essa igreja", "Quero viver isso"],
 };
 
-const WHATSAPP_URL = "https://wa.me/?text=Ol%C3%A1%2C%20quero%20conhecer%20a%20Way%20Maker%20Church";
+const WHATSAPP_URL =
+  'https://wa.me/15512237610?text=Olá,%20quero%20mais%20informações%20sobre%20a%20igreja%20Way%20Maker.%20“Porque%20sou%20eu%20que%20sei%20os%20planos%20que%20tenho%20para%20vocês”,%20diz%20o%20Senhor,%20“planos%20de%20fazê-los%20prosperar%20e%20não%20de%20lhes%20causar%20dano,%20planos%20de%20dar-lhes%20esperança%20e%20um%20futuro.”%20(Jeremias%2029:11)';
 
 function LandingPage() {
   // Smooth scroll
@@ -125,7 +126,9 @@ function LandingPage() {
 
           <div className="mt-12 flex flex-col items-center gap-4 sm:flex-row">
             <a
-              href="#comecar"
+              href={WHATSAPP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="group inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-sm font-semibold text-black shadow-xl shadow-black/30 transition hover:scale-[1.02] hover:bg-white/95"
             >
               Quero conhecer mais sobre a Way Maker Church
@@ -409,14 +412,8 @@ function LandingPage() {
             </div>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2">
             {[
-              {
-                icon: Calendar,
-                title: "Conhecer a igreja presencialmente",
-                desc: "Participe de um culto e viva essa experiência por si mesmo.",
-                href: "#ctas",
-              },
               {
                 icon: MessageCircle,
                 title: "Falar com alguém da nossa equipe",
@@ -427,7 +424,7 @@ function LandingPage() {
                 icon: UsersRound,
                 title: "Fazer parte de um grupo / célula",
                 desc: "Cresça em um ambiente mais próximo, com acompanhamento real.",
-                href: "#ctas",
+                href: WHATSAPP_URL,
               },
             ].map(({ icon: Icon, title, desc, href }) => (
               <a

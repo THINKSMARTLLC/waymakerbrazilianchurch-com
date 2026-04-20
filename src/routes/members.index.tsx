@@ -196,11 +196,18 @@ function MembersPage() {
         if (lifecycleFilter === "inactive" && m.status !== "inactive") return false;
         if (selectedMemberId && m.id !== selectedMemberId) return false;
         if (statusFilter !== "all" && m.payment_status !== statusFilter) return false;
+        if (birthdayFilter !== "all") {
+          const bi = getBirthdayInfo(m.date_of_birth);
+          if (!bi) return false;
+          if (birthdayFilter === "today" && bi.daysUntil !== 0) return false;
+          if (birthdayFilter === "week" && bi.daysUntil > 7) return false;
+          if (birthdayFilter === "month" && bi.daysUntil > 30) return false;
+        }
         if (!search) return true;
         const q = search.toLowerCase();
         return m.name.toLowerCase().includes(q) || (m.email || "").toLowerCase().includes(q);
       }),
-    [members, search, statusFilter, selectedMemberId, lifecycleFilter]
+    [members, search, statusFilter, selectedMemberId, lifecycleFilter, birthdayFilter]
   );
 
   const inactiveCount = useMemo(
@@ -259,6 +266,17 @@ function MembersPage() {
             <option value="on_time">On Time</option>
             <option value="late">Late</option>
             <option value="no_payment">No Payment Yet</option>
+          </select>
+          <select
+            value={birthdayFilter}
+            onChange={(e) => setBirthdayFilter(e.target.value as "all" | BirthdayWindow)}
+            className="rounded-xl border border-input bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            aria-label="Filter by birthday"
+          >
+            <option value="all">All Birthdays</option>
+            <option value="today">🎂 Birthday Today</option>
+            <option value="week">Birthday This Week</option>
+            <option value="month">Birthday This Month</option>
           </select>
           <select
             value={selectedMemberId}

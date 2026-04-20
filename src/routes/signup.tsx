@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { Church } from "lucide-react";
+import { Church, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activityLog";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
@@ -64,6 +64,8 @@ function SignupPage() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm({ ...form, [k]: e.target.value });
@@ -227,10 +229,24 @@ function SignupPage() {
           </Field>
 
           <Field label="Senha (mín. 8 caracteres)">
-            <input type="password" required minLength={8} value={form.password} onChange={update("password")} className={fieldCls} />
+            <div className="relative">
+              <input type={showPassword ? "text" : "password"} required minLength={8} value={form.password} onChange={update("password")} className={`${fieldCls} pr-11`} />
+              <button type="button" onClick={() => setShowPassword((v) => !v)} tabIndex={-1}
+                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground">
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </Field>
           <Field label="Confirmar Senha">
-            <input type="password" required minLength={8} value={form.confirmPassword} onChange={update("confirmPassword")} className={fieldCls} />
+            <div className="relative">
+              <input type={showConfirm ? "text" : "password"} required minLength={8} value={form.confirmPassword} onChange={update("confirmPassword")} className={`${fieldCls} pr-11`} />
+              <button type="button" onClick={() => setShowConfirm((v) => !v)} tabIndex={-1}
+                aria-label={showConfirm ? "Ocultar senha" : "Mostrar senha"}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground">
+                {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </Field>
 
           <button type="submit" disabled={loading} className="btn-google w-full disabled:opacity-50">

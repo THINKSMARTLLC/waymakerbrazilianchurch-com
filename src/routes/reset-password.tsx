@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { Church } from "lucide-react";
+import { Church, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
 
@@ -16,6 +16,8 @@ function ResetPasswordPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     // Supabase fires a PASSWORD_RECOVERY event when the recovery link is opened.
@@ -78,13 +80,27 @@ function ResetPasswordPage() {
           {error && <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
           <div>
             <label className="block text-sm font-medium mb-1.5">Nova Senha</label>
-            <input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+            <div className="relative">
+              <input type={showPassword ? "text" : "password"} required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-xl border border-input bg-background px-4 py-2.5 pr-11 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+              <button type="button" onClick={() => setShowPassword((v) => !v)} tabIndex={-1}
+                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground">
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5">Confirmar Senha</label>
-            <input type="password" required minLength={8} value={confirm} onChange={(e) => setConfirm(e.target.value)}
-              className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+            <div className="relative">
+              <input type={showConfirm ? "text" : "password"} required minLength={8} value={confirm} onChange={(e) => setConfirm(e.target.value)}
+                className="w-full rounded-xl border border-input bg-background px-4 py-2.5 pr-11 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+              <button type="button" onClick={() => setShowConfirm((v) => !v)} tabIndex={-1}
+                aria-label={showConfirm ? "Ocultar senha" : "Mostrar senha"}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground">
+                {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           <button type="submit" disabled={loading || !ready} className="btn-google w-full disabled:opacity-50">
             {loading ? "Salvando..." : "Salvar nova senha"}

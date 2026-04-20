@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { DollarSign, CreditCard, Users, AlertTriangle, Receipt, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { formatUSD } from "@/lib/format";
+import { formatUSD, toTitleCase } from "@/lib/format";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, type MemberPaymentStatus } from "@/lib/memberStatus";
 import { PAYMENT_METHOD_LABEL } from "@/components/RecordPaymentModal";
 import { EditPaymentModal } from "@/components/EditPaymentModal";

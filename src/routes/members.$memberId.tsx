@@ -3,7 +3,7 @@ import { ArrowLeft, CreditCard, DollarSign, Mail, Phone, Pencil, Trash2 } from "
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { formatUSD } from "@/lib/format";
+import { formatUSD, toTitleCase } from "@/lib/format";
 import { EditPaymentModal } from "@/components/EditPaymentModal";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, buildMonthsCovered } from "@/lib/memberStatus";
 import { PAYMENT_METHOD_LABEL, RecordPaymentModal } from "@/components/RecordPaymentModal";

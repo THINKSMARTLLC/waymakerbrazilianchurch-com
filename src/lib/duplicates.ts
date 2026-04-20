@@ -32,11 +32,31 @@ const phoneDigits = (v: string | null | undefined) => (v ?? "").replace(/\D/g, "
 export async function findDuplicates(opts: {
   email?: string | null;
   phone?: string | null;
+  /** Name being entered for the new/edited member — used to differentiate
+   *  true duplicates (name+phone match) from shared-phone warnings. */
+  name?: string | null;
   excludeMemberId?: string;
 }): Promise<DuplicateMatch[]> {
   const email = norm(opts.email);
   const phoneD = phoneDigits(opts.phone);
+  const candidateName = opts.name ?? "";
   if (!email && !phoneD) return [];
+
+  // Severity rules:
+  //  - email match  → duplicate
+  //  - phone match + similar name → duplicate
+  //  - phone match alone (different name) → warning
+  const computeSeverity = (
+    matched: Set<"email" | "phone">,
+    otherName: string,
+  ): "duplicate" | "warning" => {
+    if (matched.has("email")) return "duplicate";
+    if (matched.has("phone")) {
+      if (candidateName && namesAreSimilar(candidateName, otherName)) return "duplicate";
+      return "warning";
+    }
+    return "duplicate";
+  };
 
   const matches: DuplicateMatch[] = [];
 

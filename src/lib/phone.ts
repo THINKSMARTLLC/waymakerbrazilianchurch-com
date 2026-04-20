@@ -27,6 +27,21 @@ export function formatPhoneDisplay(raw: string | null | undefined): string {
     }
   }
 
+  // Generic international: +CC followed by digits — group the rest in 4-4 chunks.
+  if (trimmed.startsWith("+")) {
+    const ccMatch = trimmed.match(/^(\+\d{1,3})(.*)$/);
+    if (ccMatch) {
+      const cc = ccMatch[1];
+      const rest = ccMatch[2].replace(/\D/g, "");
+      if (rest.length >= 8) {
+        const ddd = rest.slice(0, 2);
+        const mid = rest.slice(2, rest.length - 4);
+        const last = rest.slice(-4);
+        return `${cc} (${ddd}) ${mid}-${last}`;
+      }
+    }
+  }
+
   // Fallback — return original
   return trimmed;
 }

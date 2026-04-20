@@ -520,6 +520,7 @@ function MembersPage() {
           onChanged={fetchMembers}
         />
       )}
+      <ImportPreviewModal open={showImport} onClose={() => setShowImport(false)} onImported={fetchMembers} />
     </div>
   );
 }

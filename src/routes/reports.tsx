@@ -81,13 +81,21 @@ function ReportsPage() {
     // Fetch latest payment per member globally for accurate status
     const { data: lastData } = await supabase
       .from("payments")
-      .select("member_id, payment_date")
+      .select("member_id, payment_date, payment_frequency, reference_month")
       .order("payment_date", { ascending: false });
     const map = new Map<string, string>();
+    const monthsMap = new Map<string, Set<string>>();
     for (const p of lastData || []) {
       if (!map.has(p.member_id)) map.set(p.member_id, p.payment_date);
+      if (p.payment_frequency === "monthly" && p.reference_month) {
+        const d = new Date(p.reference_month);
+        const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+        if (!monthsMap.has(p.member_id)) monthsMap.set(p.member_id, new Set());
+        monthsMap.get(p.member_id)!.add(key);
+      }
     }
     setLastByMember(map);
+    setMonthsByMember(monthsMap);
 
     // Fetch frequency per member for status calc
     const { data: memberFreq } = await supabase

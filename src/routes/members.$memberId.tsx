@@ -28,6 +28,46 @@ function FieldRow({ icon: Icon, label, value }: { icon: React.ComponentType<{ cl
   );
 }
 
+function EmergencyBlock({ raw }: { raw: string | null }) {
+  const c = parseEmergencyContact(raw);
+  const hasAny = !!(c.name || c.phone || c.relationship);
+  const legacy = isLegacyEmergencyContact(raw);
+  return (
+    <div className="flex items-start gap-3">
+      <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+      <div className="flex-1 min-w-0 space-y-1">
+        <p className="text-xs text-muted-foreground">Contato de Emergência</p>
+        {!hasAny ? (
+          <p className="text-sm text-muted-foreground italic">Não informado</p>
+        ) : (
+          <div className="space-y-0.5 text-sm">
+            <p className="text-foreground">
+              <span className="text-muted-foreground text-xs">Nome:</span> {c.name || <span className="italic text-muted-foreground">Não informado</span>}
+            </p>
+            <p className="text-foreground">
+              <span className="text-muted-foreground text-xs">Telefone:</span>{" "}
+              {c.phone ? (
+                <a href={`tel:${c.phone}`} className="text-primary hover:underline">{formatPhoneDisplay(c.phone) || c.phone}</a>
+              ) : (
+                <span className="italic text-muted-foreground">Não informado</span>
+              )}
+            </p>
+            <p className="text-foreground">
+              <span className="text-muted-foreground text-xs">Parentesco:</span>{" "}
+              {relationshipLabel(c) || <span className="italic text-muted-foreground">Não informado</span>}
+            </p>
+            {legacy && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 italic mt-1">
+                Dados antigos não estruturados — edite para atualizar.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/members/$memberId")({
   head: () => ({
     meta: [

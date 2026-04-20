@@ -163,21 +163,31 @@ function MembersPage() {
   }, []);
 
   const toggleStatus = async (member: Member) => {
-    const newStatus = member.status === "active" ? "inactive" : "active";
-    await supabase.from("members").update({ status: newStatus }).eq("id", member.id);
+    if (member.status === "active") {
+      await inactivateMember(member.id);
+    } else {
+      await reactivateMember(member.id);
+    }
     fetchMembers();
   };
 
   const filtered = useMemo(
     () =>
       members.filter((m) => {
+        if (lifecycleFilter === "active" && m.status !== "active") return false;
+        if (lifecycleFilter === "inactive" && m.status !== "inactive") return false;
         if (selectedMemberId && m.id !== selectedMemberId) return false;
         if (statusFilter !== "all" && m.payment_status !== statusFilter) return false;
         if (!search) return true;
         const q = search.toLowerCase();
         return m.name.toLowerCase().includes(q) || (m.email || "").toLowerCase().includes(q);
       }),
-    [members, search, statusFilter, selectedMemberId]
+    [members, search, statusFilter, selectedMemberId, lifecycleFilter]
+  );
+
+  const inactiveCount = useMemo(
+    () => members.filter((m) => m.status === "inactive").length,
+    [members],
   );
 
   // Map member.id -> the duplicate group it belongs to (if any).

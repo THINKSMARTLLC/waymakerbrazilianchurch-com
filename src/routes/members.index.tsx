@@ -144,6 +144,7 @@ function MembersPage() {
     });
 
     setMembers(withStatus);
+    setDuplicateGroups(findDuplicateGroups(list));
     setLoading(false);
   };
 

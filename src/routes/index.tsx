@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
 import heroImage from "@/assets/waymaker-hero.jpg";
+import whatsappIcon from "@/assets/whatsapp-icon.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -52,7 +53,7 @@ const AB_VARIATIONS = {
 };
 
 const WHATSAPP_URL =
-  'https://wa.me/15512237610?text=Olá,%20quero%20mais%20informações%20sobre%20a%20igreja%20Way%20Maker.%20“Porque%20sou%20eu%20que%20sei%20os%20planos%20que%20tenho%20para%20vocês”,%20diz%20o%20Senhor,%20“planos%20de%20fazê-los%20prosperar%20e%20não%20de%20lhes%20causar%20dano,%20planos%20de%20dar-lhes%20esperança%20e%20um%20futuro.”%20(Jeremias%2029:11)';
+  'https://wa.me/15512237610?text=Olá,%20quero%20mais%20informações.';
 
 function LandingPage() {
   // Smooth scroll
@@ -126,9 +127,11 @@ function LandingPage() {
 
           <div className="mt-12 flex flex-col items-center gap-4 sm:flex-row">
             <a
-              href={WHATSAPP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+              href="#comecar"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById("comecar")?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
               className="group inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-sm font-semibold text-black shadow-xl shadow-black/30 transition hover:scale-[1.02] hover:bg-white/95"
             >
               Quero conhecer mais sobre a Way Maker Church
@@ -610,6 +613,24 @@ function LandingPage() {
           </Link>
         </div>
       </footer>
+
+      {/* FLOATING WHATSAPP BUTTON */}
+      <a
+        href={WHATSAPP_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Fale conosco no WhatsApp"
+        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] shadow-lg shadow-black/30 ring-4 ring-[#25D366]/20 transition hover:scale-110 sm:bottom-6 sm:right-6 sm:h-16 sm:w-16"
+        style={{ animation: "wmc-pulse 2.4s ease-in-out infinite" }}
+      >
+        <img src={whatsappIcon} alt="" className="h-9 w-9 sm:h-10 sm:w-10" />
+      </a>
+      <style>{`
+        @keyframes wmc-pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.55), 0 10px 25px -5px rgba(0,0,0,0.3); }
+          50% { box-shadow: 0 0 0 14px rgba(37, 211, 102, 0), 0 10px 25px -5px rgba(0,0,0,0.3); }
+        }
+      `}</style>
     </div>
   );
 }

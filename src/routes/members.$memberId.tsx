@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, CreditCard, DollarSign, Mail, Phone, Pencil, Trash2, Calendar, MapPin, AlertCircle, Briefcase, Users as UsersIcon, Edit } from "lucide-react";
+import { ArrowLeft, CreditCard, DollarSign, Mail, Phone, Pencil, Trash2, Calendar, MapPin, AlertCircle, Briefcase, Users as UsersIcon, Edit, Cake } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -10,6 +10,8 @@ import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses
 import { PAYMENT_METHOD_LABEL, RecordPaymentModal } from "@/components/RecordPaymentModal";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { useUserRole } from "@/hooks/useUserRole";
+import { parseEmergencyContact, relationshipLabel, isLegacyEmergencyContact } from "@/lib/emergencyContact";
+import { getBirthdayInfo } from "@/lib/birthday";
 
 function FieldRow({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string | null | undefined }) {
   const display = value && String(value).trim() ? String(value) : null;

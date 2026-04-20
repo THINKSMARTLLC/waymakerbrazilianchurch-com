@@ -90,7 +90,7 @@ export function CreateUserModal({
         if (res.reason === "email_exists") {
           setDuplicateRecovery({ link: res.recoveryLink, email });
         } else {
-          setError(res.message ?? "Falha ao criar conta");
+          setError("Falha ao criar conta");
         }
         return;
       }

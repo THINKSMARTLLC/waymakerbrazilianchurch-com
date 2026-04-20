@@ -230,26 +230,33 @@ function MembersPage() {
         </button>
       </div>
 
-      {duplicateGroups.length > 0 && (
-        <button
-          type="button"
-          onClick={() => setActiveDupGroup(duplicateGroups[0])}
-          className="w-full flex items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/40 px-4 py-3 text-left hover:bg-amber-100 dark:hover:bg-amber-950/60 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
-            <div>
-              <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
-                {duplicateGroups.length} possible duplicate{duplicateGroups.length > 1 ? " groups" : " group"} detected
-              </p>
-              <p className="text-xs text-amber-800 dark:text-amber-200">
-                {totalDuplicateMembers} records share email, phone, or very similar names. Click to review and merge safely.
-              </p>
+      {duplicateGroups.length > 0 && (() => {
+        const trueDups = duplicateGroups.filter((g) => g.severity === "duplicate");
+        const warnings = duplicateGroups.filter((g) => g.severity === "warning");
+        const first = trueDups[0] ?? warnings[0];
+        return (
+          <button
+            type="button"
+            onClick={() => setActiveDupGroup(first)}
+            className="w-full flex items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/40 px-4 py-3 text-left hover:bg-amber-100 dark:hover:bg-amber-950/60 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                  {trueDups.length > 0 && `${trueDups.length} duplicate group${trueDups.length > 1 ? "s" : ""}`}
+                  {trueDups.length > 0 && warnings.length > 0 && " · "}
+                  {warnings.length > 0 && `${warnings.length} shared-phone alert${warnings.length > 1 ? "s" : ""}`}
+                </p>
+                <p className="text-xs text-amber-800 dark:text-amber-200">
+                  Duplicates (same email, or same name + phone) can be merged. Shared-phone alerts are informational only — both members coexist.
+                </p>
+              </div>
             </div>
-          </div>
-          <span className="text-xs font-medium text-amber-900 dark:text-amber-100 underline">Review</span>
-        </button>
-      )}
+            <span className="text-xs font-medium text-amber-900 dark:text-amber-100 underline">Review</span>
+          </button>
+        );
+      })()}
 
       <div className="card-elevated overflow-hidden">
         {loading ? (

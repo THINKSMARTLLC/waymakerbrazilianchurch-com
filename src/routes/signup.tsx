@@ -92,6 +92,16 @@ function SignupPage() {
     const fullPhone = `${normalizedCode} ${form.phone.replace(/^\+?\d{1,4}\s*/, "").trim()}`;
 
     setLoading(true);
+
+    // Block registration if email or phone already exist in members/user_profiles.
+    const { findDuplicates } = await import("@/lib/duplicates");
+    const dupes = await findDuplicates({ email: form.email, phone: fullPhone });
+    if (dupes.length > 0) {
+      setError("Esta conta já existe. Por favor, faça login ou redefina sua senha.");
+      setLoading(false);
+      return;
+    }
+
     const { data, error: signupError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,

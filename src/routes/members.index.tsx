@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History } from "lucide-react";
+import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check } from "lucide-react";
 import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -14,6 +14,9 @@ import { RecordPaymentModal } from "@/components/RecordPaymentModal";
 import { ContributionsModal } from "@/components/ContributionsModal";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, FREQUENCY_LABEL, type MemberPaymentStatus, type ContributionFrequency } from "@/lib/memberStatus";
 import { formatPhoneDisplay } from "@/lib/phone";
+import { findDuplicates, generateTempAccessCode, type DuplicateMatch } from "@/lib/duplicates";
+import { DuplicateWarning } from "@/components/DuplicateWarning";
+import { MergeMembersModal } from "@/components/MergeMembersModal";
 
 interface MembersSearch {
   status?: MemberPaymentStatus;
@@ -387,6 +390,17 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
     ? initial.number.split(" ")[0]
     : "+");
 
+  // Duplicate detection state.
+  const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
+  const [checkingDupes, setCheckingDupes] = useState(false);
+  const [allowOverride, setAllowOverride] = useState(false);
+  const [mergeWith, setMergeWith] = useState<Member | null>(null);
+  // Pending submit values used by the merge modal.
+  const [pendingPayload, setPendingPayload] = useState<Record<string, unknown> | null>(null);
+  // Credential issued for admin-created members.
+  const [tempCredential, setTempCredential] = useState<{ identifier: string; code: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
   const buildE164 = (): string | null => {
     const digits = phoneNumber.replace(/\D/g, "");
     if (!digits) return null;
@@ -399,33 +413,148 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
   const weeklyNum = Number(weekly) || 0;
   const monthlyNum = weeklyNum * 4;
 
+  const runDuplicateCheck = async (email: string | null, phone: string | null) => {
+    if (!email && !phone) {
+      setDuplicates([]);
+      return [];
+    }
+    setCheckingDupes(true);
+    const found = await findDuplicates({ email, phone, excludeMemberId: member?.id });
+    setCheckingDupes(false);
+    setDuplicates(found);
+    return found;
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSaving(true);
     setError("");
 
     const form = new FormData(e.currentTarget);
+    const emailRaw = ((form.get("email") as string) || "").trim() || null;
+    const phoneRaw = buildE164();
     const payload = {
       name: toTitleCase(form.get("name") as string),
-      email: (form.get("email") as string) || null,
-      phone: buildE164(),
+      email: emailRaw,
+      phone: phoneRaw,
       payment_type: form.get("payment_type") as "card" | "cash",
       contribution_frequency: frequency,
       weekly_contribution_usd: weeklyNum,
     };
 
-    const { error } = isEditing
-      ? await supabase.from("members").update(payload as never).eq("id", member.id)
-      : await supabase.from("members").insert(payload as never);
+    // Duplicate detection — only block if user hasn't chosen "create anyway".
+    if (!allowOverride) {
+      const found = await runDuplicateCheck(emailRaw, phoneRaw);
+      if (found.length > 0) {
+        setPendingPayload(payload);
+        return; // Stop submit — admin must resolve via the warning UI.
+      }
+    }
 
-    if (error) {
-      setError(error.message);
+    await persistMember(payload);
+  };
+
+  const persistMember = async (payload: Record<string, unknown>) => {
+    setSaving(true);
+    const { data, error: dbErr } = isEditing
+      ? await supabase.from("members").update(payload as never).eq("id", member!.id).select().single()
+      : await supabase.from("members").insert(payload as never).select().single();
+
+    if (dbErr) {
+      setError(dbErr.message);
       setSaving(false);
-    } else {
-      onSaved();
-      onClose();
+      return;
+    }
+
+    // For new admin-created members: generate a temp access code and show it.
+    if (!isEditing && data) {
+      const code = generateTempAccessCode();
+      const identifier = (payload.email as string) || (payload.phone as string) || (payload.name as string);
+      setTempCredential({ identifier, code });
+      setSaving(false);
+      onSaved(); // Refresh the list behind the credential screen.
+      return;
+    }
+
+    setSaving(false);
+    onSaved();
+    onClose();
+  };
+
+  const handleKeepExisting = (_match: DuplicateMatch) => {
+    onClose();
+  };
+
+  const handleMerge = (match: DuplicateMatch) => {
+    if (!match.member) return;
+    setMergeWith(match.member);
+  };
+
+  const handleCreateAnyway = () => {
+    setAllowOverride(true);
+    setDuplicates([]);
+    if (pendingPayload) {
+      persistMember(pendingPayload);
     }
   };
+
+  const handleMergeCompleted = () => {
+    setMergeWith(null);
+    onSaved();
+    onClose();
+  };
+
+  const copyCredential = async () => {
+    if (!tempCredential) return;
+    const text = `Login: ${tempCredential.identifier}\nTemporary code: ${tempCredential.code}\nPlease log in and change your password.`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* noop */ }
+  };
+
+  // Credential success screen (after admin-created member).
+  if (tempCredential) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-4">
+        <div className="card-elevated w-full max-w-md p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="rounded-full bg-primary/10 p-2">
+              <KeyRound className="h-5 w-5 text-primary" />
+            </div>
+            <h2 className="font-display text-lg font-semibold text-foreground">Member Created</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Share these temporary credentials with the new member. They should log in and change their password on first access.
+          </p>
+          <div className="rounded-xl bg-muted p-4 space-y-3">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Login</div>
+              <div className="text-sm font-medium text-foreground break-all">{tempCredential.identifier}</div>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Temporary code</div>
+              <div className="font-mono text-lg font-bold tracking-wider text-foreground">{tempCredential.code}</div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={copyCredential}
+            className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+          >
+            {copied ? <><Check className="h-4 w-4" /> Copied</> : <><Copy className="h-4 w-4" /> Copy credentials</>}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn-google w-full mt-2"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-4">
@@ -435,6 +564,16 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
         </h2>
         <form className="space-y-4" onSubmit={handleSubmit}>
           {error && <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
+
+          {duplicates.length > 0 && (
+            <DuplicateWarning
+              matches={duplicates}
+              onKeepExisting={handleKeepExisting}
+              onMerge={handleMerge}
+              onCreateAnyway={handleCreateAnyway}
+            />
+          )}
+
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">Name</label>
             <input name="name" type="text" required defaultValue={member?.name ?? ""} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Full name" />
@@ -528,12 +667,28 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
             <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors">
               Cancel
             </button>
-            <button type="submit" disabled={saving} className="btn-google flex-1 disabled:opacity-50">
-              {saving ? "Saving..." : isEditing ? "Update" : "Save"}
+            <button type="submit" disabled={saving || checkingDupes} className="btn-google flex-1 disabled:opacity-50">
+              {saving ? "Saving..." : checkingDupes ? "Checking..." : isEditing ? "Update" : "Save"}
             </button>
           </div>
         </form>
       </div>
+
+      {mergeWith && pendingPayload && (
+        <MergeMembersModal
+          existing={mergeWith}
+          candidate={{
+            name: String(pendingPayload.name ?? ""),
+            email: (pendingPayload.email as string | null) ?? null,
+            phone: (pendingPayload.phone as string | null) ?? null,
+            payment_type: pendingPayload.payment_type as "card" | "cash",
+            weekly_contribution_usd: weeklyNum,
+          }}
+          candidateMemberId={isEditing ? member!.id : undefined}
+          onClose={() => setMergeWith(null)}
+          onMerged={handleMergeCompleted}
+        />
+      )}
     </div>
   );
 }

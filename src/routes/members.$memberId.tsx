@@ -194,10 +194,11 @@ function MemberProfilePage() {
         )}
       </div>
 
-      {showCashModal && (
-        <CashDonationModal
+      {showPaymentModal && (
+        <RecordPaymentModal
           memberId={memberId}
-          onClose={() => setShowCashModal(false)}
+          memberName={member.name}
+          onClose={() => setShowPaymentModal(false)}
           onSaved={fetchData}
         />
       )}
@@ -208,57 +209,6 @@ function MemberProfilePage() {
           onSaved={fetchData}
         />
       )}
-    </div>
-  );
-}
-
-function CashDonationModal({ memberId, onClose, onSaved }: { memberId: string; onClose: () => void; onSaved: () => void }) {
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setSaving(true);
-    setError("");
-
-    const form = new FormData(e.currentTarget);
-    const { error } = await supabase.from("payments").insert({
-      member_id: memberId,
-      amount: Number(form.get("amount")),
-      payment_method: "cash" as const,
-      status: "paid" as const,
-      payment_date: form.get("date") as string,
-    });
-
-    if (error) {
-      setError(error.message);
-      setSaving(false);
-    } else {
-      onSaved();
-      onClose();
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-4">
-      <div className="card-elevated w-full max-w-md p-6">
-        <h2 className="font-display text-lg font-semibold text-foreground mb-5">Registrar Doação em Dinheiro</h2>
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          {error && <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Amount (USD)</label>
-            <input name="amount" type="number" step="0.01" min="0.01" required className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" placeholder="100.00" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Data</label>
-            <input name="date" type="date" required defaultValue={new Date().toISOString().split("T")[0]} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors">Cancelar</button>
-            <button type="submit" disabled={saving} className="btn-google flex-1 disabled:opacity-50">{saving ? "Salvando..." : "Registrar"}</button>
-          </div>
-        </form>
-      </div>
     </div>
   );
 }

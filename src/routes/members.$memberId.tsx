@@ -1,13 +1,30 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, CreditCard, DollarSign, Mail, Phone, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, CreditCard, DollarSign, Mail, Phone, Pencil, Trash2, Calendar, MapPin, AlertCircle, Briefcase, Users as UsersIcon, Edit } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { formatUSD, toTitleCase } from "@/lib/format";
 import { EditPaymentModal } from "@/components/EditPaymentModal";
+import { EditMemberModal } from "@/components/EditMemberModal";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, buildMonthsCovered } from "@/lib/memberStatus";
 import { PAYMENT_METHOD_LABEL, RecordPaymentModal } from "@/components/RecordPaymentModal";
 import { formatPhoneDisplay } from "@/lib/phone";
+import { useUserRole } from "@/hooks/useUserRole";
+
+function FieldRow({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string | null | undefined }) {
+  const display = value && String(value).trim() ? String(value) : null;
+  return (
+    <div className="flex items-start gap-3">
+      <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className={`text-sm ${display ? "text-foreground" : "text-muted-foreground italic"}`}>
+          {display ?? "Não informado"}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/members/$memberId")({
   head: () => ({
@@ -24,11 +41,13 @@ type Payment = Database["public"]["Tables"]["payments"]["Row"];
 
 function MemberProfilePage() {
   const { memberId } = Route.useParams();
+  const { isStaff } = useUserRole();
   const [member, setMember] = useState<Member | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [showEditMember, setShowEditMember] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchData = async () => {
@@ -122,9 +141,28 @@ function MemberProfilePage() {
         </div>
       </div>
 
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="card-elevated p-6">
+          <h3 className="font-display text-base font-medium text-foreground mb-4">Informações Pessoais</h3>
+          <div className="space-y-4">
+            <FieldRow icon={Calendar} label="Data de Nascimento" value={member.date_of_birth ? new Date(member.date_of_birth + "T00:00:00").toLocaleDateString("pt-BR") : null} />
+            <FieldRow icon={MapPin} label="Endereço" value={member.address} />
+            <FieldRow icon={AlertCircle} label="Contato de Emergência" value={member.emergency_contact} />
+          </div>
+        </div>
+
+        <div className="card-elevated p-6">
+          <h3 className="font-display text-base font-medium text-foreground mb-4">Informações da Igreja</h3>
+          <div className="space-y-4">
+            <FieldRow icon={Briefcase} label="Cargo" value={member.member_role} />
+            <FieldRow icon={UsersIcon} label="Departamento" value={member.department} />
+          </div>
+        </div>
+      </div>
+
       <div className="card-elevated p-6">
         <h3 className="font-display text-base font-medium text-foreground mb-4">Ações</h3>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <button
             onClick={() => setShowPaymentModal(true)}
             className="inline-flex items-center gap-2 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
@@ -132,6 +170,15 @@ function MemberProfilePage() {
             <DollarSign className="h-4 w-4" />
             Registrar Pagamento
           </button>
+          {isStaff && (
+            <button
+              onClick={() => setShowEditMember(true)}
+              className="inline-flex items-center gap-2 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              <Edit className="h-4 w-4" />
+              Editar Perfil
+            </button>
+          )}
         </div>
       </div>
 
@@ -207,6 +254,13 @@ function MemberProfilePage() {
         <EditPaymentModal
           payment={editingPayment}
           onClose={() => setEditingPayment(null)}
+          onSaved={fetchData}
+        />
+      )}
+      {showEditMember && member && (
+        <EditMemberModal
+          member={member}
+          onClose={() => setShowEditMember(false)}
           onSaved={fetchData}
         />
       )}

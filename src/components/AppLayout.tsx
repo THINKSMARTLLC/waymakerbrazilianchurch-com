@@ -15,7 +15,7 @@ import { logActivity } from "@/lib/activityLog";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
 
 const baseNavItems = [
-  { label: "Dashboard", to: "/" as const, icon: LayoutDashboard },
+  { label: "Dashboard", to: "/dashboard" as const, icon: LayoutDashboard },
   { label: "Membros", to: "/members" as const, icon: Users },
   { label: "Relatórios", to: "/reports" as const, icon: FileBarChart },
 ];
@@ -63,10 +63,8 @@ export function AppLayout() {
 
         <nav className="flex-1 space-y-1 px-3 py-4">
           {navItems.map((item) => {
-            const isActive =
-              item.to === "/"
-                ? location.pathname === "/"
-                : location.pathname.startsWith(item.to);
+            const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + "/");
+
 
             return (
               <Link
@@ -110,8 +108,8 @@ export function AppLayout() {
             <Menu className="h-5 w-5" />
           </button>
           <h1 className="page-header">
-            {navItems.find((item) =>
-              item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to)
+            {navItems.find(
+              (item) => location.pathname === item.to || location.pathname.startsWith(item.to + "/")
             )?.label || "WAY MAKER FLOW"}
           </h1>
         </header>

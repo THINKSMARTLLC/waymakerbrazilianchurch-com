@@ -120,7 +120,7 @@ function SignupPage() {
     }
 
     setLoading(false);
-    navigate({ to: "/" });
+    navigate({ to: "/dashboard" });
   };
 
   const [logoError, setLogoError] = useState(false);

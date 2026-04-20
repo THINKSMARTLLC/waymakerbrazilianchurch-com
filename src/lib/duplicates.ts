@@ -125,6 +125,151 @@ export function isIncompleteMember(m: Member): boolean {
   return !m.email || !m.phone || !m.address;
 }
 
+// ---------------------------------------------------------------------------
+// In-list duplicate scanner
+// ---------------------------------------------------------------------------
+
+const normName = (v: string | null | undefined) =>
+  (v ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // strip diacritics
+    .replace(/[^a-z\s]/g, "")
+    .trim()
+    .replace(/\s+/g, " ");
+
+/** Levenshtein distance — small strings only, O(n*m). */
+function levenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const prev = new Array<number>(b.length + 1);
+  const curr = new Array<number>(b.length + 1);
+  for (let j = 0; j <= b.length; j++) prev[j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+    }
+    for (let j = 0; j <= b.length; j++) prev[j] = curr[j];
+  }
+  return prev[b.length];
+}
+
+/** Names are "very similar" if normalized equal, or Levenshtein ratio >= 0.85. */
+export function namesAreSimilar(a: string, b: string): boolean {
+  const na = normName(a);
+  const nb = normName(b);
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  // Token-set: same set of words in any order
+  const sa = new Set(na.split(" "));
+  const sb = new Set(nb.split(" "));
+  if (sa.size === sb.size && [...sa].every((t) => sb.has(t))) return true;
+  const max = Math.max(na.length, nb.length);
+  if (max < 4) return false;
+  const dist = levenshtein(na, nb);
+  return 1 - dist / max >= 0.85;
+}
+
+export interface DuplicateGroup {
+  key: string;
+  reason: ("email" | "phone" | "name")[];
+  memberIds: string[];
+}
+
+/**
+ * Scan a list of members and group rows that look like duplicates of each
+ * other (matching email, phone, or very similar name). Pure client-side,
+ * does not query the database.
+ */
+export function findDuplicateGroups(members: Member[]): DuplicateGroup[] {
+  // Union-find for grouping.
+  const parent = new Map<string, string>();
+  const find = (x: string): string => {
+    const p = parent.get(x) ?? x;
+    if (p === x) return x;
+    const r = find(p);
+    parent.set(x, r);
+    return r;
+  };
+  const union = (a: string, b: string) => {
+    const ra = find(a);
+    const rb = find(b);
+    if (ra !== rb) parent.set(ra, rb);
+  };
+  for (const m of members) parent.set(m.id, m.id);
+
+  const reasonByPair = new Map<string, Set<"email" | "phone" | "name">>();
+  const addReason = (a: string, b: string, r: "email" | "phone" | "name") => {
+    const k = a < b ? `${a}|${b}` : `${b}|${a}`;
+    if (!reasonByPair.has(k)) reasonByPair.set(k, new Set());
+    reasonByPair.get(k)!.add(r);
+  };
+
+  // Index by email and phone digits for O(n) pairing.
+  const byEmail = new Map<string, string[]>();
+  const byPhone = new Map<string, string[]>();
+  for (const m of members) {
+    const e = norm(m.email);
+    if (e) {
+      if (!byEmail.has(e)) byEmail.set(e, []);
+      byEmail.get(e)!.push(m.id);
+    }
+    const p = phoneDigits(m.phone);
+    // Use last 10 digits as bucket key (handles +1 / no country code).
+    const key = p.slice(-10);
+    if (key.length >= 7) {
+      if (!byPhone.has(key)) byPhone.set(key, []);
+      byPhone.get(key)!.push(m.id);
+    }
+  }
+  for (const ids of byEmail.values()) {
+    for (let i = 1; i < ids.length; i++) {
+      union(ids[0], ids[i]);
+      addReason(ids[0], ids[i], "email");
+    }
+  }
+  for (const ids of byPhone.values()) {
+    for (let i = 1; i < ids.length; i++) {
+      union(ids[0], ids[i]);
+      addReason(ids[0], ids[i], "phone");
+    }
+  }
+
+  // Name similarity — O(n^2) but n is bounded by member count.
+  for (let i = 0; i < members.length; i++) {
+    for (let j = i + 1; j < members.length; j++) {
+      if (namesAreSimilar(members[i].name, members[j].name)) {
+        union(members[i].id, members[j].id);
+        addReason(members[i].id, members[j].id, "name");
+      }
+    }
+  }
+
+  // Collect groups of size >= 2.
+  const groups = new Map<string, { ids: string[]; reasons: Set<"email" | "phone" | "name"> }>();
+  for (const m of members) {
+    const root = find(m.id);
+    if (!groups.has(root)) groups.set(root, { ids: [], reasons: new Set() });
+    groups.get(root)!.ids.push(m.id);
+  }
+  for (const [pairKey, reasons] of reasonByPair.entries()) {
+    const [a] = pairKey.split("|");
+    const root = find(a);
+    const g = groups.get(root);
+    if (g) reasons.forEach((r) => g.reasons.add(r));
+  }
+  const result: DuplicateGroup[] = [];
+  for (const [key, g] of groups.entries()) {
+    if (g.ids.length >= 2) {
+      result.push({ key, reason: Array.from(g.reasons), memberIds: g.ids });
+    }
+  }
+  return result;
+}
+
 /**
  * Merge two member records: reassign all payments from `loserId` to `winnerId`,
  * apply the chosen field values to the winner, and delete the loser.

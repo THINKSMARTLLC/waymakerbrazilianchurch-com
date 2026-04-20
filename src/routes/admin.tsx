@@ -125,10 +125,17 @@ function AdminPage() {
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
           <Shield className="h-5 w-5 text-primary" />
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-semibold font-display">Painel Super Admin</h1>
           <p className="text-sm text-muted-foreground">Gerencie usuários, funções e status do sistema</p>
         </div>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="btn-google inline-flex items-center gap-2"
+        >
+          <UserPlus className="h-4 w-4" />
+          Criar Usuário
+        </button>
       </div>
 
       <div className="card-elevated overflow-hidden">

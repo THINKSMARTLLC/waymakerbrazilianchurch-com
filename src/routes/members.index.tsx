@@ -77,12 +77,24 @@ function MembersPage() {
 
     let lastByMember = new Map<string, { payment_date: string; payment_method: string }>();
     const monthsByMember = new Map<string, Set<string>>();
+    const monthlyTotalByMember = new Map<string, number>();
+
+    // Current month boundaries (local time) for dynamic monthly total.
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const toYMD = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
     if (ids.length > 0) {
       const { data: paymentsData } = await supabase
         .from("payments")
-        .select("member_id, payment_date, payment_method, payment_frequency, reference_month")
+        .select("member_id, payment_date, payment_method, payment_frequency, reference_month, amount")
         .in("member_id", ids)
         .order("payment_date", { ascending: false });
+
+      const monthStartStr = toYMD(monthStart);
+      const monthEndStr = toYMD(monthEnd);
 
       for (const p of paymentsData || []) {
         if (!lastByMember.has(p.member_id)) {
@@ -93,6 +105,13 @@ function MembersPage() {
           const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
           if (!monthsByMember.has(p.member_id)) monthsByMember.set(p.member_id, new Set());
           monthsByMember.get(p.member_id)!.add(key);
+        }
+        // Sum real payments inside current calendar month (by payment_date).
+        if (p.payment_date >= monthStartStr && p.payment_date < monthEndStr) {
+          monthlyTotalByMember.set(
+            p.member_id,
+            (monthlyTotalByMember.get(p.member_id) ?? 0) + Number(p.amount || 0),
+          );
         }
       }
     }

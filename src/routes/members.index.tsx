@@ -1,5 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check, AlertTriangle, Archive } from "lucide-react";
+import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check, AlertTriangle, Archive, Download, Upload } from "lucide-react";
+import { exportMembersCSV, exportMembersXLSX } from "@/lib/dataExportImport";
+import { ImportPreviewModal } from "@/components/ImportPreviewModal";
+import { useUserRole } from "@/hooks/useUserRole";
 import { inactivateMember, reactivateMember } from "@/lib/memberLifecycle";
 import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,6 +77,19 @@ function MembersPage() {
   const [loading, setLoading] = useState(true);
   const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[]>([]);
   const [activeDupGroup, setActiveDupGroup] = useState<DuplicateGroup | null>(null);
+  const [showImport, setShowImport] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const { isSuperAdmin } = useUserRole();
+
+  const handleExport = async (format: "csv" | "xlsx") => {
+    setExporting(true);
+    try {
+      if (format === "csv") await exportMembersCSV();
+      else await exportMembersXLSX();
+    } finally {
+      setExporting(false);
+    }
+  };
 
   useEffect(() => {
     if (statusParam) setStatusFilter(statusParam);
@@ -263,6 +279,33 @@ function MembersPage() {
             <Archive className="h-4 w-4" />
             Inactive {inactiveCount > 0 && <span className="rounded-full bg-muted px-1.5 text-xs">{inactiveCount}</span>}
           </Link>
+          {isSuperAdmin && (
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    disabled={exporting}
+                    className="inline-flex items-center gap-2 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                  >
+                    <Download className="h-4 w-4" />
+                    Export
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleExport("csv")}>CSV (.csv)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport("xlsx")}>Excel (.xlsx)</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <button
+                onClick={() => setShowImport(true)}
+                className="inline-flex items-center gap-2 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                title="Import members from CSV/Excel"
+              >
+                <Upload className="h-4 w-4" />
+                Import
+              </button>
+            </>
+          )}
           <button onClick={() => setShowAddModal(true)} className="btn-google inline-flex items-center gap-2">
             <UserPlus className="h-4 w-4" />
             New Member

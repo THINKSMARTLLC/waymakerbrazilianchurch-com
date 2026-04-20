@@ -178,7 +178,7 @@ export function CreateUserModal({
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="form-input"
+                className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 placeholder="Nome da pessoa"
               />
             </Field>
@@ -189,7 +189,7 @@ export function CreateUserModal({
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="form-input"
+                className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 placeholder="email@exemplo.com"
               />
             </Field>
@@ -199,7 +199,7 @@ export function CreateUserModal({
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="form-input"
+                className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 placeholder="(opcional)"
               />
             </Field>
@@ -209,7 +209,7 @@ export function CreateUserModal({
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value as AppRole)}
-                  className="form-input"
+                  className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   required
                 >
                   <option value="member">{ROLE_LABEL.member}</option>

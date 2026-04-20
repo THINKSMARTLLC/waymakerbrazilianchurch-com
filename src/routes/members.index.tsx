@@ -70,6 +70,7 @@ function MembersPage() {
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<MemberPaymentStatus | "all">(statusParam ?? "all");
   const [lifecycleFilter, setLifecycleFilter] = useState<LifecycleFilter>(lifecycleParam ?? "active");
+  const [birthdayFilter, setBirthdayFilter] = useState<"all" | BirthdayWindow>("all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [recordingFor, setRecordingFor] = useState<Member | null>(null);

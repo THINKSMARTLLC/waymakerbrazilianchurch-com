@@ -61,10 +61,11 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
 };
 
 function MembersPage() {
-  const { status: statusParam } = Route.useSearch();
+  const { status: statusParam, lifecycle: lifecycleParam } = Route.useSearch();
   const [search, setSearch] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<MemberPaymentStatus | "all">(statusParam ?? "all");
+  const [lifecycleFilter, setLifecycleFilter] = useState<LifecycleFilter>(lifecycleParam ?? "active");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [recordingFor, setRecordingFor] = useState<Member | null>(null);
@@ -77,6 +78,10 @@ function MembersPage() {
   useEffect(() => {
     if (statusParam) setStatusFilter(statusParam);
   }, [statusParam]);
+
+  useEffect(() => {
+    if (lifecycleParam) setLifecycleFilter(lifecycleParam);
+  }, [lifecycleParam]);
 
   const fetchMembers = async () => {
     const { data: membersData } = await supabase

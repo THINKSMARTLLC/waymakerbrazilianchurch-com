@@ -35,6 +35,20 @@ function AdminPage() {
   const { isSuperAdmin, loading: roleLoading } = useUserRole();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [recoveryFor, setRecoveryFor] = useState<{ email: string; link: string | null } | null>(null);
+  const sendRecovery = useServerFn(generateRecoveryForEmail);
+
+  const requestRecovery = async (email: string) => {
+    setRecoveryFor({ email, link: null });
+    try {
+      const res = await sendRecovery({ data: { email } });
+      setRecoveryFor({ email, link: res.recoveryLink });
+    } catch (err) {
+      setRecoveryFor({ email, link: null });
+      alert(err instanceof Error ? err.message : "Falha ao gerar link");
+    }
+  };
 
   const load = async () => {
     setLoading(true);

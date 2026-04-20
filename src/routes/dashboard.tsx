@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Users, DollarSign, AlertTriangle, TrendingUp } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { StatCard } from "@/components/StatCard";
 import { DonationsChart } from "@/components/DonationsChart";
 import { QuickActions } from "@/components/QuickActions";
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/dashboard")({
 
 function DashboardPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const weeklyExpected = getWeeklyExpectedTarget();
   const [stats, setStats] = useState({
     totalMembers: 0,
@@ -57,11 +59,11 @@ function DashboardPage() {
       <BirthdayLoginAlert />
       <NewSignupsBanner />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Members" value={String(stats.totalMembers)} icon={Users} />
-        <StatCard title="Weekly Expected (Target)" value={formatUSD(weeklyExpected)} icon={TrendingUp} />
-        <StatCard title="Collected This Month" value={formatUSD(stats.collectedThisMonth)} icon={DollarSign} />
+        <StatCard title={t("dashboard.totalMembers")} value={String(stats.totalMembers)} icon={Users} />
+        <StatCard title={t("dashboard.weeklyExpected")} value={formatUSD(weeklyExpected)} icon={TrendingUp} />
+        <StatCard title={t("dashboard.collectedThisMonth")} value={formatUSD(stats.collectedThisMonth)} icon={DollarSign} />
         <StatCard
-          title="Outstanding"
+          title={t("dashboard.outstanding")}
           value={formatUSD(stats.outstanding)}
           icon={AlertTriangle}
           onClick={() => navigate({ to: "/members", search: { status: "late" } as never })}

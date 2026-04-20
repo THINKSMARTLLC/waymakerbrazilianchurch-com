@@ -12,6 +12,12 @@ export interface DuplicateMatch {
   name: string;
   email: string | null;
   phone: string | null;
+  /**
+   * "duplicate" → same email, OR same name + same phone. Merge offered.
+   * "warning"   → only phone matches and names differ → likely shared phone
+   *               (household). No merge; informational only.
+   */
+  severity: "duplicate" | "warning";
   // Only present for member matches — used for the merge UI.
   member?: Member;
 }

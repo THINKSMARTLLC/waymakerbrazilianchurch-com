@@ -96,6 +96,7 @@ export async function findDuplicates(opts: {
         name: row.name,
         email: row.email,
         phone: row.phone,
+        severity: computeSeverity(matched, row.name),
         member: row,
       });
     }

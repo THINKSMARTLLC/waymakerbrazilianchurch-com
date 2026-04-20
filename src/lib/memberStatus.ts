@@ -3,10 +3,20 @@ export type ContributionFrequency = "weekly" | "monthly" | "one_time" | "flexibl
 
 export function computeMemberStatus(
   lastPaymentDate: string | null | undefined,
-  frequency: ContributionFrequency = "weekly"
+  frequency: ContributionFrequency = "weekly",
+  monthsCovered?: Set<string> | string[] | null
 ): MemberPaymentStatus {
   // Flexible members are always Active
   if (frequency === "flexible") return "active";
+
+  // If a monthly payment covers the current month, member is on time
+  // regardless of the last weekly payment date.
+  if (monthsCovered) {
+    const set = monthsCovered instanceof Set ? monthsCovered : new Set(monthsCovered);
+    const now = new Date();
+    const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    if (set.has(currentKey)) return "on_time";
+  }
 
   if (!lastPaymentDate) return "no_payment";
 
@@ -20,6 +30,21 @@ export function computeMemberStatus(
   cutoff.setDate(now.getDate() - daysWindow);
 
   return last >= cutoff ? "on_time" : "late";
+}
+
+/** Build a Set of "YYYY-MM" keys from monthly payments for a member. */
+export function buildMonthsCovered(
+  payments: Array<{ payment_frequency?: string | null; reference_month?: string | null }>
+): Set<string> {
+  const set = new Set<string>();
+  for (const p of payments) {
+    if (p.payment_frequency === "monthly" && p.reference_month) {
+      const d = new Date(p.reference_month);
+      const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+      set.add(key);
+    }
+  }
+  return set;
 }
 
 export const STATUS_LABEL: Record<MemberPaymentStatus, string> = {

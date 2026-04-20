@@ -331,7 +331,19 @@ function ReportsPage() {
       </div>
 
       {/* Filters */}
-      <div className="card-elevated p-4 grid gap-3 md:grid-cols-5">
+      <div className="card-elevated p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Filters</span>
+          {hasActiveFilter && (
+            <button
+              onClick={clearFilters}
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+        <div className="grid gap-3 md:grid-cols-5">
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1">Select Member</label>
           <select

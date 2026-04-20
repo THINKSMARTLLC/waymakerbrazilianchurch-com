@@ -12,7 +12,7 @@ import {
 import { ImportPreviewModal } from "@/components/ImportPreviewModal";
 import { logActivity } from "@/lib/activityLog";
 
-export const Route = createFileRoute("/admin/data")({
+export const Route = createFileRoute("/import-export")({
   head: () => ({ meta: [{ title: "Importar e Exportar Dados — WAY MAKER FLOW" }] }),
   component: AdminDataPage,
 });

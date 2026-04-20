@@ -15,6 +15,7 @@ import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as PendingRouteImport } from './routes/pending'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ImportExportRouteImport } from './routes/import-export'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -25,7 +26,6 @@ import { Route as PortalProfileRouteImport } from './routes/portal.profile'
 import { Route as PortalContributionsRouteImport } from './routes/portal.contributions'
 import { Route as MembersArchiveRouteImport } from './routes/members.archive'
 import { Route as MembersMemberIdRouteImport } from './routes/members.$memberId'
-import { Route as AdminDataRouteImport } from './routes/admin.data'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -55,6 +55,11 @@ const PendingRoute = PendingRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImportExportRoute = ImportExportRouteImport.update({
+  id: '/import-export',
+  path: '/import-export',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -107,24 +112,19 @@ const MembersMemberIdRoute = MembersMemberIdRouteImport.update({
   path: '/members/$memberId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminDataRoute = AdminDataRouteImport.update({
-  id: '/data',
-  path: '/data',
-  getParentRoute: () => AdminRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRouteWithChildren
+  '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/import-export': typeof ImportExportRoute
   '/login': typeof LoginRoute
   '/pending': typeof PendingRoute
   '/portal': typeof PortalRouteWithChildren
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/admin/data': typeof AdminDataRoute
   '/members/$memberId': typeof MembersMemberIdRoute
   '/members/archive': typeof MembersArchiveRoute
   '/portal/contributions': typeof PortalContributionsRoute
@@ -134,15 +134,15 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRouteWithChildren
+  '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/import-export': typeof ImportExportRoute
   '/login': typeof LoginRoute
   '/pending': typeof PendingRoute
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/admin/data': typeof AdminDataRoute
   '/members/$memberId': typeof MembersMemberIdRoute
   '/members/archive': typeof MembersArchiveRoute
   '/portal/contributions': typeof PortalContributionsRoute
@@ -153,16 +153,16 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRouteWithChildren
+  '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/import-export': typeof ImportExportRoute
   '/login': typeof LoginRoute
   '/pending': typeof PendingRoute
   '/portal': typeof PortalRouteWithChildren
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/admin/data': typeof AdminDataRoute
   '/members/$memberId': typeof MembersMemberIdRoute
   '/members/archive': typeof MembersArchiveRoute
   '/portal/contributions': typeof PortalContributionsRoute
@@ -177,13 +177,13 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/forgot-password'
+    | '/import-export'
     | '/login'
     | '/pending'
     | '/portal'
     | '/reports'
     | '/reset-password'
     | '/signup'
-    | '/admin/data'
     | '/members/$memberId'
     | '/members/archive'
     | '/portal/contributions'
@@ -196,12 +196,12 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/forgot-password'
+    | '/import-export'
     | '/login'
     | '/pending'
     | '/reports'
     | '/reset-password'
     | '/signup'
-    | '/admin/data'
     | '/members/$memberId'
     | '/members/archive'
     | '/portal/contributions'
@@ -214,13 +214,13 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/forgot-password'
+    | '/import-export'
     | '/login'
     | '/pending'
     | '/portal'
     | '/reports'
     | '/reset-password'
     | '/signup'
-    | '/admin/data'
     | '/members/$memberId'
     | '/members/archive'
     | '/portal/contributions'
@@ -231,9 +231,10 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRouteWithChildren
+  AdminRoute: typeof AdminRoute
   DashboardRoute: typeof DashboardRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  ImportExportRoute: typeof ImportExportRoute
   LoginRoute: typeof LoginRoute
   PendingRoute: typeof PendingRoute
   PortalRoute: typeof PortalRouteWithChildren
@@ -287,6 +288,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/import-export': {
+      id: '/import-export'
+      path: '/import-export'
+      fullPath: '/import-export'
+      preLoaderRoute: typeof ImportExportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -359,25 +367,8 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MembersMemberIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/data': {
-      id: '/admin/data'
-      path: '/data'
-      fullPath: '/admin/data'
-      preLoaderRoute: typeof AdminDataRouteImport
-      parentRoute: typeof AdminRoute
-    }
   }
 }
-
-interface AdminRouteChildren {
-  AdminDataRoute: typeof AdminDataRoute
-}
-
-const AdminRouteChildren: AdminRouteChildren = {
-  AdminDataRoute: AdminDataRoute,
-}
-
-const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface PortalRouteChildren {
   PortalContributionsRoute: typeof PortalContributionsRoute
@@ -396,9 +387,10 @@ const PortalRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRouteWithChildren,
+  AdminRoute: AdminRoute,
   DashboardRoute: DashboardRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  ImportExportRoute: ImportExportRoute,
   LoginRoute: LoginRoute,
   PendingRoute: PendingRoute,
   PortalRoute: PortalRouteWithChildren,

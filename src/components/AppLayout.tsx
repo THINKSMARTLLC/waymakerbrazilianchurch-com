@@ -30,7 +30,7 @@ export function AppLayout() {
   const navItems = isSuperAdmin
     ? [
         ...baseNavItems,
-        { label: "Importar/Exportar", to: "/admin/data" as const, icon: Database },
+        { label: "Importar/Exportar", to: "/import-export" as const, icon: Database },
         { label: "Admin", to: "/admin" as const, icon: Shield },
       ]
     : baseNavItems;

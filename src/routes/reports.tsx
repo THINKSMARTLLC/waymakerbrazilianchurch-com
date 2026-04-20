@@ -134,12 +134,12 @@ function ReportsPage() {
         if (normalized !== methodFilter) return false;
       }
       if (statusFilter !== "all" && p.members) {
-        const status = computeMemberStatus(lastByMember.get(p.members.id) ?? null, freqByMember.get(p.members.id) ?? "weekly");
+        const status = computeMemberStatus(lastByMember.get(p.members.id) ?? null, freqByMember.get(p.members.id) ?? "weekly", monthsByMember.get(p.members.id) ?? null);
         if (status !== statusFilter) return false;
       }
       return true;
     });
-  }, [payments, nameFilter, methodFilter, statusFilter, lastByMember, freqByMember]);
+  }, [payments, nameFilter, methodFilter, statusFilter, lastByMember, freqByMember, monthsByMember]);
 
   // Metrics — distinct members from filtered payments
   const distinctPaidMembers = useMemo(() => {
@@ -165,11 +165,11 @@ function ReportsPage() {
     const ids = new Set<string>();
     for (const p of filteredPayments) {
       if (!p.members) continue;
-      const status = computeMemberStatus(lastByMember.get(p.members.id) ?? null, freqByMember.get(p.members.id) ?? "weekly");
+      const status = computeMemberStatus(lastByMember.get(p.members.id) ?? null, freqByMember.get(p.members.id) ?? "weekly", monthsByMember.get(p.members.id) ?? null);
       if (status === "late") ids.add(p.members.id);
     }
     return ids.size;
-  }, [filteredPayments, lastByMember, freqByMember]);
+  }, [filteredPayments, lastByMember, freqByMember, monthsByMember]);
 
   // Grouped view
   const grouped = useMemo(() => {

@@ -126,7 +126,9 @@ function LandingPage() {
 
           <div className="mt-12 flex flex-col items-center gap-4 sm:flex-row">
             <a
-              href="#comecar"
+              href={WHATSAPP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="group inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-sm font-semibold text-black shadow-xl shadow-black/30 transition hover:scale-[1.02] hover:bg-white/95"
             >
               Quero conhecer mais sobre a Way Maker Church

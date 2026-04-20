@@ -495,13 +495,13 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
   const weeklyNum = Number(weekly) || 0;
   const monthlyNum = weeklyNum * 4;
 
-  const runDuplicateCheck = async (email: string | null, phone: string | null) => {
+  const runDuplicateCheck = async (email: string | null, phone: string | null, name: string | null) => {
     if (!email && !phone) {
       setDuplicates([]);
       return [];
     }
     setCheckingDupes(true);
-    const found = await findDuplicates({ email, phone, excludeMemberId: member?.id });
+    const found = await findDuplicates({ email, phone, name, excludeMemberId: member?.id });
     setCheckingDupes(false);
     setDuplicates(found);
     return found;
@@ -514,8 +514,9 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
     const form = new FormData(e.currentTarget);
     const emailRaw = ((form.get("email") as string) || "").trim() || null;
     const phoneRaw = buildE164();
+    const nameRaw = toTitleCase(form.get("name") as string);
     const payload = {
-      name: toTitleCase(form.get("name") as string),
+      name: nameRaw,
       email: emailRaw,
       phone: phoneRaw,
       payment_type: form.get("payment_type") as "card" | "cash",
@@ -523,10 +524,12 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
       weekly_contribution_usd: weeklyNum,
     };
 
-    // Duplicate detection — only block if user hasn't chosen "create anyway".
+    // Duplicate detection — only BLOCK on true duplicates. Shared-phone
+    // warnings are informational and should not stop the save.
     if (!allowOverride) {
-      const found = await runDuplicateCheck(emailRaw, phoneRaw);
-      if (found.length > 0) {
+      const found = await runDuplicateCheck(emailRaw, phoneRaw, nameRaw);
+      const blocking = found.filter((m) => m.severity === "duplicate");
+      if (blocking.length > 0) {
         setPendingPayload(payload);
         return; // Stop submit — admin must resolve via the warning UI.
       }

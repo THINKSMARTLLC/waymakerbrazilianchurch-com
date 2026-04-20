@@ -78,11 +78,11 @@ async function buildMembersRows(): Promise<MembersExportRow[]> {
     }
   }
   return (members ?? []).map((m) => {
-    const status = computeMemberStatus({
-      lastPaymentDate: lastByMember.get(m.id) ?? null,
-      frequency: m.contribution_frequency,
-      coveredMonths: monthsByMember.get(m.id) ?? null,
-    });
+    const status = computeMemberStatus(
+      lastByMember.get(m.id) ?? null,
+      m.contribution_frequency,
+      monthsByMember.get(m.id) ?? null,
+    );
     const weekly = Number(m.weekly_contribution_usd ?? 0);
     return {
       Name: m.name,
@@ -364,7 +364,7 @@ export async function executeImport(decisions: ImportDecision[]): Promise<Import
       if (error) result.failed.push({ row: d.row, error: error.message });
       else result.created++;
     } else if (d.action === "update" && d.updateMemberId) {
-      const patch: Record<string, string | null> = {};
+      const patch: Database["public"]["Tables"]["members"]["Update"] = {};
       if (d.row.email) patch.email = d.row.email;
       if (d.row.phone) patch.phone = d.row.phone;
       if (d.row.name) patch.name = d.row.name;

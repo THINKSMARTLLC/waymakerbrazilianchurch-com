@@ -12,7 +12,9 @@ export type ActivityAction =
   | "cash_donation_added"
   | "user_role_changed"
   | "user_status_changed"
-  | "user_deleted";
+  | "user_deleted"
+  | "data_exported"
+  | "members_imported";
 
 export async function logActivity(
   action: ActivityAction,

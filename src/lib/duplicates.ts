@@ -35,19 +35,14 @@ export async function findDuplicates(opts: {
   const matches: DuplicateMatch[] = [];
 
   // ---- members table ----
-  const memberFilters: string[] = [];
-  if (email) memberFilters.push(`email.ilike.${email}`);
-  // Phone: stored as "+CCNNNNNNNNNN" — match by suffix on raw digits.
-  // We fetch a slightly wider pool then filter by digits client-side.
-  if (memberFilters.length > 0 || phoneD) {
-    const orExpr = email ? `email.ilike.${email}` : `id.eq.${opts.excludeMemberId ?? "00000000-0000-0000-0000-000000000000"}`;
+  // Phone is stored as "+CCNNNNNNNNNN" — match by suffix on raw digits client-side.
+  if (email || phoneD) {
     const { data: emailMembers } = email
       ? await supabase.from("members").select("*").ilike("email", email)
       : { data: [] as Member[] };
     const { data: allMembersForPhone } = phoneD
       ? await supabase.from("members").select("*").not("phone", "is", null)
       : { data: [] as Member[] };
-    void orExpr;
 
     const map = new Map<string, { row: Member; matched: Set<"email" | "phone"> }>();
     for (const m of emailMembers ?? []) {

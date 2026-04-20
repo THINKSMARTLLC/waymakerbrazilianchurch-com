@@ -141,6 +141,7 @@ export async function findDuplicates(opts: {
         name: row.full_name,
         email: row.email,
         phone: row.phone,
+        severity: computeSeverity(matched, row.full_name),
       });
     }
   }

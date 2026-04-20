@@ -2,6 +2,8 @@ import { useState, type FormEvent } from "react";
 import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { EmergencyContactFields } from "@/components/EmergencyContactFields";
+import { parseEmergencyContact, serializeEmergencyContact } from "@/lib/emergencyContact";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 
@@ -17,7 +19,7 @@ export function EditMemberModal({ member, onClose, onSaved }: EditMemberModalPro
   const [phone, setPhone] = useState(member.phone ?? "");
   const [dateOfBirth, setDateOfBirth] = useState(member.date_of_birth ?? "");
   const [address, setAddress] = useState(member.address ?? "");
-  const [emergencyContact, setEmergencyContact] = useState(member.emergency_contact ?? "");
+  const [emergency, setEmergency] = useState(() => parseEmergencyContact(member.emergency_contact));
   const [memberRole, setMemberRole] = useState(member.member_role ?? "");
   const [department, setDepartment] = useState(member.department ?? "");
   const [saving, setSaving] = useState(false);
@@ -36,7 +38,7 @@ export function EditMemberModal({ member, onClose, onSaved }: EditMemberModalPro
         phone: phone.trim() || null,
         date_of_birth: dateOfBirth || null,
         address: address.trim() || null,
-        emergency_contact: emergencyContact.trim() || null,
+        emergency_contact: serializeEmergencyContact(emergency),
         member_role: memberRole.trim() || null,
         department: department.trim() || null,
       })
@@ -95,11 +97,12 @@ export function EditMemberModal({ member, onClose, onSaved }: EditMemberModalPro
                 <label className="block text-sm font-medium text-foreground mb-1.5">Endereço</label>
                 <textarea value={address} onChange={(e) => setAddress(e.target.value)} rows={2} className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm" />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Contato de Emergência</label>
-                <input type="text" value={emergencyContact} onChange={(e) => setEmergencyContact(e.target.value)} placeholder="Nome e telefone" className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm" />
-              </div>
             </div>
+          </div>
+
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Contato de Emergência</h4>
+            <EmergencyContactFields value={emergency} onChange={setEmergency} />
           </div>
 
           <div>

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check, AlertTriangle, Archive, Download, Upload } from "lucide-react";
+import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check, AlertTriangle, Archive, Download, Upload, Cake } from "lucide-react";
+import { getBirthdayInfo, type BirthdayWindow } from "@/lib/birthday";
 import { exportMembersCSV, exportMembersXLSX } from "@/lib/dataExportImport";
 import { ImportPreviewModal } from "@/components/ImportPreviewModal";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -69,6 +70,7 @@ function MembersPage() {
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<MemberPaymentStatus | "all">(statusParam ?? "all");
   const [lifecycleFilter, setLifecycleFilter] = useState<LifecycleFilter>(lifecycleParam ?? "active");
+  const [birthdayFilter, setBirthdayFilter] = useState<"all" | BirthdayWindow>("all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [recordingFor, setRecordingFor] = useState<Member | null>(null);
@@ -194,11 +196,18 @@ function MembersPage() {
         if (lifecycleFilter === "inactive" && m.status !== "inactive") return false;
         if (selectedMemberId && m.id !== selectedMemberId) return false;
         if (statusFilter !== "all" && m.payment_status !== statusFilter) return false;
+        if (birthdayFilter !== "all") {
+          const bi = getBirthdayInfo(m.date_of_birth);
+          if (!bi) return false;
+          if (birthdayFilter === "today" && bi.daysUntil !== 0) return false;
+          if (birthdayFilter === "week" && bi.daysUntil > 7) return false;
+          if (birthdayFilter === "month" && bi.daysUntil > 30) return false;
+        }
         if (!search) return true;
         const q = search.toLowerCase();
         return m.name.toLowerCase().includes(q) || (m.email || "").toLowerCase().includes(q);
       }),
-    [members, search, statusFilter, selectedMemberId, lifecycleFilter]
+    [members, search, statusFilter, selectedMemberId, lifecycleFilter, birthdayFilter]
   );
 
   const inactiveCount = useMemo(
@@ -257,6 +266,17 @@ function MembersPage() {
             <option value="on_time">On Time</option>
             <option value="late">Late</option>
             <option value="no_payment">No Payment Yet</option>
+          </select>
+          <select
+            value={birthdayFilter}
+            onChange={(e) => setBirthdayFilter(e.target.value as "all" | BirthdayWindow)}
+            className="rounded-xl border border-input bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            aria-label="Filter by birthday"
+          >
+            <option value="all">All Birthdays</option>
+            <option value="today">🎂 Birthday Today</option>
+            <option value="week">Birthday This Week</option>
+            <option value="month">Birthday This Month</option>
           </select>
           <select
             value={selectedMemberId}
@@ -383,7 +403,17 @@ function MembersPage() {
                             )}
                           </div>
                           <div className="flex flex-col min-w-0">
-                            <span className="text-sm font-medium text-foreground truncate">{member.name}</span>
+                            <span className="text-sm font-medium text-foreground truncate flex items-center gap-1.5">
+                              {member.name}
+                              {(() => {
+                                const bi = getBirthdayInfo(member.date_of_birth);
+                                return bi?.daysUntil === 0 ? (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary" title="Aniversário hoje">
+                                    <Cake className="h-3 w-3" /> Hoje
+                                  </span>
+                                ) : null;
+                              })()}
+                            </span>
                             {dupGroup && (
                               <button
                                 type="button"

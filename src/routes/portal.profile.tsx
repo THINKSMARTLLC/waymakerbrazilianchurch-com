@@ -4,6 +4,8 @@ import { Camera, Save, User as UserIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { EmergencyContactFields } from "@/components/EmergencyContactFields";
+import { parseEmergencyContact, serializeEmergencyContact, type EmergencyContact } from "@/lib/emergencyContact";
 
 interface MemberData {
   id: string;
@@ -23,7 +25,7 @@ function MemberProfile() {
   const { user } = useAuth();
   const [member, setMember] = useState<MemberData | null>(null);
   const [address, setAddress] = useState("");
-  const [emergency, setEmergency] = useState("");
+  const [emergency, setEmergency] = useState<EmergencyContact>({ name: "", phone: "", relationship: "" });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -39,7 +41,7 @@ function MemberProfile() {
       if (data) {
         setMember(data as MemberData);
         setAddress(data.address ?? "");
-        setEmergency(data.emergency_contact ?? "");
+        setEmergency(parseEmergencyContact(data.emergency_contact));
       }
     }
     load();
@@ -48,16 +50,17 @@ function MemberProfile() {
   const handleSave = async () => {
     if (!member) return;
     setSaving(true);
+    const serialized = serializeEmergencyContact(emergency);
     const { error } = await supabase
       .from("members")
-      .update({ address, emergency_contact: emergency })
+      .update({ address, emergency_contact: serialized })
       .eq("id", member.id);
     setSaving(false);
     if (error) {
       toast.error("Erro ao salvar: " + error.message);
     } else {
       toast.success("Perfil atualizado");
-      setMember({ ...member, address, emergency_contact: emergency });
+      setMember({ ...member, address, emergency_contact: serialized });
     }
   };
 
@@ -151,14 +154,8 @@ function MemberProfile() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5">Contato de emergência</label>
-          <input
-            type="text"
-            value={emergency}
-            onChange={(e) => setEmergency(e.target.value)}
-            className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            placeholder="Nome e telefone"
-          />
+          <label className="block text-sm font-medium text-foreground mb-2">Contato de emergência</label>
+          <EmergencyContactFields value={emergency} onChange={setEmergency} />
         </div>
         <button onClick={handleSave} disabled={saving} className="btn-google flex items-center gap-2 disabled:opacity-50">
           <Save className="h-4 w-4" />

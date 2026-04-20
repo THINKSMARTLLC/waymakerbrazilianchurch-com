@@ -3,6 +3,8 @@ import { useState, type FormEvent } from "react";
 import { Church, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activityLog";
+import { EmergencyContactFields } from "@/components/EmergencyContactFields";
+import { serializeEmergencyContact, type EmergencyContact } from "@/lib/emergencyContact";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
 
 export const Route = createFileRoute("/signup")({
@@ -62,6 +64,7 @@ function SignupPage() {
     password: "",
     confirmPassword: "",
   });
+  const [emergency, setEmergency] = useState<EmergencyContact>({ name: "", phone: "", relationship: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -117,7 +120,7 @@ function SignupPage() {
           requested_role: STAFF_ROLE_REQUEST,
           date_of_birth: form.dateOfBirth || null,
           address: form.address,
-          emergency_contact: form.emergencyContact,
+          emergency_contact: serializeEmergencyContact(emergency),
           member_role: form.role,
           department: form.department,
         },
@@ -217,9 +220,10 @@ function SignupPage() {
             <input required value={form.address} onChange={update("address")} className={fieldCls} placeholder="Rua, número, cidade" />
           </Field>
 
-          <Field label="Contato de Emergência">
-            <input required value={form.emergencyContact} onChange={update("emergencyContact")} className={fieldCls} placeholder="Nome e telefone" />
-          </Field>
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">Contato de Emergência <span className="text-destructive">*</span></label>
+            <EmergencyContactFields value={emergency} onChange={setEmergency} required />
+          </div>
 
           <Field label="Nome da Igreja">
             <input required value={form.churchName} onChange={update("churchName")} className={fieldCls} />

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, CreditCard, DollarSign, Mail, Phone, Pencil, Trash2, Calendar, MapPin, AlertCircle, Briefcase, Users as UsersIcon, Edit } from "lucide-react";
+import { ArrowLeft, CreditCard, DollarSign, Mail, Phone, Pencil, Trash2, Calendar, MapPin, AlertCircle, Briefcase, Users as UsersIcon, Edit, Cake } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -10,6 +10,8 @@ import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses
 import { PAYMENT_METHOD_LABEL, RecordPaymentModal } from "@/components/RecordPaymentModal";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { useUserRole } from "@/hooks/useUserRole";
+import { parseEmergencyContact, relationshipLabel, isLegacyEmergencyContact } from "@/lib/emergencyContact";
+import { getBirthdayInfo } from "@/lib/birthday";
 
 function FieldRow({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string | null | undefined }) {
   const display = value && String(value).trim() ? String(value) : null;
@@ -21,6 +23,46 @@ function FieldRow({ icon: Icon, label, value }: { icon: React.ComponentType<{ cl
         <p className={`text-sm ${display ? "text-foreground" : "text-muted-foreground italic"}`}>
           {display ?? "Não informado"}
         </p>
+      </div>
+    </div>
+  );
+}
+
+function EmergencyBlock({ raw }: { raw: string | null }) {
+  const c = parseEmergencyContact(raw);
+  const hasAny = !!(c.name || c.phone || c.relationship);
+  const legacy = isLegacyEmergencyContact(raw);
+  return (
+    <div className="flex items-start gap-3">
+      <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+      <div className="flex-1 min-w-0 space-y-1">
+        <p className="text-xs text-muted-foreground">Contato de Emergência</p>
+        {!hasAny ? (
+          <p className="text-sm text-muted-foreground italic">Não informado</p>
+        ) : (
+          <div className="space-y-0.5 text-sm">
+            <p className="text-foreground">
+              <span className="text-muted-foreground text-xs">Nome:</span> {c.name || <span className="italic text-muted-foreground">Não informado</span>}
+            </p>
+            <p className="text-foreground">
+              <span className="text-muted-foreground text-xs">Telefone:</span>{" "}
+              {c.phone ? (
+                <a href={`tel:${c.phone}`} className="text-primary hover:underline">{formatPhoneDisplay(c.phone) || c.phone}</a>
+              ) : (
+                <span className="italic text-muted-foreground">Não informado</span>
+              )}
+            </p>
+            <p className="text-foreground">
+              <span className="text-muted-foreground text-xs">Parentesco:</span>{" "}
+              {relationshipLabel(c) || <span className="italic text-muted-foreground">Não informado</span>}
+            </p>
+            {legacy && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 italic mt-1">
+                Dados antigos não estruturados — edite para atualizar.
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -137,6 +179,17 @@ function MemberProfilePage() {
               <span className={`h-1.5 w-1.5 rounded-full ${statusDotClasses(memberStatus)}`} />
               {STATUS_LABEL[memberStatus]}
             </span>
+            {(() => {
+              const bi = getBirthdayInfo(member.date_of_birth);
+              if (bi?.daysUntil === 0) {
+                return (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                    <Cake className="h-3 w-3" /> Aniversário Hoje 🎂
+                  </span>
+                );
+              }
+              return null;
+            })()}
           </div>
         </div>
       </div>
@@ -147,7 +200,7 @@ function MemberProfilePage() {
           <div className="space-y-4">
             <FieldRow icon={Calendar} label="Data de Nascimento" value={member.date_of_birth ? new Date(member.date_of_birth + "T00:00:00").toLocaleDateString("pt-BR") : null} />
             <FieldRow icon={MapPin} label="Endereço" value={member.address} />
-            <FieldRow icon={AlertCircle} label="Contato de Emergência" value={member.emergency_contact} />
+            <EmergencyBlock raw={member.emergency_contact} />
           </div>
         </div>
 

@@ -12,30 +12,33 @@ import {
   Settings,
 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { logActivity } from "@/lib/activityLog";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
-
-const baseNavItems = [
-  { label: "Dashboard", to: "/dashboard" as const, icon: LayoutDashboard },
-  { label: "Membros", to: "/members" as const, icon: Users },
-  { label: "Engajamento", to: "/engagement" as const, icon: Activity },
-  { label: "Relatórios", to: "/reports" as const, icon: FileBarChart },
-];
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { isSuperAdmin } = useUserRole();
+  const { t } = useTranslation();
+
+  const baseNavItems = [
+    { label: t("nav.dashboard"), to: "/dashboard" as const, icon: LayoutDashboard },
+    { label: t("nav.members"), to: "/members" as const, icon: Users },
+    { label: t("nav.engagement"), to: "/engagement" as const, icon: Activity },
+    { label: t("nav.reports"), to: "/reports" as const, icon: FileBarChart },
+  ];
 
   const navItems = isSuperAdmin
     ? [
         ...baseNavItems,
-        { label: "Importar/Exportar", to: "/import-export" as const, icon: Database },
-        { label: "Config. Igreja", to: "/settings/church" as const, icon: Settings },
-        { label: "Admin", to: "/admin" as const, icon: Shield },
+        { label: t("nav.importExport"), to: "/import-export" as const, icon: Database },
+        { label: t("nav.churchSettings"), to: "/settings/church" as const, icon: Settings },
+        { label: t("nav.admin"), to: "/admin" as const, icon: Shield },
       ]
     : baseNavItems;
 
@@ -100,7 +103,7 @@ export function AppLayout() {
             <button
               onClick={handleSignOut}
               className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-destructive transition-colors"
-              title="Sair"
+              title={t("common.signOut")}
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -121,6 +124,9 @@ export function AppLayout() {
               (item) => location.pathname === item.to || location.pathname.startsWith(item.to + "/")
             )?.label || "WAY MAKER FLOW"}
           </h1>
+          <div className="ml-auto">
+            <LanguageSelector />
+          </div>
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6">

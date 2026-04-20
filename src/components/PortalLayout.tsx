@@ -1,23 +1,26 @@
 import { Link, useLocation, Outlet } from "@tanstack/react-router";
 import { LayoutDashboard, User, History, LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrentMember } from "@/hooks/useCurrentMember";
 import { logActivity } from "@/lib/activityLog";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
-
-const navItems = [
-  { label: "Dashboard", to: "/portal" as const, icon: LayoutDashboard },
-  { label: "Contribuições", to: "/portal/contributions" as const, icon: History },
-  { label: "Perfil", to: "/portal/profile" as const, icon: User },
-];
 
 export function PortalLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { user, signOut } = useAuth();
   const member = useCurrentMember();
+  const { t } = useTranslation();
   const initial = (member?.name || user?.email || "M").charAt(0).toUpperCase();
+
+  const navItems = [
+    { label: t("nav.dashboard"), to: "/portal" as const, icon: LayoutDashboard },
+    { label: t("nav.contributions"), to: "/portal/contributions" as const, icon: History },
+    { label: t("nav.profile"), to: "/portal/profile" as const, icon: User },
+  ];
 
   const handleSignOut = async () => {
     await logActivity("logout");
@@ -84,8 +87,8 @@ export function PortalLayout() {
               )}
             </div>
             <div className="flex-1 min-w-0 text-sm">
-              <p className="font-medium text-foreground truncate">{member?.name || user?.email || "Membro"}</p>
-              <p className="text-xs text-muted-foreground">Ver perfil</p>
+              <p className="font-medium text-foreground truncate">{member?.name || user?.email || "Member"}</p>
+              <p className="text-xs text-muted-foreground">{t("nav.viewProfile")}</p>
             </div>
           </Link>
           <button
@@ -93,7 +96,7 @@ export function PortalLayout() {
             className="mt-2 flex w-full items-center gap-2 rounded-lg p-2 text-sm text-muted-foreground hover:bg-muted hover:text-destructive transition-colors"
           >
             <LogOut className="h-4 w-4" />
-            Sair
+            {t("common.signOut")}
           </button>
         </div>
       </aside>
@@ -109,8 +112,11 @@ export function PortalLayout() {
           <h1 className="page-header">
             {navItems.find((item) =>
               item.to === "/portal" ? location.pathname === "/portal" : location.pathname.startsWith(item.to)
-            )?.label || "Portal do Membro"}
+            )?.label || t("nav.memberPortal")}
           </h1>
+          <div className="ml-auto">
+            <LanguageSelector />
+          </div>
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6">

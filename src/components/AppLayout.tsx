@@ -15,7 +15,7 @@ import { logActivity } from "@/lib/activityLog";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
 
 const baseNavItems = [
-  { label: "Dashboard", to: "/" as const, icon: LayoutDashboard },
+  { label: "Dashboard", to: "/dashboard" as const, icon: LayoutDashboard },
   { label: "Membros", to: "/members" as const, icon: Users },
   { label: "Relatórios", to: "/reports" as const, icon: FileBarChart },
 ];

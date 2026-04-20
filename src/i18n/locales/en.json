@@ -23,7 +23,10 @@
     "method": "Method",
     "notes": "Notes",
     "signOut": "Sign Out",
-    "language": "Language"
+    "language": "Language",
+    "notProvided": "Not provided",
+    "select": "Select...",
+    "specify": "Specify"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -73,5 +76,69 @@
     "noActivitiesYet": "No activity recorded yet. Check in for the first time!",
     "selfCheckin": "Self check-in",
     "leadershipRecord": "Recorded by leadership"
+  },
+  "memberProfile": {
+    "pageTitle": "Member Profile — WAY MAKER FLOW",
+    "pageDesc": "View profile and payment history",
+    "backToMembers": "Back to Members",
+    "memberNotFound": "Member not found.",
+    "personalInfo": "Personal Information",
+    "churchInfo": "Church Information",
+    "actions": "Actions",
+    "paymentHistory": "Payment History",
+    "noPayments": "No payments recorded.",
+    "dateOfBirth": "Date of Birth",
+    "address": "Address",
+    "role": "Role",
+    "department": "Department",
+    "emergencyContact": "Emergency Contact",
+    "contactName": "Name",
+    "contactPhone": "Phone",
+    "relationship": "Relationship",
+    "legacyDataWarning": "Unstructured legacy data — edit to update.",
+    "recordPayment": "Record Payment",
+    "editProfile": "Edit Profile",
+    "birthdayToday": "Birthday Today",
+    "paymentTypeCard": "Card",
+    "paymentTypeCash": "Cash",
+    "deletePaymentConfirm": "Are you sure you want to delete this payment?",
+    "deleteFailed": "Failed to delete: {{message}}",
+    "editPayment": "Edit Payment",
+    "deletePayment": "Delete Payment"
+  },
+  "emergencyContact": {
+    "name": "Contact Name",
+    "phone": "Contact Phone",
+    "relationship": "Relationship",
+    "specify": "Specify",
+    "namePlaceholder": "Full name",
+    "phonePlaceholder": "(555) 555-5555",
+    "specifyPlaceholder": "E.g. Godfather, Neighbor...",
+    "select": "Select...",
+    "relationships": {
+      "mother": "Mother",
+      "father": "Father",
+      "spouse": "Spouse",
+      "brother": "Brother",
+      "sister": "Sister",
+      "grandmother": "Grandmother",
+      "grandfather": "Grandfather",
+      "uncle": "Uncle",
+      "aunt": "Aunt",
+      "friend": "Friend",
+      "other": "Other"
+    }
+  },
+  "memberStatus": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "on_time": "On Time",
+    "late": "Late",
+    "no_payment": "No Payment Yet"
+  },
+  "paymentStatus": {
+    "paid": "Paid",
+    "pending": "Pending",
+    "past_due": "Past Due"
   }
 }

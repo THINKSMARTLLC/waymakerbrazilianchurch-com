@@ -195,6 +195,10 @@ function AdminPage() {
                             <UserX className="h-4 w-4" />
                           </button>
                         )}
+                        <button onClick={() => requestRecovery(u.email)} title="Gerar link de redefinição de senha"
+                          className="p-1.5 rounded-md hover:bg-primary/10 text-primary">
+                          <KeyRound className="h-4 w-4" />
+                        </button>
                         <button onClick={() => deleteUser(u.user_id)} title="Excluir"
                           className="p-1.5 rounded-md hover:bg-destructive/10 text-destructive">
                           <Trash2 className="h-4 w-4" />
@@ -210,6 +214,21 @@ function AdminPage() {
       </div>
 
       <ActivityLogSection />
+
+      <CreateUserModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreated={load}
+        canAssignStaff={true}
+      />
+
+      {recoveryFor && (
+        <RecoveryLinkModal
+          email={recoveryFor.email}
+          link={recoveryFor.link}
+          onClose={() => setRecoveryFor(null)}
+        />
+      )}
     </div>
   );
 }

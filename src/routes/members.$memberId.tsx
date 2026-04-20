@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, CreditCard, DollarSign, Mail, Phone, Pencil, Trash2 } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { formatUSD } from "@/lib/format";
 import { EditPaymentModal } from "@/components/EditPaymentModal";
-import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses } from "@/lib/memberStatus";
-import { PAYMENT_METHOD_LABEL } from "@/components/RecordPaymentModal";
+import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, buildMonthsCovered } from "@/lib/memberStatus";
+import { PAYMENT_METHOD_LABEL, RecordPaymentModal } from "@/components/RecordPaymentModal";
 import { formatPhoneDisplay } from "@/lib/phone";
 
 export const Route = createFileRoute("/members/$memberId")({
@@ -27,7 +27,7 @@ function MemberProfilePage() {
   const [member, setMember] = useState<Member | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCashModal, setShowCashModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -64,7 +64,12 @@ function MemberProfilePage() {
 
   const initials = member.name.split(" ").map((n) => n[0]).join("").slice(0, 2);
   const lastPaymentDate = payments[0]?.payment_date ?? null;
-  const memberStatus = computeMemberStatus(lastPaymentDate, (member as Member & { contribution_frequency?: "weekly" | "monthly" | "one_time" | "flexible" }).contribution_frequency ?? "weekly");
+  const monthsCovered = buildMonthsCovered(payments as Array<{ payment_frequency?: string | null; reference_month?: string | null }>);
+  const memberStatus = computeMemberStatus(
+    lastPaymentDate,
+    (member as Member & { contribution_frequency?: "weekly" | "monthly" | "one_time" | "flexible" }).contribution_frequency ?? "weekly",
+    monthsCovered,
+  );
 
   const handleDeletePayment = async (id: string) => {
     if (!confirm("Are you sure you want to delete this payment?")) return;
@@ -120,11 +125,11 @@ function MemberProfilePage() {
         <h3 className="font-display text-base font-medium text-foreground mb-4">Ações</h3>
         <div className="flex gap-3">
           <button
-            onClick={() => setShowCashModal(true)}
+            onClick={() => setShowPaymentModal(true)}
             className="inline-flex items-center gap-2 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
           >
             <DollarSign className="h-4 w-4" />
-            Registrar Doação em Dinheiro
+            Registrar Pagamento
           </button>
         </div>
       </div>

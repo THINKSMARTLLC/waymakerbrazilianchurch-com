@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
-import { DollarSign, CreditCard, Users, AlertTriangle, Receipt, Pencil, Trash2 } from "lucide-react";
+import { DollarSign, CreditCard, Users, AlertTriangle, Receipt, Pencil, Trash2, UserX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatUSD, toTitleCase } from "@/lib/format";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, type MemberPaymentStatus } from "@/lib/memberStatus";
@@ -20,6 +20,7 @@ export const Route = createFileRoute("/reports")({
 
 type FilterRange = "this_month" | "last_month" | "all" | "custom";
 type Payment = Database["public"]["Tables"]["payments"]["Row"];
+type MemberRow = Database["public"]["Tables"]["members"]["Row"];
 
 interface PaymentWithMember extends Payment {
   members: { id: string; name: string; email: string | null } | null;
@@ -48,18 +49,19 @@ function ReportsPage() {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [payments, setPayments] = useState<PaymentWithMember[]>([]);
+  const [members, setMembers] = useState<MemberRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
+  const [memberIdFilter, setMemberIdFilter] = useState<string>("all");
   const [nameFilter, setNameFilter] = useState("");
   const [methodFilter, setMethodFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<MemberPaymentStatus | "all">("all");
-  const [groupBy, setGroupBy] = useState<"transactions" | "member">("transactions");
+  const [groupBy, setGroupBy] = useState<"transactions" | "member">("member");
 
-  // Latest payment dates per member (for status filter — uses ALL payments, not just filtered range)
+  // Latest payment dates per member (status — uses ALL payments, not just filtered range)
   const [lastByMember, setLastByMember] = useState<Map<string, string>>(new Map());
   const [monthsByMember, setMonthsByMember] = useState<Map<string, Set<string>>>(new Map());
-  const [freqByMember, setFreqByMember] = useState<Map<string, "weekly" | "monthly" | "one_time" | "flexible">>(new Map());
 
   // Edit modal
   const [editing, setEditing] = useState<Payment | null>(null);
@@ -76,14 +78,15 @@ function ReportsPage() {
     if (start) query = query.gte("payment_date", start);
     if (end) query = query.lte("payment_date", end);
 
-    const { data } = await query;
-    setPayments((data as PaymentWithMember[]) || []);
+    const [{ data: paysData }, { data: lastData }, { data: membersData }] = await Promise.all([
+      query,
+      supabase.from("payments").select("member_id, payment_date, payment_frequency, reference_month").order("payment_date", { ascending: false }),
+      supabase.from("members").select("*").order("name", { ascending: true }),
+    ]);
 
-    // Fetch latest payment per member globally for accurate status
-    const { data: lastData } = await supabase
-      .from("payments")
-      .select("member_id, payment_date, payment_frequency, reference_month")
-      .order("payment_date", { ascending: false });
+    setPayments((paysData as PaymentWithMember[]) || []);
+    setMembers((membersData as MemberRow[]) || []);
+
     const map = new Map<string, string>();
     const monthsMap = new Map<string, Set<string>>();
     for (const p of lastData || []) {
@@ -97,16 +100,6 @@ function ReportsPage() {
     }
     setLastByMember(map);
     setMonthsByMember(monthsMap);
-
-    // Fetch frequency per member for status calc
-    const { data: memberFreq } = await supabase
-      .from("members")
-      .select("id, contribution_frequency");
-    const freqMap = new Map<string, "weekly" | "monthly" | "one_time" | "flexible">();
-    for (const m of (memberFreq as { id: string; contribution_frequency: "weekly" | "monthly" | "one_time" | "flexible" }[]) || []) {
-      freqMap.set(m.id, m.contribution_frequency ?? "weekly");
-    }
-    setFreqByMember(freqMap);
 
     setLoading(false);
   };
@@ -125,23 +118,75 @@ function ReportsPage() {
     refresh();
   };
 
-  // Apply filters
+  // Status per member id
+  const statusByMember = useMemo(() => {
+    const m = new Map<string, MemberPaymentStatus>();
+    for (const mem of members) {
+      const status = computeMemberStatus(
+        lastByMember.get(mem.id) ?? null,
+        mem.contribution_frequency ?? "weekly",
+        monthsByMember.get(mem.id) ?? null,
+      );
+      m.set(mem.id, status);
+    }
+    return m;
+  }, [members, lastByMember, monthsByMember]);
+
+  // Sorted alphabetical members
+  const sortedMembers = useMemo(
+    () => [...members].sort((a, b) => toTitleCase(a.name).localeCompare(toTitleCase(b.name))),
+    [members],
+  );
+
+  // Filter payments by name/method/status/member dropdown
   const filteredPayments = useMemo(() => {
     return payments.filter((p) => {
+      if (memberIdFilter !== "all" && p.members?.id !== memberIdFilter) return false;
       if (nameFilter && !(p.members?.name.toLowerCase().includes(nameFilter.toLowerCase()))) return false;
       if (methodFilter !== "all") {
         const normalized = p.payment_method === "stripe" ? "card" : p.payment_method;
         if (normalized !== methodFilter) return false;
       }
       if (statusFilter !== "all" && p.members) {
-        const status = computeMemberStatus(lastByMember.get(p.members.id) ?? null, freqByMember.get(p.members.id) ?? "weekly", monthsByMember.get(p.members.id) ?? null);
-        if (status !== statusFilter) return false;
+        if ((statusByMember.get(p.members.id) ?? "no_payment") !== statusFilter) return false;
       }
       return true;
     });
-  }, [payments, nameFilter, methodFilter, statusFilter, lastByMember, freqByMember, monthsByMember]);
+  }, [payments, memberIdFilter, nameFilter, methodFilter, statusFilter, statusByMember]);
 
-  // Metrics — distinct members from filtered payments
+  // Members visible in table (member-centric)
+  const filteredMembers = useMemo(() => {
+    return sortedMembers.filter((m) => {
+      if (memberIdFilter !== "all" && m.id !== memberIdFilter) return false;
+      if (nameFilter && !m.name.toLowerCase().includes(nameFilter.toLowerCase())) return false;
+      const status = statusByMember.get(m.id) ?? "no_payment";
+      if (statusFilter !== "all" && status !== statusFilter) return false;
+      // Method filter: member must have at least one payment of this method (in range)
+      if (methodFilter !== "all") {
+        const has = payments.some((p) => {
+          if (p.member_id !== m.id) return false;
+          const norm = p.payment_method === "stripe" ? "card" : p.payment_method;
+          return norm === methodFilter;
+        });
+        if (!has) return false;
+      }
+      return true;
+    });
+  }, [sortedMembers, memberIdFilter, nameFilter, statusFilter, methodFilter, statusByMember, payments]);
+
+  // Metrics
+  const totalMembers = members.length;
+
+  const noPaymentCount = useMemo(
+    () => members.filter((m) => (statusByMember.get(m.id) ?? "no_payment") === "no_payment").length,
+    [members, statusByMember],
+  );
+
+  const lateMembersCount = useMemo(
+    () => members.filter((m) => (statusByMember.get(m.id) ?? "no_payment") === "late").length,
+    [members, statusByMember],
+  );
+
   const distinctPaidMembers = useMemo(() => {
     const ids = new Set<string>();
     for (const p of filteredPayments) {
@@ -160,40 +205,38 @@ function ReportsPage() {
     .filter((p) => p.status === "paid" && p.payment_method === "cash")
     .reduce((s, p) => s + Number(p.amount), 0);
 
-  // Late count from current member set (status filter aware)
-  const lateMembers = useMemo(() => {
-    const ids = new Set<string>();
+  // Per-member aggregation (includes members without payments)
+  const memberRows = useMemo(() => {
+    const agg = new Map<string, { count: number; total: number; last: string | null }>();
     for (const p of filteredPayments) {
       if (!p.members) continue;
-      const status = computeMemberStatus(lastByMember.get(p.members.id) ?? null, freqByMember.get(p.members.id) ?? "weekly", monthsByMember.get(p.members.id) ?? null);
-      if (status === "late") ids.add(p.members.id);
-    }
-    return ids.size;
-  }, [filteredPayments, lastByMember, freqByMember, monthsByMember]);
-
-  // Grouped view
-  const grouped = useMemo(() => {
-    const map = new Map<string, { name: string; email: string | null; count: number; total: number; last: string }>();
-    for (const p of filteredPayments) {
-      if (!p.members) continue;
-      const key = p.members.id;
-      const cur = map.get(key);
+      const cur = agg.get(p.members.id);
       if (cur) {
         cur.count += 1;
         cur.total += Number(p.amount);
-        if (p.payment_date > cur.last) cur.last = p.payment_date;
+        if (!cur.last || p.payment_date > cur.last) cur.last = p.payment_date;
       } else {
-        map.set(key, {
-          name: toTitleCase(p.members.name),
-          email: p.members.email,
-          count: 1,
-          total: Number(p.amount),
-          last: p.payment_date,
-        });
+        agg.set(p.members.id, { count: 1, total: Number(p.amount), last: p.payment_date });
       }
     }
-    return Array.from(map.entries()).map(([id, v]) => ({ id, ...v }));
-  }, [filteredPayments]);
+    return filteredMembers.map((m) => {
+      const a = agg.get(m.id);
+      return {
+        id: m.id,
+        name: toTitleCase(m.name),
+        email: m.email,
+        count: a?.count ?? 0,
+        total: a?.total ?? 0,
+        last: a?.last ?? null,
+        status: statusByMember.get(m.id) ?? "no_payment",
+      };
+    });
+  }, [filteredPayments, filteredMembers, statusByMember]);
+
+  const handleStatusCardClick = (status: MemberPaymentStatus) => {
+    setStatusFilter((cur) => (cur === status ? "all" : status));
+    setGroupBy("member");
+  };
 
   return (
     <div className="space-y-6">
@@ -237,7 +280,11 @@ function ReportsPage() {
       </div>
 
       {/* Metric cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+        <div className="stat-card">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground"><Users className="h-4 w-4" />Total Members</div>
+          <p className="mt-1 font-display text-2xl font-semibold text-foreground">{totalMembers}</p>
+        </div>
         <div className="stat-card">
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Users className="h-4 w-4" />Paid Members</div>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">{distinctPaidMembers}</p>
@@ -246,10 +293,20 @@ function ReportsPage() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Receipt className="h-4 w-4" />Total Payments</div>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">{totalPayments}</p>
         </div>
-        <div className="stat-card">
+        <button
+          onClick={() => handleStatusCardClick("late")}
+          className={`stat-card text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${statusFilter === "late" ? "ring-2 ring-destructive" : ""}`}
+        >
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><AlertTriangle className="h-4 w-4" />Late Members</div>
-          <p className="mt-1 font-display text-2xl font-semibold text-destructive">{lateMembers}</p>
-        </div>
+          <p className="mt-1 font-display text-2xl font-semibold text-destructive">{lateMembersCount}</p>
+        </button>
+        <button
+          onClick={() => handleStatusCardClick("no_payment")}
+          className={`stat-card text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${statusFilter === "no_payment" ? "ring-2 ring-primary" : ""}`}
+        >
+          <div className="flex items-center gap-2 text-sm text-muted-foreground"><UserX className="h-4 w-4" />No Payment Yet</div>
+          <p className="mt-1 font-display text-2xl font-semibold text-foreground">{noPaymentCount}</p>
+        </button>
         <div className="stat-card">
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><CreditCard className="h-4 w-4" />Card</div>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">{formatUSD(cardTotal)}</p>
@@ -261,9 +318,22 @@ function ReportsPage() {
       </div>
 
       {/* Filters */}
-      <div className="card-elevated p-4 grid gap-3 md:grid-cols-4">
+      <div className="card-elevated p-4 grid gap-3 md:grid-cols-5">
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">Name</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Select Member</label>
+          <select
+            value={memberIdFilter}
+            onChange={(e) => setMemberIdFilter(e.target.value)}
+            className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="all">All Members</option>
+            {sortedMembers.map((m) => (
+              <option key={m.id} value={m.id}>{toTitleCase(m.name)}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Search Name</label>
           <input
             type="text"
             value={nameFilter}
@@ -303,14 +373,14 @@ function ReportsPage() {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">Group By</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">View</label>
           <select
             value={groupBy}
             onChange={(e) => setGroupBy(e.target.value as "transactions" | "member")}
             className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value="transactions">Individual Transactions</option>
             <option value="member">By Member</option>
+            <option value="transactions">Individual Transactions</option>
           </select>
         </div>
       </div>
@@ -326,41 +396,42 @@ function ReportsPage() {
               {groupBy === "member" ? "Members Summary" : "All Transactions"}
             </h3>
           </div>
-          {filteredPayments.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">No results match the filters.</div>
-          ) : groupBy === "member" ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="table-header px-5 py-3 text-left">Name</th>
-                    <th className="table-header px-5 py-3 text-left">Status</th>
-                    <th className="table-header px-5 py-3 text-right">Payments</th>
-                    <th className="table-header px-5 py-3 text-right">Total</th>
-                    <th className="table-header px-5 py-3 text-left hidden sm:table-cell">Last Payment</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {grouped.map((g) => {
-                    const status = computeMemberStatus(lastByMember.get(g.id) ?? null, freqByMember.get(g.id) ?? "weekly", monthsByMember.get(g.id) ?? null);
-                    return (
+          {groupBy === "member" ? (
+            memberRows.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">No members match the filters.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="table-header px-5 py-3 text-left">Name</th>
+                      <th className="table-header px-5 py-3 text-left">Status</th>
+                      <th className="table-header px-5 py-3 text-right">Payments</th>
+                      <th className="table-header px-5 py-3 text-right">Total</th>
+                      <th className="table-header px-5 py-3 text-left hidden sm:table-cell">Last Payment</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {memberRows.map((g) => (
                       <tr key={g.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
                         <td className="px-5 py-3 text-sm font-medium text-foreground">{g.name}</td>
                         <td className="px-5 py-3">
-                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClasses(status)}`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${statusDotClasses(status)}`} />
-                            {STATUS_LABEL[status]}
+                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClasses(g.status)}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${statusDotClasses(g.status)}`} />
+                            {STATUS_LABEL[g.status]}
                           </span>
                         </td>
                         <td className="px-5 py-3 text-sm text-foreground text-right tabular-nums">{g.count}</td>
-                        <td className="px-5 py-3 text-sm font-medium text-foreground text-right tabular-nums">{formatUSD(g.total)}</td>
-                        <td className="px-5 py-3 text-sm text-muted-foreground hidden sm:table-cell">{new Date(g.last).toLocaleDateString("en-US")}</td>
+                        <td className="px-5 py-3 text-sm font-medium text-foreground text-right tabular-nums">{g.count > 0 ? formatUSD(g.total) : "—"}</td>
+                        <td className="px-5 py-3 text-sm text-muted-foreground hidden sm:table-cell">{g.last ? new Date(g.last).toLocaleDateString("en-US") : "—"}</td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+          ) : filteredPayments.length === 0 ? (
+            <div className="py-8 text-center text-sm text-muted-foreground">No transactions match the filters.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">

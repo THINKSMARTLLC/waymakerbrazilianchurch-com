@@ -342,7 +342,7 @@ function ReportsPage() {
                 </thead>
                 <tbody>
                   {grouped.map((g) => {
-                    const status = computeMemberStatus(lastByMember.get(g.id) ?? null, freqByMember.get(g.id) ?? "weekly");
+                    const status = computeMemberStatus(lastByMember.get(g.id) ?? null, freqByMember.get(g.id) ?? "weekly", monthsByMember.get(g.id) ?? null);
                     return (
                       <tr key={g.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
                         <td className="px-5 py-3 text-sm font-medium text-foreground">{g.name}</td>

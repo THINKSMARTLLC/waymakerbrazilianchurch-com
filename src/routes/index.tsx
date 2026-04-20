@@ -459,6 +459,33 @@ function LandingPage() {
         </div>
       </section>
 
+      {/* REDES SOCIAIS */}
+      <section className="px-6 py-20 md:px-10" style={{ backgroundColor: "oklch(0.16 0.01 60)" }}>
+        <div className="mx-auto max-w-3xl text-center text-white">
+          <span className="text-xs uppercase tracking-[0.25em] text-white/50">
+            📲 Acompanhe e se conecte
+          </span>
+          <h2 className="mt-4 font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+            Siga a Way Maker Church no Instagram
+            <br className="hidden sm:block" />
+            <span className="italic font-normal" style={{ color: "oklch(0.85 0.12 85)" }}>
+              {" "}e acompanhe tudo que está acontecendo.
+            </span>
+          </h2>
+          <div className="mt-10 flex justify-center">
+            <a
+              href="https://www.instagram.com/waymakerbchurch/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 rounded-full bg-white px-8 py-4 text-sm font-semibold text-black shadow-xl shadow-black/30 transition hover:scale-[1.02]"
+            >
+              <Instagram className="h-5 w-5" />
+              Seguir no Instagram
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ACOLHIMENTO */}
       <section
         className="px-6 py-24 md:py-32 md:px-10"

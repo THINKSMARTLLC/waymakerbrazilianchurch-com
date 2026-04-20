@@ -257,6 +257,13 @@ function MemberProfilePage() {
           onSaved={fetchData}
         />
       )}
+      {showEditMember && member && (
+        <EditMemberModal
+          member={member}
+          onClose={() => setShowEditMember(false)}
+          onSaved={fetchData}
+        />
+      )}
     </div>
   );
 }

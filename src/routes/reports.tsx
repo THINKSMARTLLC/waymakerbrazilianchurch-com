@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
-import { DollarSign, CreditCard, Users, AlertTriangle, Receipt, Pencil, Trash2, UserX } from "lucide-react";
+import { DollarSign, CreditCard, Users, AlertTriangle, Receipt, Pencil, Trash2, UserX, Download } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { exportPaymentsCSV, exportPaymentsXLSX } from "@/lib/dataExportImport";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { formatUSD, toTitleCase } from "@/lib/format";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, type MemberPaymentStatus } from "@/lib/memberStatus";
@@ -65,6 +68,18 @@ function ReportsPage() {
 
   // Edit modal
   const [editing, setEditing] = useState<Payment | null>(null);
+  const { isSuperAdmin } = useUserRole();
+  const [exportingPayments, setExportingPayments] = useState(false);
+
+  const handleExportPayments = async (format: "csv" | "xlsx") => {
+    setExportingPayments(true);
+    try {
+      if (format === "csv") await exportPaymentsCSV();
+      else await exportPaymentsXLSX();
+    } finally {
+      setExportingPayments(false);
+    }
+  };
 
   const refresh = async () => {
     setLoading(true);
@@ -288,6 +303,25 @@ function ReportsPage() {
               onChange={(e) => setCustomEnd(e.target.value)}
               className="rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
+          </div>
+        )}
+        {isSuperAdmin && (
+          <div className="ml-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  disabled={exportingPayments}
+                  className="inline-flex items-center gap-2 rounded-xl border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                >
+                  <Download className="h-4 w-4" />
+                  Export Payments
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExportPayments("csv")}>CSV (.csv)</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportPayments("xlsx")}>Excel (.xlsx)</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         )}
       </div>

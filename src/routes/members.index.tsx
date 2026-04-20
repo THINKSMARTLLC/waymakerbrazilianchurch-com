@@ -222,6 +222,16 @@ function MembersPage() {
             />
           </div>
           <select
+            value={lifecycleFilter}
+            onChange={(e) => setLifecycleFilter(e.target.value as LifecycleFilter)}
+            className="rounded-xl border border-input bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            aria-label="Filter by lifecycle status"
+          >
+            <option value="active">Active</option>
+            <option value="inactive">Inactive{inactiveCount > 0 ? ` (${inactiveCount})` : ""}</option>
+            <option value="all">All</option>
+          </select>
+          <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as MemberPaymentStatus | "all")}
             className="rounded-xl border border-input bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"

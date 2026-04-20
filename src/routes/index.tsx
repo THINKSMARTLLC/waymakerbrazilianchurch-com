@@ -74,9 +74,7 @@ function LandingPage() {
       <header className="absolute inset-x-0 top-0 z-30">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 md:px-10">
           <a href="#top" className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/90 shadow-sm ring-1 ring-black/5 overflow-hidden">
-              <img src={wayMakerLogo} alt="Way Maker Church" className="h-9 w-9 object-contain" />
-            </span>
+            <img src={wayMakerLogo} alt="Way Maker Church" className="h-10 w-10 object-contain" />
             <span className="font-display text-base font-semibold tracking-tight text-white drop-shadow-sm">
               Way Maker Church
             </span>

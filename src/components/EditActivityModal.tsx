@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { ACTIVITY_LABEL, ACTIVITY_ICON, todayLocalISO, type ActivityType } from "@/lib/engagement";
+import { ACTIVITY_LABEL, type ActivityType } from "@/lib/engagement";
 
 interface EventTypeOption {
   id: string;
@@ -12,8 +11,17 @@ interface EventTypeOption {
   icon: string | null;
 }
 
+interface ActivityRecord {
+  id: string;
+  member_id: string;
+  activity_type: ActivityType;
+  activity_date: string;
+  notes: string | null;
+  event_type_id: string | null;
+}
+
 interface Props {
-  memberId: string;
+  activity: ActivityRecord;
   memberName: string;
   onClose: () => void;
   onSaved: () => void;
@@ -21,14 +29,14 @@ interface Props {
 
 const TYPES: ActivityType[] = ["attendance", "cell_group", "visit_scheduled", "leadership_contact"];
 
-export function RegisterActivityModal({ memberId, memberName, onClose, onSaved }: Props) {
-  const { user } = useAuth();
-  const [type, setType] = useState<ActivityType>("attendance");
-  const [date, setDate] = useState(() => todayLocalISO());
-  const [notes, setNotes] = useState("");
-  const [eventTypeId, setEventTypeId] = useState<string>("");
+export function EditActivityModal({ activity, memberName, onClose, onSaved }: Props) {
+  const [type, setType] = useState<ActivityType>(activity.activity_type);
+  const [date, setDate] = useState(activity.activity_date.slice(0, 10));
+  const [notes, setNotes] = useState(activity.notes ?? "");
+  const [eventTypeId, setEventTypeId] = useState<string>(activity.event_type_id ?? "");
   const [eventTypes, setEventTypes] = useState<EventTypeOption[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -46,18 +54,28 @@ export function RegisterActivityModal({ memberId, memberName, onClose, onSaved }
     e.preventDefault();
     setSubmitting(true);
     setError("");
-    const { error: err } = await supabase.from("member_activities").insert([
-      {
-        member_id: memberId,
+    const { error: err } = await supabase
+      .from("member_activities")
+      .update({
         activity_type: type,
         activity_date: date,
-        source: "admin_manual",
         notes: notes.trim() || null,
-        recorded_by: user?.id ?? null,
         event_type_id: eventTypeId || null,
-      },
-    ]);
+      })
+      .eq("id", activity.id);
     setSubmitting(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    onSaved();
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("Excluir esta atividade?")) return;
+    setDeleting(true);
+    const { error: err } = await supabase.from("member_activities").delete().eq("id", activity.id);
+    setDeleting(false);
     if (err) {
       setError(err.message);
       return;
@@ -67,10 +85,10 @@ export function RegisterActivityModal({ memberId, memberName, onClose, onSaved }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-4">
-      <div className="bg-card rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-card rounded-2xl shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div>
-            <h2 className="font-display text-lg font-semibold text-foreground">Registrar Atividade</h2>
+            <h2 className="font-display text-lg font-semibold text-foreground">Editar Atividade</h2>
             <p className="text-xs text-muted-foreground mt-0.5">{memberName}</p>
           </div>
           <button onClick={onClose} className="rounded-lg p-1 text-muted-foreground hover:bg-muted">
@@ -80,32 +98,24 @@ export function RegisterActivityModal({ memberId, memberName, onClose, onSaved }
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="text-sm font-medium text-foreground mb-2 block">Tipo de atividade</label>
-            <div className="grid grid-cols-2 gap-2">
+            <label className="text-sm font-medium text-foreground mb-1 block">Tipo base</label>
+            <select
+              value={type}
+              onChange={(e) => {
+                setType(e.target.value as ActivityType);
+                setEventTypeId("");
+              }}
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+            >
               {TYPES.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => {
-                    setType(t);
-                    setEventTypeId("");
-                  }}
-                  className={`flex items-center gap-2 rounded-xl border p-3 text-left text-sm transition-colors ${
-                    type === t
-                      ? "border-primary bg-accent text-foreground"
-                      : "border-input bg-background hover:bg-muted"
-                  }`}
-                >
-                  <span className="text-lg">{ACTIVITY_ICON[t]}</span>
-                  <span className="font-medium">{ACTIVITY_LABEL[t]}</span>
-                </button>
+                <option key={t} value={t}>{ACTIVITY_LABEL[t]}</option>
               ))}
-            </div>
+            </select>
           </div>
 
           {filteredEvents.length > 0 && (
             <div>
-              <label className="text-sm font-medium text-foreground mb-1 block">Evento específico (opcional)</label>
+              <label className="text-sm font-medium text-foreground mb-1 block">Evento específico</label>
               <select
                 value={eventTypeId}
                 onChange={(e) => setEventTypeId(e.target.value)}
@@ -127,26 +137,33 @@ export function RegisterActivityModal({ memberId, memberName, onClose, onSaved }
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              max={todayLocalISO()}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
               required
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-foreground mb-1 block">Notas (opcional)</label>
+            <label className="text-sm font-medium text-foreground mb-1 block">Notas</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              placeholder="Observações adicionais..."
             />
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="flex gap-2 pt-2">
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting || submitting}
+              className="rounded-xl border border-destructive/30 text-destructive px-3 py-2.5 text-sm font-medium hover:bg-destructive/10 disabled:opacity-50 inline-flex items-center gap-1"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Excluir
+            </button>
             <button
               type="button"
               onClick={onClose}
@@ -160,7 +177,7 @@ export function RegisterActivityModal({ memberId, memberName, onClose, onSaved }
               className="flex-1 btn-google inline-flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Registrar
+              Salvar
             </button>
           </div>
         </form>

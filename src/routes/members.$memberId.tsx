@@ -1,13 +1,30 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, CreditCard, DollarSign, Mail, Phone, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, CreditCard, DollarSign, Mail, Phone, Pencil, Trash2, Calendar, MapPin, AlertCircle, Briefcase, Users as UsersIcon, Edit } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { formatUSD, toTitleCase } from "@/lib/format";
 import { EditPaymentModal } from "@/components/EditPaymentModal";
+import { EditMemberModal } from "@/components/EditMemberModal";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, buildMonthsCovered } from "@/lib/memberStatus";
 import { PAYMENT_METHOD_LABEL, RecordPaymentModal } from "@/components/RecordPaymentModal";
 import { formatPhoneDisplay } from "@/lib/phone";
+import { useUserRole } from "@/hooks/useUserRole";
+
+function FieldRow({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string | null | undefined }) {
+  const display = value && String(value).trim() ? String(value) : null;
+  return (
+    <div className="flex items-start gap-3">
+      <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className={`text-sm ${display ? "text-foreground" : "text-muted-foreground italic"}`}>
+          {display ?? "Não informado"}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/members/$memberId")({
   head: () => ({
@@ -24,11 +41,13 @@ type Payment = Database["public"]["Tables"]["payments"]["Row"];
 
 function MemberProfilePage() {
   const { memberId } = Route.useParams();
+  const { isStaff } = useUserRole();
   const [member, setMember] = useState<Member | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [showEditMember, setShowEditMember] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchData = async () => {

@@ -13,6 +13,9 @@ import {
   UsersRound,
   Check,
   ArrowRight,
+  MapPin,
+  Instagram,
+  Navigation,
 } from "lucide-react";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
 import heroImage from "@/assets/waymaker-hero.jpg";
@@ -344,6 +347,68 @@ function LandingPage() {
             </h2>
           </div>
 
+          {/* DIAS DE CULTO + ENDEREÇO + MAPA */}
+          <div className="mb-16 grid gap-6 lg:grid-cols-2">
+            <div className="rounded-3xl border border-black/5 bg-white p-8 shadow-sm">
+              <div className="flex items-center gap-3">
+                <span
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl"
+                  style={{ backgroundColor: "oklch(0.95 0.04 95)" }}
+                >
+                  <Calendar className="h-5 w-5" style={{ color: "oklch(0.5 0.12 110)" }} />
+                </span>
+                <h3 className="font-display text-xl font-semibold text-[oklch(0.18_0.01_60)]">
+                  📅 Dias de culto
+                </h3>
+              </div>
+              <ul className="mt-6 space-y-3 text-base leading-relaxed text-[oklch(0.3_0.02_60)]">
+                <li className="flex gap-3"><span className="text-[oklch(0.5_0.12_110)]">•</span> Domingo – 10h30min</li>
+                <li className="flex gap-3"><span className="text-[oklch(0.5_0.12_110)]">•</span> Segunda – 8pm (Ensino Bíblico)</li>
+                <li className="flex gap-3"><span className="text-[oklch(0.5_0.12_110)]">•</span> Quarta – 8pm (Culto)</li>
+                <li className="flex gap-3"><span className="text-[oklch(0.5_0.12_110)]">•</span> Sexta-feira – 8pm Culto de Jovens</li>
+                <li className="flex gap-3"><span className="text-[oklch(0.5_0.12_110)]">•</span> Santa Ceia – sempre o primeiro domingo do mês</li>
+              </ul>
+            </div>
+
+            <div className="flex flex-col rounded-3xl border border-black/5 bg-white p-8 shadow-sm">
+              <div className="flex items-center gap-3">
+                <span
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl"
+                  style={{ backgroundColor: "oklch(0.95 0.04 95)" }}
+                >
+                  <MapPin className="h-5 w-5" style={{ color: "oklch(0.5 0.12 110)" }} />
+                </span>
+                <h3 className="font-display text-xl font-semibold text-[oklch(0.18_0.01_60)]">
+                  📍 Endereço
+                </h3>
+              </div>
+              <p className="mt-6 text-base leading-relaxed text-[oklch(0.3_0.02_60)]">
+                110 Paris St 2FL, Newark, New Jersey
+              </p>
+              <div className="mt-6 overflow-hidden rounded-2xl border border-black/5">
+                <iframe
+                  title="Mapa Way Maker Church"
+                  src="https://www.google.com/maps?q=110+Paris+St+2FL,+Newark,+New+Jersey&output=embed"
+                  width="100%"
+                  height="260"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  allowFullScreen
+                />
+              </div>
+              <a
+                href="https://www.google.com/maps/dir/?api=1&destination=110+Paris+St+2FL,+Newark,+New+Jersey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-6 inline-flex items-center justify-center gap-2 self-start rounded-full bg-[oklch(0.16_0.01_60)] px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:scale-[1.02] hover:bg-[oklch(0.22_0.01_60)]"
+              >
+                <Navigation className="h-4 w-4" />
+                Como chegar
+              </a>
+            </div>
+          </div>
+
           <div className="grid gap-6 md:grid-cols-3">
             {[
               {
@@ -390,6 +455,33 @@ function LandingPage() {
                 </span>
               </a>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* REDES SOCIAIS */}
+      <section className="px-6 py-20 md:px-10" style={{ backgroundColor: "oklch(0.16 0.01 60)" }}>
+        <div className="mx-auto max-w-3xl text-center text-white">
+          <span className="text-xs uppercase tracking-[0.25em] text-white/50">
+            📲 Acompanhe e se conecte
+          </span>
+          <h2 className="mt-4 font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+            Siga a Way Maker Church no Instagram
+            <br className="hidden sm:block" />
+            <span className="italic font-normal" style={{ color: "oklch(0.85 0.12 85)" }}>
+              {" "}e acompanhe tudo que está acontecendo.
+            </span>
+          </h2>
+          <div className="mt-10 flex justify-center">
+            <a
+              href="https://www.instagram.com/waymakerbchurch/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 rounded-full bg-white px-8 py-4 text-sm font-semibold text-black shadow-xl shadow-black/30 transition hover:scale-[1.02]"
+            >
+              <Instagram className="h-5 w-5" />
+              Seguir no Instagram
+            </a>
           </div>
         </div>
       </section>

@@ -271,7 +271,7 @@ function RecoveryLinkModal({ email, link, onClose }: { email: string; link: stri
   );
 }
 
-
+function ActivityLogSection() {
   const [logs, setLogs] = useState<Array<{ id: string; action: string; user_email: string | null; page_accessed: string | null; created_at: string }>>([]);
   useEffect(() => {
     supabase.from("activity_logs").select("id, action, user_email, page_accessed, created_at")

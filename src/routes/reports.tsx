@@ -238,6 +238,19 @@ function ReportsPage() {
     setGroupBy("member");
   };
 
+  const hasActiveFilter =
+    memberIdFilter !== "all" ||
+    nameFilter.trim() !== "" ||
+    methodFilter !== "all" ||
+    statusFilter !== "all";
+
+  const clearFilters = () => {
+    setMemberIdFilter("all");
+    setNameFilter("");
+    setMethodFilter("all");
+    setStatusFilter("all");
+  };
+
   return (
     <div className="space-y-6">
       {/* Period filter */}

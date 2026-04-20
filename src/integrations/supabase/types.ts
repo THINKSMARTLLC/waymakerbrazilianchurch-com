@@ -83,11 +83,51 @@ export type Database = {
         }
         Relationships: []
       }
+      event_types: {
+        Row: {
+          active: boolean
+          base_activity_type: Database["public"]["Enums"]["activity_type"]
+          category: string
+          created_at: string
+          created_by: string | null
+          icon: string | null
+          id: string
+          is_custom: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          base_activity_type: Database["public"]["Enums"]["activity_type"]
+          category: string
+          created_at?: string
+          created_by?: string | null
+          icon?: string | null
+          id?: string
+          is_custom?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          base_activity_type?: Database["public"]["Enums"]["activity_type"]
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          icon?: string | null
+          id?: string
+          is_custom?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       member_activities: {
         Row: {
           activity_date: string
           activity_type: Database["public"]["Enums"]["activity_type"]
           created_at: string
+          event_type_id: string | null
           id: string
           latitude: number | null
           longitude: number | null
@@ -101,6 +141,7 @@ export type Database = {
           activity_date?: string
           activity_type: Database["public"]["Enums"]["activity_type"]
           created_at?: string
+          event_type_id?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
@@ -114,6 +155,7 @@ export type Database = {
           activity_date?: string
           activity_type?: Database["public"]["Enums"]["activity_type"]
           created_at?: string
+          event_type_id?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
@@ -124,6 +166,13 @@ export type Database = {
           source?: Database["public"]["Enums"]["activity_source"]
         }
         Relationships: [
+          {
+            foreignKeyName: "member_activities_event_type_id_fkey"
+            columns: ["event_type_id"]
+            isOneToOne: false
+            referencedRelation: "event_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "member_activities_member_id_fkey"
             columns: ["member_id"]

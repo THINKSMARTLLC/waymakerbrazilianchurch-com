@@ -412,14 +412,8 @@ function LandingPage() {
             </div>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2">
             {[
-              {
-                icon: Calendar,
-                title: "Conhecer a igreja presencialmente",
-                desc: "Participe de um culto e viva essa experiência por si mesmo.",
-                href: "#ctas",
-              },
               {
                 icon: MessageCircle,
                 title: "Falar com alguém da nossa equipe",
@@ -430,7 +424,7 @@ function LandingPage() {
                 icon: UsersRound,
                 title: "Fazer parte de um grupo / célula",
                 desc: "Cresça em um ambiente mais próximo, com acompanhamento real.",
-                href: "#ctas",
+                href: WHATSAPP_URL,
               },
             ].map(({ icon: Icon, title, desc, href }) => (
               <a

@@ -54,6 +54,9 @@ export type Database = {
           email: string | null
           emergency_contact: string | null
           id: string
+          inactivated_at: string | null
+          inactivated_by: string | null
+          inactivation_reason: string | null
           member_role: string | null
           name: string
           payment_type: Database["public"]["Enums"]["payment_type"]
@@ -73,6 +76,9 @@ export type Database = {
           email?: string | null
           emergency_contact?: string | null
           id?: string
+          inactivated_at?: string | null
+          inactivated_by?: string | null
+          inactivation_reason?: string | null
           member_role?: string | null
           name: string
           payment_type?: Database["public"]["Enums"]["payment_type"]
@@ -92,6 +98,9 @@ export type Database = {
           email?: string | null
           emergency_contact?: string | null
           id?: string
+          inactivated_at?: string | null
+          inactivated_by?: string | null
+          inactivation_reason?: string | null
           member_role?: string | null
           name?: string
           payment_type?: Database["public"]["Enums"]["payment_type"]

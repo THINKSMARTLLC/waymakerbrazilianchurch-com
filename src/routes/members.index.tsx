@@ -102,10 +102,18 @@ function MembersPage() {
       const freq = (m as Member & { contribution_frequency?: ContributionFrequency }).contribution_frequency ?? "weekly";
       return {
         ...m,
+        name: toTitleCase(m.name),
         last_payment_date: last?.payment_date ?? null,
         last_payment_method: last?.payment_method ?? null,
         payment_status: computeMemberStatus(last?.payment_date ?? null, freq, monthsByMember.get(m.id) ?? null),
       };
+    });
+
+    // Default alphabetical sort by first name (A → Z), case-insensitive.
+    withStatus.sort((a, b) => {
+      const aFirst = (a.name || "").split(" ")[0] || "";
+      const bFirst = (b.name || "").split(" ")[0] || "";
+      return aFirst.localeCompare(bFirst, undefined, { sensitivity: "base" });
     });
 
     setMembers(withStatus);
@@ -125,12 +133,13 @@ function MembersPage() {
   const filtered = useMemo(
     () =>
       members.filter((m) => {
+        if (selectedMemberId && m.id !== selectedMemberId) return false;
         if (statusFilter !== "all" && m.payment_status !== statusFilter) return false;
         if (!search) return true;
         const q = search.toLowerCase();
         return m.name.toLowerCase().includes(q) || (m.email || "").toLowerCase().includes(q);
       }),
-    [members, search, statusFilter]
+    [members, search, statusFilter, selectedMemberId]
   );
 
   return (

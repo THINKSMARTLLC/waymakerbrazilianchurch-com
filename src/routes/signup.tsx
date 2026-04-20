@@ -3,6 +3,8 @@ import { useState, type FormEvent } from "react";
 import { Church, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activityLog";
+import { EmergencyContactFields } from "@/components/EmergencyContactFields";
+import { serializeEmergencyContact, type EmergencyContact } from "@/lib/emergencyContact";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
 
 export const Route = createFileRoute("/signup")({
@@ -62,6 +64,7 @@ function SignupPage() {
     password: "",
     confirmPassword: "",
   });
+  const [emergency, setEmergency] = useState<EmergencyContact>({ name: "", phone: "", relationship: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);

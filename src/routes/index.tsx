@@ -13,6 +13,9 @@ import {
   UsersRound,
   Check,
   ArrowRight,
+  MapPin,
+  Instagram,
+  Navigation,
 } from "lucide-react";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
 import heroImage from "@/assets/waymaker-hero.jpg";

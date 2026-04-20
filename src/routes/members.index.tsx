@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History } from "lucide-react";
+import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check } from "lucide-react";
 import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -14,6 +14,9 @@ import { RecordPaymentModal } from "@/components/RecordPaymentModal";
 import { ContributionsModal } from "@/components/ContributionsModal";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, FREQUENCY_LABEL, type MemberPaymentStatus, type ContributionFrequency } from "@/lib/memberStatus";
 import { formatPhoneDisplay } from "@/lib/phone";
+import { findDuplicates, generateTempAccessCode, type DuplicateMatch } from "@/lib/duplicates";
+import { DuplicateWarning } from "@/components/DuplicateWarning";
+import { MergeMembersModal } from "@/components/MergeMembersModal";
 
 interface MembersSearch {
   status?: MemberPaymentStatus;

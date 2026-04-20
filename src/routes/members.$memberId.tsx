@@ -3,7 +3,7 @@ import { ArrowLeft, CreditCard, DollarSign, Mail, Phone, Pencil, Trash2 } from "
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { formatUSD } from "@/lib/format";
+import { formatUSD, toTitleCase } from "@/lib/format";
 import { EditPaymentModal } from "@/components/EditPaymentModal";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, buildMonthsCovered } from "@/lib/memberStatus";
 import { PAYMENT_METHOD_LABEL, RecordPaymentModal } from "@/components/RecordPaymentModal";
@@ -62,7 +62,8 @@ function MemberProfilePage() {
     );
   }
 
-  const initials = member.name.split(" ").map((n) => n[0]).join("").slice(0, 2);
+  const displayName = toTitleCase(member.name);
+  const initials = displayName.split(" ").map((n) => n[0]).join("").slice(0, 2);
   const lastPaymentDate = payments[0]?.payment_date ?? null;
   const monthsCovered = buildMonthsCovered(payments as Array<{ payment_frequency?: string | null; reference_month?: string | null }>);
   const memberStatus = computeMemberStatus(
@@ -94,13 +95,13 @@ function MemberProfilePage() {
         <div className="flex items-start gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-accent text-lg font-semibold text-primary overflow-hidden">
             {member.profile_photo_url ? (
-              <img src={member.profile_photo_url} alt={member.name} className="h-full w-full object-cover" />
+              <img src={member.profile_photo_url} alt={displayName} className="h-full w-full object-cover" />
             ) : (
               initials
             )}
           </div>
           <div className="flex-1">
-            <h2 className="font-display text-xl font-semibold text-foreground">{member.name}</h2>
+            <h2 className="font-display text-xl font-semibold text-foreground">{displayName}</h2>
             <div className="mt-2 space-y-1.5">
               {member.email && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Mail className="h-4 w-4" /> {member.email}</p>}
               {member.phone && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Phone className="h-4 w-4" /> {formatPhoneDisplay(member.phone)}</p>}
@@ -197,7 +198,7 @@ function MemberProfilePage() {
       {showPaymentModal && (
         <RecordPaymentModal
           memberId={memberId}
-          memberName={member.name}
+          memberName={displayName}
           onClose={() => setShowPaymentModal(false)}
           onSaved={fetchData}
         />

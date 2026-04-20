@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { DollarSign, CreditCard, Users, AlertTriangle, Receipt, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { formatUSD } from "@/lib/format";
+import { formatUSD, toTitleCase } from "@/lib/format";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, type MemberPaymentStatus } from "@/lib/memberStatus";
 import { PAYMENT_METHOD_LABEL } from "@/components/RecordPaymentModal";
 import { EditPaymentModal } from "@/components/EditPaymentModal";
@@ -184,7 +184,7 @@ function ReportsPage() {
         if (p.payment_date > cur.last) cur.last = p.payment_date;
       } else {
         map.set(key, {
-          name: p.members.name,
+          name: toTitleCase(p.members.name),
           email: p.members.email,
           count: 1,
           total: Number(p.amount),
@@ -376,7 +376,7 @@ function ReportsPage() {
                 <tbody>
                   {filteredPayments.map((p) => (
                     <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
-                      <td className="px-5 py-3 text-sm font-medium text-foreground">{p.members?.name || "—"}</td>
+                      <td className="px-5 py-3 text-sm font-medium text-foreground">{toTitleCase(p.members?.name) || "—"}</td>
                       <td className="px-5 py-3 text-sm text-foreground text-right tabular-nums">{formatUSD(p.amount)}</td>
                       <td className="px-5 py-3 text-sm text-muted-foreground hidden sm:table-cell">{PAYMENT_METHOD_LABEL[p.payment_method] ?? p.payment_method}</td>
                       <td className="px-5 py-3 text-sm text-muted-foreground hidden sm:table-cell">{new Date(p.payment_date).toLocaleDateString("en-US")}</td>

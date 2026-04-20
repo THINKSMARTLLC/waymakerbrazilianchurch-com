@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatUSD } from "@/lib/format";
+import { formatUSD, toTitleCase } from "@/lib/format";
 import { RecordPaymentModal } from "@/components/RecordPaymentModal";
 import { ContributionsModal } from "@/components/ContributionsModal";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, FREQUENCY_LABEL, type MemberPaymentStatus, type ContributionFrequency } from "@/lib/memberStatus";
@@ -53,6 +53,7 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
 function MembersPage() {
   const { status: statusParam } = Route.useSearch();
   const [search, setSearch] = useState("");
+  const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<MemberPaymentStatus | "all">(statusParam ?? "all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
@@ -101,10 +102,18 @@ function MembersPage() {
       const freq = (m as Member & { contribution_frequency?: ContributionFrequency }).contribution_frequency ?? "weekly";
       return {
         ...m,
+        name: toTitleCase(m.name),
         last_payment_date: last?.payment_date ?? null,
         last_payment_method: last?.payment_method ?? null,
         payment_status: computeMemberStatus(last?.payment_date ?? null, freq, monthsByMember.get(m.id) ?? null),
       };
+    });
+
+    // Default alphabetical sort by first name (A → Z), case-insensitive.
+    withStatus.sort((a, b) => {
+      const aFirst = (a.name || "").split(" ")[0] || "";
+      const bFirst = (b.name || "").split(" ")[0] || "";
+      return aFirst.localeCompare(bFirst, undefined, { sensitivity: "base" });
     });
 
     setMembers(withStatus);
@@ -124,12 +133,13 @@ function MembersPage() {
   const filtered = useMemo(
     () =>
       members.filter((m) => {
+        if (selectedMemberId && m.id !== selectedMemberId) return false;
         if (statusFilter !== "all" && m.payment_status !== statusFilter) return false;
         if (!search) return true;
         const q = search.toLowerCase();
         return m.name.toLowerCase().includes(q) || (m.email || "").toLowerCase().includes(q);
       }),
-    [members, search, statusFilter]
+    [members, search, statusFilter, selectedMemberId]
   );
 
   return (
@@ -156,6 +166,17 @@ function MembersPage() {
             <option value="on_time">On Time</option>
             <option value="late">Late</option>
             <option value="no_payment">No Payment Yet</option>
+          </select>
+          <select
+            value={selectedMemberId}
+            onChange={(e) => setSelectedMemberId(e.target.value)}
+            className="rounded-xl border border-input bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring max-w-[220px]"
+            aria-label="Select Member"
+          >
+            <option value="">Select Member</option>
+            {members.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
           </select>
         </div>
         <button onClick={() => setShowAddModal(true)} className="btn-google inline-flex items-center gap-2">
@@ -364,7 +385,7 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
 
     const form = new FormData(e.currentTarget);
     const payload = {
-      name: form.get("name") as string,
+      name: toTitleCase(form.get("name") as string),
       email: (form.get("email") as string) || null,
       phone: buildE164(),
       payment_type: form.get("payment_type") as "card" | "cash",

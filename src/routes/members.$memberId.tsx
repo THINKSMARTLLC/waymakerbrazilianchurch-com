@@ -141,9 +141,28 @@ function MemberProfilePage() {
         </div>
       </div>
 
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="card-elevated p-6">
+          <h3 className="font-display text-base font-medium text-foreground mb-4">Informações Pessoais</h3>
+          <div className="space-y-4">
+            <FieldRow icon={Calendar} label="Data de Nascimento" value={member.date_of_birth ? new Date(member.date_of_birth + "T00:00:00").toLocaleDateString("pt-BR") : null} />
+            <FieldRow icon={MapPin} label="Endereço" value={member.address} />
+            <FieldRow icon={AlertCircle} label="Contato de Emergência" value={member.emergency_contact} />
+          </div>
+        </div>
+
+        <div className="card-elevated p-6">
+          <h3 className="font-display text-base font-medium text-foreground mb-4">Informações da Igreja</h3>
+          <div className="space-y-4">
+            <FieldRow icon={Briefcase} label="Cargo" value={member.member_role} />
+            <FieldRow icon={UsersIcon} label="Departamento" value={member.department} />
+          </div>
+        </div>
+      </div>
+
       <div className="card-elevated p-6">
         <h3 className="font-display text-base font-medium text-foreground mb-4">Ações</h3>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <button
             onClick={() => setShowPaymentModal(true)}
             className="inline-flex items-center gap-2 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
@@ -151,6 +170,15 @@ function MemberProfilePage() {
             <DollarSign className="h-4 w-4" />
             Registrar Pagamento
           </button>
+          {isStaff && (
+            <button
+              onClick={() => setShowEditMember(true)}
+              className="inline-flex items-center gap-2 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              <Edit className="h-4 w-4" />
+              Editar Perfil
+            </button>
+          )}
         </div>
       </div>
 

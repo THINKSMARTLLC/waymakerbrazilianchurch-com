@@ -126,6 +126,7 @@ function MembersPage() {
         last_payment_date: last?.payment_date ?? null,
         last_payment_method: last?.payment_method ?? null,
         payment_status: computeMemberStatus(last?.payment_date ?? null, freq, monthsByMember.get(m.id) ?? null),
+        monthly_total: monthlyTotalByMember.get(m.id) ?? 0,
       };
     });
 

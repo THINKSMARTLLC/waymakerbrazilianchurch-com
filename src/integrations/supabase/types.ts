@@ -104,6 +104,41 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_contributions: {
+        Row: {
+          amount: number
+          contribution_type: Database["public"]["Enums"]["contribution_type"]
+          created_at: string
+          destination: string | null
+          id: string
+          payment_id: string
+        }
+        Insert: {
+          amount: number
+          contribution_type: Database["public"]["Enums"]["contribution_type"]
+          created_at?: string
+          destination?: string | null
+          id?: string
+          payment_id: string
+        }
+        Update: {
+          amount?: number
+          contribution_type?: Database["public"]["Enums"]["contribution_type"]
+          created_at?: string
+          destination?: string | null
+          id?: string
+          payment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_contributions_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -115,8 +150,10 @@ export type Database = {
           member_id: string
           notes: string | null
           payment_date: string
+          payment_frequency: Database["public"]["Enums"]["payment_frequency"]
           payment_method: Database["public"]["Enums"]["payment_method"]
           recorded_by: string | null
+          reference_month: string | null
           status: Database["public"]["Enums"]["payment_status"]
           stripe_subscription_id: string | null
         }
@@ -130,8 +167,10 @@ export type Database = {
           member_id: string
           notes?: string | null
           payment_date?: string
+          payment_frequency?: Database["public"]["Enums"]["payment_frequency"]
           payment_method?: Database["public"]["Enums"]["payment_method"]
           recorded_by?: string | null
+          reference_month?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
           stripe_subscription_id?: string | null
         }
@@ -145,8 +184,10 @@ export type Database = {
           member_id?: string
           notes?: string | null
           payment_date?: string
+          payment_frequency?: Database["public"]["Enums"]["payment_frequency"]
           payment_method?: Database["public"]["Enums"]["payment_method"]
           recorded_by?: string | null
+          reference_month?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
           stripe_subscription_id?: string | null
         }
@@ -288,6 +329,7 @@ export type Database = {
         | "event_contribution"
         | "other"
       member_status: "active" | "inactive"
+      payment_frequency: "weekly" | "monthly"
       payment_method:
         | "stripe"
         | "cash"
@@ -444,6 +486,7 @@ export const Constants = {
         "other",
       ],
       member_status: ["active", "inactive"],
+      payment_frequency: ["weekly", "monthly"],
       payment_method: [
         "stripe",
         "cash",

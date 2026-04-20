@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts, useLocation } from
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { AppLayout } from "@/components/AppLayout";
+import "@/i18n";
 
 
 import appCss from "../styles.css?url";

@@ -2,9 +2,11 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { Church, Eye, EyeOff } from "lucide-react";
 import { useState as useImgState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { logActivity } from "@/lib/activityLog";
 import { supabase } from "@/integrations/supabase/client";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
 
 export const Route = createFileRoute("/login")({
@@ -20,6 +22,7 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -50,6 +53,9 @@ function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="absolute top-4 right-4">
+        <LanguageSelector />
+      </div>
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex items-center justify-center">
@@ -67,7 +73,7 @@ function LoginPage() {
             )}
           </div>
           <h1 className="font-display text-2xl font-semibold text-foreground">WAY MAKER FLOW</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Gestão financeira simples para sua igreja</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("auth.tagline")}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="card-elevated p-6 space-y-4">
@@ -87,9 +93,9 @@ function LoginPage() {
           </div>
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-sm font-medium text-foreground">Senha</label>
+              <label className="block text-sm font-medium text-foreground">{t("auth.password")}</label>
               <Link to="/forgot-password" className="text-xs text-primary hover:underline">
-                Esqueceu a senha?
+                {t("auth.forgotPassword")}
               </Link>
             </div>
             <div className="relative">
@@ -104,7 +110,7 @@ function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                aria-label={showPassword ? "Hide password" : "Show password"}
                 className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
                 tabIndex={-1}
               >
@@ -113,24 +119,24 @@ function LoginPage() {
             </div>
           </div>
           <button type="submit" disabled={loading} className="btn-google w-full disabled:opacity-50">
-            {loading ? "Entrando..." : "Entrar"}
+            {loading ? t("auth.signingIn") : t("auth.signIn")}
           </button>
 
           <div className="relative my-2">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
-            <div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">ou</span></div>
+            <div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">{t("auth.or")}</span></div>
           </div>
 
           <Link
             to="/signup"
             className="flex w-full items-center justify-center rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
           >
-            Criar Conta
+            {t("auth.signUp")}
           </Link>
         </form>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          Ao entrar, você aceita nossos termos de uso e política de privacidade.
+          {t("auth.termsNotice")}
         </p>
       </div>
     </div>

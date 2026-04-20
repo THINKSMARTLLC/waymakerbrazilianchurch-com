@@ -402,6 +402,14 @@ function ReportsPage() {
         <div className="flex items-center justify-center py-12">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
+      ) : !hasActiveFilter ? (
+        <div className="card-elevated p-12 text-center">
+          <Users className="mx-auto h-10 w-10 text-muted-foreground/60" />
+          <h3 className="mt-3 font-display text-base font-medium text-foreground">Select filters to view data</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Choose a member, search a name, or apply a status/method filter to display results.
+          </p>
+        </div>
       ) : (
         <div className="card-elevated overflow-hidden">
           <div className="p-5 border-b border-border">

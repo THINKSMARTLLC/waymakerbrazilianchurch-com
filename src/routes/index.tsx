@@ -74,9 +74,7 @@ function LandingPage() {
       <header className="absolute inset-x-0 top-0 z-30">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 md:px-10">
           <a href="#top" className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/90 shadow-sm ring-1 ring-black/5 overflow-hidden">
-              <img src={wayMakerLogo} alt="Way Maker Church" className="h-9 w-9 object-contain" />
-            </span>
+            <img src={wayMakerLogo} alt="Way Maker Church" className="h-10 w-10 object-contain" />
             <span className="font-display text-base font-semibold tracking-tight text-white drop-shadow-sm">
               Way Maker Church
             </span>
@@ -620,10 +618,10 @@ function LandingPage() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Fale conosco no WhatsApp"
-        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] shadow-lg shadow-black/30 ring-4 ring-[#25D366]/20 transition hover:scale-110 sm:bottom-6 sm:right-6 sm:h-16 sm:w-16"
-        style={{ animation: "wmc-pulse 2.4s ease-in-out infinite" }}
+        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center transition hover:scale-110 sm:bottom-6 sm:right-6 sm:h-16 sm:w-16"
+        style={{ animation: "wmc-pulse 2.4s ease-in-out infinite", filter: "drop-shadow(0 6px 12px rgba(0,0,0,0.25))", borderRadius: "9999px" }}
       >
-        <img src={whatsappIcon} alt="" className="h-9 w-9 sm:h-10 sm:w-10" />
+        <img src={whatsappIcon} alt="" className="h-full w-full" />
       </a>
       <style>{`
         @keyframes wmc-pulse {

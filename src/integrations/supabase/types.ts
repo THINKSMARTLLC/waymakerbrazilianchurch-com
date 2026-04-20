@@ -249,10 +249,12 @@ export type Database = {
         Row: {
           church_name: string | null
           created_at: string
+          created_by: string | null
           email: string
           full_name: string
           id: string
           last_login_at: string | null
+          must_change_password: boolean
           phone: string | null
           status: Database["public"]["Enums"]["account_status"]
           updated_at: string
@@ -261,10 +263,12 @@ export type Database = {
         Insert: {
           church_name?: string | null
           created_at?: string
+          created_by?: string | null
           email: string
           full_name: string
           id?: string
           last_login_at?: string | null
+          must_change_password?: boolean
           phone?: string | null
           status?: Database["public"]["Enums"]["account_status"]
           updated_at?: string
@@ -273,10 +277,12 @@ export type Database = {
         Update: {
           church_name?: string | null
           created_at?: string
+          created_by?: string | null
           email?: string
           full_name?: string
           id?: string
           last_login_at?: string | null
+          must_change_password?: boolean
           phone?: string | null
           status?: Database["public"]["Enums"]["account_status"]
           updated_at?: string
@@ -318,6 +324,7 @@ export type Database = {
         Returns: boolean
       }
       is_active_staff: { Args: { _user_id: string }; Returns: boolean }
+      is_non_super_staff: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }

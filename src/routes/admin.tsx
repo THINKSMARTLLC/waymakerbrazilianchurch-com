@@ -1,9 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Shield, UserCheck, UserX, Trash2, ArrowLeft } from "lucide-react";
+import { Shield, UserCheck, UserX, Trash2, ArrowLeft, UserPlus, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { logActivity } from "@/lib/activityLog";
+import { CreateUserModal } from "@/components/CreateUserModal";
+import { useServerFn } from "@tanstack/react-start";
+import { generateRecoveryForEmail } from "@/lib/adminUsers.functions";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -32,6 +35,20 @@ function AdminPage() {
   const { isSuperAdmin, loading: roleLoading } = useUserRole();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [recoveryFor, setRecoveryFor] = useState<{ email: string; link: string | null } | null>(null);
+  const sendRecovery = useServerFn(generateRecoveryForEmail);
+
+  const requestRecovery = async (email: string) => {
+    setRecoveryFor({ email, link: null });
+    try {
+      const res = await sendRecovery({ data: { email } });
+      setRecoveryFor({ email, link: res.recoveryLink });
+    } catch (err) {
+      setRecoveryFor({ email, link: null });
+      alert(err instanceof Error ? err.message : "Falha ao gerar link");
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -108,10 +125,17 @@ function AdminPage() {
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
           <Shield className="h-5 w-5 text-primary" />
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-semibold font-display">Painel Super Admin</h1>
           <p className="text-sm text-muted-foreground">Gerencie usuários, funções e status do sistema</p>
         </div>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="btn-google inline-flex items-center gap-2"
+        >
+          <UserPlus className="h-4 w-4" />
+          Criar Usuário
+        </button>
       </div>
 
       <div className="card-elevated overflow-hidden">
@@ -171,6 +195,10 @@ function AdminPage() {
                             <UserX className="h-4 w-4" />
                           </button>
                         )}
+                        <button onClick={() => requestRecovery(u.email)} title="Gerar link de redefinição de senha"
+                          className="p-1.5 rounded-md hover:bg-primary/10 text-primary">
+                          <KeyRound className="h-4 w-4" />
+                        </button>
                         <button onClick={() => deleteUser(u.user_id)} title="Excluir"
                           className="p-1.5 rounded-md hover:bg-destructive/10 text-destructive">
                           <Trash2 className="h-4 w-4" />
@@ -186,6 +214,59 @@ function AdminPage() {
       </div>
 
       <ActivityLogSection />
+
+      <CreateUserModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreated={load}
+        canAssignStaff={true}
+      />
+
+      {recoveryFor && (
+        <RecoveryLinkModal
+          email={recoveryFor.email}
+          link={recoveryFor.link}
+          onClose={() => setRecoveryFor(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function RecoveryLinkModal({ email, link, onClose }: { email: string; link: string | null; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    if (!link) return;
+    await navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-4">
+      <div className="w-full max-w-lg bg-card rounded-2xl shadow-xl border border-border">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h2 className="font-display text-lg font-semibold">Link de redefinição de senha</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Envie este link para <strong className="text-foreground">{email}</strong>. Ele permite definir uma nova senha.
+          </p>
+          {!link ? (
+            <div className="text-sm text-muted-foreground">Gerando link...</div>
+          ) : (
+            <div className="flex items-stretch gap-2">
+              <input readOnly value={link} className="flex-1 rounded-xl border border-input bg-muted/30 px-3 py-2 text-xs font-mono" />
+              <button onClick={copy} className="px-3 rounded-xl border border-input bg-background hover:bg-muted text-sm">
+                {copied ? "Copiado" : "Copiar"}
+              </button>
+            </div>
+          )}
+          <button onClick={onClose} className="btn-google w-full">Fechar</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -253,6 +334,7 @@ function actionLabel(a: string) {
     user_role_changed: "Função alterada",
     user_status_changed: "Status do usuário alterado",
     user_deleted: "Usuário excluído",
+    user_created_by_admin: "Usuário criado por admin",
   };
   return map[a] ?? a;
 }

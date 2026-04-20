@@ -6,7 +6,7 @@ import { AppLayout } from "@/components/AppLayout";
 
 import appCss from "../styles.css?url";
 
-const PUBLIC_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password"];
+const PUBLIC_ROUTES = ["/", "/login", "/signup", "/forgot-password", "/reset-password"];
 
 function NotFoundComponent() {
   return (

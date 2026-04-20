@@ -8,6 +8,8 @@ import {
   LogOut,
   Shield,
   Database,
+  Activity,
+  Settings,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,6 +20,7 @@ import wayMakerLogo from "@/assets/waymaker-logo.png";
 const baseNavItems = [
   { label: "Dashboard", to: "/dashboard" as const, icon: LayoutDashboard },
   { label: "Membros", to: "/members" as const, icon: Users },
+  { label: "Engajamento", to: "/engagement" as const, icon: Activity },
   { label: "Relatórios", to: "/reports" as const, icon: FileBarChart },
 ];
 
@@ -31,6 +34,7 @@ export function AppLayout() {
     ? [
         ...baseNavItems,
         { label: "Importar/Exportar", to: "/import-export" as const, icon: Database },
+        { label: "Config. Igreja", to: "/settings/church" as const, icon: Settings },
         { label: "Admin", to: "/admin" as const, icon: Shield },
       ]
     : baseNavItems;

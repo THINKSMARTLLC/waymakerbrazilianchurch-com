@@ -22,10 +22,13 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as MembersIndexRouteImport } from './routes/members.index'
+import { Route as EngagementIndexRouteImport } from './routes/engagement.index'
+import { Route as SettingsChurchRouteImport } from './routes/settings.church'
 import { Route as PortalProfileRouteImport } from './routes/portal.profile'
 import { Route as PortalContributionsRouteImport } from './routes/portal.contributions'
 import { Route as MembersArchiveRouteImport } from './routes/members.archive'
 import { Route as MembersMemberIdRouteImport } from './routes/members.$memberId'
+import { Route as EngagementVisitsRouteImport } from './routes/engagement.visits'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -92,6 +95,16 @@ const MembersIndexRoute = MembersIndexRouteImport.update({
   path: '/members/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EngagementIndexRoute = EngagementIndexRouteImport.update({
+  id: '/engagement/',
+  path: '/engagement/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsChurchRoute = SettingsChurchRouteImport.update({
+  id: '/settings/church',
+  path: '/settings/church',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PortalProfileRoute = PortalProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -112,6 +125,11 @@ const MembersMemberIdRoute = MembersMemberIdRouteImport.update({
   path: '/members/$memberId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EngagementVisitsRoute = EngagementVisitsRouteImport.update({
+  id: '/engagement/visits',
+  path: '/engagement/visits',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -125,10 +143,13 @@ export interface FileRoutesByFullPath {
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/engagement/visits': typeof EngagementVisitsRoute
   '/members/$memberId': typeof MembersMemberIdRoute
   '/members/archive': typeof MembersArchiveRoute
   '/portal/contributions': typeof PortalContributionsRoute
   '/portal/profile': typeof PortalProfileRoute
+  '/settings/church': typeof SettingsChurchRoute
+  '/engagement/': typeof EngagementIndexRoute
   '/members/': typeof MembersIndexRoute
   '/portal/': typeof PortalIndexRoute
 }
@@ -143,10 +164,13 @@ export interface FileRoutesByTo {
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/engagement/visits': typeof EngagementVisitsRoute
   '/members/$memberId': typeof MembersMemberIdRoute
   '/members/archive': typeof MembersArchiveRoute
   '/portal/contributions': typeof PortalContributionsRoute
   '/portal/profile': typeof PortalProfileRoute
+  '/settings/church': typeof SettingsChurchRoute
+  '/engagement': typeof EngagementIndexRoute
   '/members': typeof MembersIndexRoute
   '/portal': typeof PortalIndexRoute
 }
@@ -163,10 +187,13 @@ export interface FileRoutesById {
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/engagement/visits': typeof EngagementVisitsRoute
   '/members/$memberId': typeof MembersMemberIdRoute
   '/members/archive': typeof MembersArchiveRoute
   '/portal/contributions': typeof PortalContributionsRoute
   '/portal/profile': typeof PortalProfileRoute
+  '/settings/church': typeof SettingsChurchRoute
+  '/engagement/': typeof EngagementIndexRoute
   '/members/': typeof MembersIndexRoute
   '/portal/': typeof PortalIndexRoute
 }
@@ -184,10 +211,13 @@ export interface FileRouteTypes {
     | '/reports'
     | '/reset-password'
     | '/signup'
+    | '/engagement/visits'
     | '/members/$memberId'
     | '/members/archive'
     | '/portal/contributions'
     | '/portal/profile'
+    | '/settings/church'
+    | '/engagement/'
     | '/members/'
     | '/portal/'
   fileRoutesByTo: FileRoutesByTo
@@ -202,10 +232,13 @@ export interface FileRouteTypes {
     | '/reports'
     | '/reset-password'
     | '/signup'
+    | '/engagement/visits'
     | '/members/$memberId'
     | '/members/archive'
     | '/portal/contributions'
     | '/portal/profile'
+    | '/settings/church'
+    | '/engagement'
     | '/members'
     | '/portal'
   id:
@@ -221,10 +254,13 @@ export interface FileRouteTypes {
     | '/reports'
     | '/reset-password'
     | '/signup'
+    | '/engagement/visits'
     | '/members/$memberId'
     | '/members/archive'
     | '/portal/contributions'
     | '/portal/profile'
+    | '/settings/church'
+    | '/engagement/'
     | '/members/'
     | '/portal/'
   fileRoutesById: FileRoutesById
@@ -241,8 +277,11 @@ export interface RootRouteChildren {
   ReportsRoute: typeof ReportsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  EngagementVisitsRoute: typeof EngagementVisitsRoute
   MembersMemberIdRoute: typeof MembersMemberIdRoute
   MembersArchiveRoute: typeof MembersArchiveRoute
+  SettingsChurchRoute: typeof SettingsChurchRoute
+  EngagementIndexRoute: typeof EngagementIndexRoute
   MembersIndexRoute: typeof MembersIndexRoute
 }
 
@@ -339,6 +378,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MembersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/engagement/': {
+      id: '/engagement/'
+      path: '/engagement'
+      fullPath: '/engagement/'
+      preLoaderRoute: typeof EngagementIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/church': {
+      id: '/settings/church'
+      path: '/settings/church'
+      fullPath: '/settings/church'
+      preLoaderRoute: typeof SettingsChurchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/portal/profile': {
       id: '/portal/profile'
       path: '/profile'
@@ -365,6 +418,13 @@ declare module '@tanstack/react-router' {
       path: '/members/$memberId'
       fullPath: '/members/$memberId'
       preLoaderRoute: typeof MembersMemberIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/engagement/visits': {
+      id: '/engagement/visits'
+      path: '/engagement/visits'
+      fullPath: '/engagement/visits'
+      preLoaderRoute: typeof EngagementVisitsRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -397,8 +457,11 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsRoute: ReportsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  EngagementVisitsRoute: EngagementVisitsRoute,
   MembersMemberIdRoute: MembersMemberIdRoute,
   MembersArchiveRoute: MembersArchiveRoute,
+  SettingsChurchRoute: SettingsChurchRoute,
+  EngagementIndexRoute: EngagementIndexRoute,
   MembersIndexRoute: MembersIndexRoute,
 }
 export const routeTree = rootRouteImport

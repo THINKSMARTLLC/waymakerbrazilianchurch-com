@@ -1,15 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { DollarSign, TrendingUp, Heart } from "lucide-react";
+import { DollarSign, TrendingUp, Heart, MapPin } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { StatCard } from "@/components/StatCard";
+import { JourneyPath } from "@/components/JourneyPath";
+import { CheckInModal } from "@/components/CheckInModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatUSD } from "@/lib/format";
+import { ACTIVITY_ICON, ACTIVITY_LABEL, calculatePoints, type ActivityType } from "@/lib/engagement";
 
 const MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-
-// Stripe is not connected yet — flip to true once integrated
 const STRIPE_CONNECTED = false;
 
 interface Payment {
@@ -17,6 +18,13 @@ interface Payment {
   amount: number;
   payment_date: string;
   payment_method: string;
+}
+
+interface ActivityRow {
+  id: string;
+  activity_type: ActivityType;
+  activity_date: string;
+  source: string;
 }
 
 export const Route = createFileRoute("/portal/")({
@@ -31,12 +39,23 @@ function MemberDashboard() {
   const [monthTotal, setMonthTotal] = useState(0);
   const [chartData, setChartData] = useState<{ month: string; amount: number }[]>([]);
   const [recent, setRecent] = useState<Payment[]>([]);
+  const [activities, setActivities] = useState<ActivityRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCheckIn, setShowCheckIn] = useState(false);
+
+  const loadActivities = async (mid: string) => {
+    const { data } = await supabase
+      .from("member_activities")
+      .select("id, activity_type, activity_date, source")
+      .eq("member_id", mid)
+      .order("activity_date", { ascending: false })
+      .limit(20);
+    setActivities((data ?? []) as ActivityRow[]);
+  };
 
   useEffect(() => {
     async function load() {
       if (!user) return;
-      // Find linked member record
       const { data: member } = await supabase
         .from("members")
         .select("id, name")
@@ -86,21 +105,37 @@ function MemberDashboard() {
       setMonthTotal(month);
       setChartData(buckets);
       setRecent(list.slice(0, 5));
+      await loadActivities(member.id);
       setLoading(false);
     }
     load();
   }, [user]);
 
+  const points = calculatePoints(activities);
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="font-display text-2xl font-semibold text-foreground">
-          Olá{memberName ? `, ${memberName}` : ""} 👋
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Acompanhe suas contribuições e mantenha seu perfil atualizado.
-        </p>
+      <div className="flex items-start justify-between flex-wrap gap-4">
+        <div>
+          <h2 className="font-display text-2xl font-semibold text-foreground">
+            Olá{memberName ? `, ${memberName}` : ""} 👋
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Acompanhe sua jornada, contribuições e mantenha seu perfil atualizado.
+          </p>
+        </div>
+        {memberId && (
+          <button
+            onClick={() => setShowCheckIn(true)}
+            className="btn-google inline-flex items-center gap-2"
+          >
+            <MapPin className="h-4 w-4" />
+            Check-in na Igreja
+          </button>
+        )}
       </div>
+
+      {memberId && <JourneyPath points={points} />}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <StatCard title="Coletado Esta Semana" value={formatUSD(weekTotal)} icon={DollarSign} />
@@ -166,6 +201,45 @@ function MemberDashboard() {
           </div>
         </div>
       </div>
+
+      {memberId && (
+        <div className="card-elevated p-5">
+          <h3 className="font-display text-base font-medium text-foreground mb-4">Atividades Recentes</h3>
+          {activities.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Nenhuma atividade registrada ainda. Faça seu primeiro check-in!
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {activities.slice(0, 8).map((a) => (
+                <li key={a.id} className="flex items-center justify-between text-sm border-b border-border pb-2 last:border-0">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg" aria-hidden>{ACTIVITY_ICON[a.activity_type]}</span>
+                    <div>
+                      <p className="font-medium text-foreground">{ACTIVITY_LABEL[a.activity_type]}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {a.source === "self_checkin" ? "Self check-in" : "Registrado pela liderança"}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(a.activity_date).toLocaleDateString("pt-BR")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {showCheckIn && memberId && (
+        <CheckInModal
+          memberId={memberId}
+          memberName={memberName}
+          onClose={() => setShowCheckIn(false)}
+          onSuccess={() => memberId && loadActivities(memberId)}
+        />
+      )}
     </div>
   );
 }

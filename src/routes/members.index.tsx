@@ -170,6 +170,23 @@ function MembersPage() {
     [members, search, statusFilter, selectedMemberId]
   );
 
+  // Map member.id -> the duplicate group it belongs to (if any).
+  const groupByMemberId = useMemo(() => {
+    const map = new Map<string, DuplicateGroup>();
+    for (const g of duplicateGroups) for (const id of g.memberIds) map.set(id, g);
+    return map;
+  }, [duplicateGroups]);
+
+  const totalDuplicateMembers = useMemo(
+    () => duplicateGroups.reduce((sum, g) => sum + g.memberIds.length, 0),
+    [duplicateGroups],
+  );
+
+  const openGroupForMember = (memberId: string) => {
+    const g = groupByMemberId.get(memberId);
+    if (g) setActiveDupGroup(g);
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

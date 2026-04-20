@@ -334,6 +334,7 @@ function actionLabel(a: string) {
     user_role_changed: "Função alterada",
     user_status_changed: "Status do usuário alterado",
     user_deleted: "Usuário excluído",
+    user_created_by_admin: "Usuário criado por admin",
   };
   return map[a] ?? a;
 }

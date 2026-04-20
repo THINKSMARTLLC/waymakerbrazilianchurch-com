@@ -44,6 +44,142 @@ export type Database = {
         }
         Relationships: []
       }
+      church_settings: {
+        Row: {
+          address: string | null
+          checkin_radius_meters: number
+          church_name: string | null
+          id: string
+          inactivity_days: number
+          latitude: number | null
+          longitude: number | null
+          singleton: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          address?: string | null
+          checkin_radius_meters?: number
+          church_name?: string | null
+          id?: string
+          inactivity_days?: number
+          latitude?: number | null
+          longitude?: number | null
+          singleton?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          address?: string | null
+          checkin_radius_meters?: number
+          church_name?: string | null
+          id?: string
+          inactivity_days?: number
+          latitude?: number | null
+          longitude?: number | null
+          singleton?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      member_activities: {
+        Row: {
+          activity_date: string
+          activity_type: Database["public"]["Enums"]["activity_type"]
+          created_at: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          member_id: string
+          notes: string | null
+          photo_url: string | null
+          recorded_by: string | null
+          source: Database["public"]["Enums"]["activity_source"]
+        }
+        Insert: {
+          activity_date?: string
+          activity_type: Database["public"]["Enums"]["activity_type"]
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          member_id: string
+          notes?: string | null
+          photo_url?: string | null
+          recorded_by?: string | null
+          source?: Database["public"]["Enums"]["activity_source"]
+        }
+        Update: {
+          activity_date?: string
+          activity_type?: Database["public"]["Enums"]["activity_type"]
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          member_id?: string
+          notes?: string | null
+          photo_url?: string | null
+          recorded_by?: string | null
+          source?: Database["public"]["Enums"]["activity_source"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_activities_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_visits: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          member_id: string
+          notes: string | null
+          scheduled_date: string
+          status: Database["public"]["Enums"]["visit_status"]
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          member_id: string
+          notes?: string | null
+          scheduled_date: string
+          status?: Database["public"]["Enums"]["visit_status"]
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          member_id?: string
+          notes?: string | null
+          scheduled_date?: string
+          status?: Database["public"]["Enums"]["visit_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_visits_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       members: {
         Row: {
           address: string | null
@@ -330,6 +466,12 @@ export type Database = {
     }
     Enums: {
       account_status: "pending" | "active" | "suspended"
+      activity_source: "self_checkin" | "admin_manual"
+      activity_type:
+        | "attendance"
+        | "cell_group"
+        | "visit_scheduled"
+        | "leadership_contact"
       app_role:
         | "admin"
         | "finance_manager"
@@ -357,6 +499,7 @@ export type Database = {
       payment_status: "paid" | "pending" | "past_due"
       payment_type: "card" | "cash"
       subscription_status: "active" | "canceled" | "past_due"
+      visit_status: "scheduled" | "completed" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -485,6 +628,13 @@ export const Constants = {
   public: {
     Enums: {
       account_status: ["pending", "active", "suspended"],
+      activity_source: ["self_checkin", "admin_manual"],
+      activity_type: [
+        "attendance",
+        "cell_group",
+        "visit_scheduled",
+        "leadership_contact",
+      ],
       app_role: [
         "admin",
         "finance_manager",
@@ -515,6 +665,7 @@ export const Constants = {
       payment_status: ["paid", "pending", "past_due"],
       payment_type: ["card", "cash"],
       subscription_status: ["active", "canceled", "past_due"],
+      visit_status: ["scheduled", "completed", "cancelled"],
     },
   },
 } as const

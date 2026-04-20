@@ -258,16 +258,6 @@ function ReportsPage() {
     <div className="space-y-6">
       {/* Period filter */}
       <div className="flex flex-wrap items-center gap-2">
-        <PeriodAndExport
-          filter={filter}
-          setFilter={setFilter}
-          customStart={customStart}
-          setCustomStart={setCustomStart}
-          customEnd={customEnd}
-          setCustomEnd={setCustomEnd}
-        />
-      </div>
-      <div style={{ display: "none" }}>
         {[
           { value: "this_month" as const, label: "This Month" },
           { value: "last_month" as const, label: "Last Month" },

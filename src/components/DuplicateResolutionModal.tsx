@@ -177,6 +177,31 @@ export function DuplicateResolutionModal({
           <div className="flex items-center justify-center py-10">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
+        ) : isWarning ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {stats.map((s) => (
+                <div key={s.member.id} className="rounded-xl border border-border bg-background p-4">
+                  <div className="mb-3">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Member</span>
+                  </div>
+                  <RecordCard s={s} />
+                </div>
+              ))}
+            </div>
+            <div className="mt-5 rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+              <strong className="text-foreground">Why no merge?</strong> These members share a phone number but have different names/emails — likely a household phone. Both records remain active. If they are actually the same person, edit one record to fix the name/email and the system will offer a merge.
+            </div>
+            <div className="flex gap-3 pt-5">
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn-google flex-1 inline-flex items-center justify-center gap-2"
+              >
+                Got it
+              </button>
+            </div>
+          </>
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

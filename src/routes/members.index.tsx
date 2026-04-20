@@ -254,10 +254,20 @@ function MembersPage() {
             ))}
           </select>
         </div>
-        <button onClick={() => setShowAddModal(true)} className="btn-google inline-flex items-center gap-2">
-          <UserPlus className="h-4 w-4" />
-          New Member
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/members/archive"
+            className="inline-flex items-center gap-2 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+            title="View inactive (archived) members"
+          >
+            <Archive className="h-4 w-4" />
+            Inactive {inactiveCount > 0 && <span className="rounded-full bg-muted px-1.5 text-xs">{inactiveCount}</span>}
+          </Link>
+          <button onClick={() => setShowAddModal(true)} className="btn-google inline-flex items-center gap-2">
+            <UserPlus className="h-4 w-4" />
+            New Member
+          </button>
+        </div>
       </div>
 
       {duplicateGroups.length > 0 && (() => {

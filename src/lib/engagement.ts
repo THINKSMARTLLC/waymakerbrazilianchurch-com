@@ -98,11 +98,47 @@ export function haversineMeters(
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
+/**
+ * Parse a YYYY-MM-DD string as a LOCAL date (no timezone shift).
+ * Plain `new Date("2026-04-20")` is interpreted as UTC midnight, which can
+ * shift the displayed day by -1 in negative-UTC timezones. Use this everywhere
+ * we read an `activity_date` (a date column) for display or arithmetic.
+ */
+export function parseLocalDate(value: string | Date | null | undefined): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (m) {
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  }
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+/** Format a YYYY-MM-DD date string for display in pt-BR without timezone shift. */
+export function formatLocalDate(value: string | Date | null | undefined): string {
+  const d = parseLocalDate(value);
+  if (!d) return "—";
+  return d.toLocaleDateString("pt-BR");
+}
+
+/** Today's date as YYYY-MM-DD in the user's local timezone. */
+export function todayLocalISO(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function daysSince(date: string | Date | null): number | null {
   if (!date) return null;
-  const d = typeof date === "string" ? new Date(date) : date;
-  const ms = Date.now() - d.getTime();
-  return Math.floor(ms / (1000 * 60 * 60 * 24));
+  const d = typeof date === "string" ? parseLocalDate(date) : date;
+  if (!d) return null;
+  const today = new Date();
+  const a = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const b = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  return Math.floor((a - b) / (1000 * 60 * 60 * 24));
 }
 
 export interface EngagementLevel {

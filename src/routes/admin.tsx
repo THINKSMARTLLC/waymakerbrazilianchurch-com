@@ -233,7 +233,45 @@ function AdminPage() {
   );
 }
 
-function ActivityLogSection() {
+function RecoveryLinkModal({ email, link, onClose }: { email: string; link: string | null; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    if (!link) return;
+    await navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-4">
+      <div className="w-full max-w-lg bg-card rounded-2xl shadow-xl border border-border">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h2 className="font-display text-lg font-semibold">Link de redefinição de senha</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Envie este link para <strong className="text-foreground">{email}</strong>. Ele permite definir uma nova senha.
+          </p>
+          {!link ? (
+            <div className="text-sm text-muted-foreground">Gerando link...</div>
+          ) : (
+            <div className="flex items-stretch gap-2">
+              <input readOnly value={link} className="flex-1 rounded-xl border border-input bg-muted/30 px-3 py-2 text-xs font-mono" />
+              <button onClick={copy} className="px-3 rounded-xl border border-input bg-background hover:bg-muted text-sm">
+                {copied ? "Copiado" : "Copiar"}
+              </button>
+            </div>
+          )}
+          <button onClick={onClose} className="btn-google w-full">Fechar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
   const [logs, setLogs] = useState<Array<{ id: string; action: string; user_email: string | null; page_accessed: string | null; created_at: string }>>([]);
   useEffect(() => {
     supabase.from("activity_logs").select("id, action, user_email, page_accessed, created_at")

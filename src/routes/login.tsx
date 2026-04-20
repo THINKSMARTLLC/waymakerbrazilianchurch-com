@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { Church } from "lucide-react";
+import { Church, Eye, EyeOff } from "lucide-react";
 import { useState as useImgState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { logActivity } from "@/lib/activityLog";

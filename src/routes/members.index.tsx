@@ -403,7 +403,17 @@ function MembersPage() {
                             )}
                           </div>
                           <div className="flex flex-col min-w-0">
-                            <span className="text-sm font-medium text-foreground truncate">{member.name}</span>
+                            <span className="text-sm font-medium text-foreground truncate flex items-center gap-1.5">
+                              {member.name}
+                              {(() => {
+                                const bi = getBirthdayInfo(member.date_of_birth);
+                                return bi?.daysUntil === 0 ? (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary" title="Aniversário hoje">
+                                    <Cake className="h-3 w-3" /> Hoje
+                                  </span>
+                                ) : null;
+                              })()}
+                            </span>
                             {dupGroup && (
                               <button
                                 type="button"

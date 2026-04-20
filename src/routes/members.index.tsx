@@ -252,7 +252,7 @@ function MembersPage() {
                       <td className="px-5 py-3.5 text-sm text-muted-foreground hidden lg:table-cell">{member.email}</td>
                       <td className="px-5 py-3.5 text-sm text-muted-foreground hidden xl:table-cell">{formatPhoneDisplay(member.phone)}</td>
                       <td className="px-5 py-3.5 text-sm text-foreground text-right tabular-nums">{formatUSD(weekly)}</td>
-                      <td className="px-5 py-3.5 text-sm text-muted-foreground text-right tabular-nums hidden md:table-cell">{formatUSD(weekly * 4)}</td>
+                      <td className="px-5 py-3.5 text-sm text-muted-foreground text-right tabular-nums hidden md:table-cell" title="Sum of payments in current month">{formatUSD(member.monthly_total)}</td>
                       <td className="px-5 py-3.5 text-sm text-muted-foreground hidden md:table-cell">
                         {member.last_payment_date ? new Date(member.last_payment_date).toLocaleDateString("en-US") : "—"}
                       </td>

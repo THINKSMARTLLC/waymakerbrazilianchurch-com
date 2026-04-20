@@ -618,10 +618,10 @@ function LandingPage() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Fale conosco no WhatsApp"
-        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] shadow-lg shadow-black/30 ring-4 ring-[#25D366]/20 transition hover:scale-110 sm:bottom-6 sm:right-6 sm:h-16 sm:w-16"
-        style={{ animation: "wmc-pulse 2.4s ease-in-out infinite" }}
+        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center transition hover:scale-110 sm:bottom-6 sm:right-6 sm:h-16 sm:w-16"
+        style={{ animation: "wmc-pulse 2.4s ease-in-out infinite", filter: "drop-shadow(0 6px 12px rgba(0,0,0,0.25))", borderRadius: "9999px" }}
       >
-        <img src={whatsappIcon} alt="" className="h-9 w-9 sm:h-10 sm:w-10" />
+        <img src={whatsappIcon} alt="" className="h-full w-full" />
       </a>
       <style>{`
         @keyframes wmc-pulse {

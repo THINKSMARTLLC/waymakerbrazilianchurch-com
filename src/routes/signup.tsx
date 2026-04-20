@@ -120,7 +120,7 @@ function SignupPage() {
           requested_role: STAFF_ROLE_REQUEST,
           date_of_birth: form.dateOfBirth || null,
           address: form.address,
-          emergency_contact: form.emergencyContact,
+          emergency_contact: serializeEmergencyContact(emergency),
           member_role: form.role,
           department: form.department,
         },
@@ -220,9 +220,10 @@ function SignupPage() {
             <input required value={form.address} onChange={update("address")} className={fieldCls} placeholder="Rua, número, cidade" />
           </Field>
 
-          <Field label="Contato de Emergência">
-            <input required value={form.emergencyContact} onChange={update("emergencyContact")} className={fieldCls} placeholder="Nome e telefone" />
-          </Field>
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">Contato de Emergência <span className="text-destructive">*</span></label>
+            <EmergencyContactFields value={emergency} onChange={setEmergency} required />
+          </div>
 
           <Field label="Nome da Igreja">
             <input required value={form.churchName} onChange={update("churchName")} className={fieldCls} />

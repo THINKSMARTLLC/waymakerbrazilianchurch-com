@@ -23,7 +23,10 @@
     "method": "Método",
     "notes": "Notas",
     "signOut": "Cerrar sesión",
-    "language": "Idioma"
+    "language": "Idioma",
+    "notProvided": "No proporcionado",
+    "select": "Seleccione...",
+    "specify": "Especifique"
   },
   "nav": {
     "dashboard": "Panel",
@@ -73,5 +76,69 @@
     "noActivitiesYet": "No hay actividad registrada. ¡Haz tu primer registro!",
     "selfCheckin": "Auto-registro",
     "leadershipRecord": "Registrado por el liderazgo"
+  },
+  "memberProfile": {
+    "pageTitle": "Perfil del Miembro — WAY MAKER FLOW",
+    "pageDesc": "Ver perfil e historial de pagos",
+    "backToMembers": "Volver a Miembros",
+    "memberNotFound": "Miembro no encontrado.",
+    "personalInfo": "Información Personal",
+    "churchInfo": "Información de la Iglesia",
+    "actions": "Acciones",
+    "paymentHistory": "Historial de Pagos",
+    "noPayments": "No hay pagos registrados.",
+    "dateOfBirth": "Fecha de Nacimiento",
+    "address": "Dirección",
+    "role": "Cargo",
+    "department": "Departamento",
+    "emergencyContact": "Contacto de Emergencia",
+    "contactName": "Nombre",
+    "contactPhone": "Teléfono",
+    "relationship": "Parentesco",
+    "legacyDataWarning": "Datos antiguos no estructurados — edite para actualizar.",
+    "recordPayment": "Registrar Pago",
+    "editProfile": "Editar Perfil",
+    "birthdayToday": "Cumpleaños Hoy",
+    "paymentTypeCard": "Tarjeta",
+    "paymentTypeCash": "Efectivo",
+    "deletePaymentConfirm": "¿Está seguro de que desea eliminar este pago?",
+    "deleteFailed": "Error al eliminar: {{message}}",
+    "editPayment": "Editar Pago",
+    "deletePayment": "Eliminar Pago"
+  },
+  "emergencyContact": {
+    "name": "Nombre del Contacto",
+    "phone": "Teléfono del Contacto",
+    "relationship": "Parentesco",
+    "specify": "Especifique",
+    "namePlaceholder": "Nombre completo",
+    "phonePlaceholder": "(11) 99999-9999",
+    "specifyPlaceholder": "Ej: Padrino, Vecino...",
+    "select": "Seleccione...",
+    "relationships": {
+      "mother": "Madre",
+      "father": "Padre",
+      "spouse": "Cónyuge",
+      "brother": "Hermano",
+      "sister": "Hermana",
+      "grandmother": "Abuela",
+      "grandfather": "Abuelo",
+      "uncle": "Tío",
+      "aunt": "Tía",
+      "friend": "Amigo(a)",
+      "other": "Otro"
+    }
+  },
+  "memberStatus": {
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "on_time": "Al Día",
+    "late": "Atrasado",
+    "no_payment": "Sin Pago"
+  },
+  "paymentStatus": {
+    "paid": "Pagado",
+    "pending": "Pendiente",
+    "past_due": "Vencido"
   }
 }

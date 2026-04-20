@@ -23,7 +23,10 @@
     "method": "Método",
     "notes": "Notas",
     "signOut": "Sair",
-    "language": "Idioma"
+    "language": "Idioma",
+    "notProvided": "Não informado",
+    "select": "Selecione...",
+    "specify": "Especifique"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -73,5 +76,69 @@
     "noActivitiesYet": "Nenhuma atividade registrada ainda. Faça seu primeiro check-in!",
     "selfCheckin": "Self check-in",
     "leadershipRecord": "Registrado pela liderança"
+  },
+  "memberProfile": {
+    "pageTitle": "Perfil do Membro — WAY MAKER FLOW",
+    "pageDesc": "Visualizar perfil e histórico de pagamentos",
+    "backToMembers": "Voltar para Membros",
+    "memberNotFound": "Membro não encontrado.",
+    "personalInfo": "Informações Pessoais",
+    "churchInfo": "Informações da Igreja",
+    "actions": "Ações",
+    "paymentHistory": "Histórico de Pagamentos",
+    "noPayments": "Nenhum pagamento registrado.",
+    "dateOfBirth": "Data de Nascimento",
+    "address": "Endereço",
+    "role": "Cargo",
+    "department": "Departamento",
+    "emergencyContact": "Contato de Emergência",
+    "contactName": "Nome",
+    "contactPhone": "Telefone",
+    "relationship": "Parentesco",
+    "legacyDataWarning": "Dados antigos não estruturados — edite para atualizar.",
+    "recordPayment": "Registrar Pagamento",
+    "editProfile": "Editar Perfil",
+    "birthdayToday": "Aniversário Hoje",
+    "paymentTypeCard": "Cartão",
+    "paymentTypeCash": "Dinheiro",
+    "deletePaymentConfirm": "Tem certeza que deseja excluir este pagamento?",
+    "deleteFailed": "Falha ao excluir: {{message}}",
+    "editPayment": "Editar Pagamento",
+    "deletePayment": "Excluir Pagamento"
+  },
+  "emergencyContact": {
+    "name": "Nome do Contato",
+    "phone": "Telefone do Contato",
+    "relationship": "Parentesco",
+    "specify": "Especifique",
+    "namePlaceholder": "Nome completo",
+    "phonePlaceholder": "(11) 99999-9999",
+    "specifyPlaceholder": "Ex: Padrinho, Vizinho...",
+    "select": "Selecione...",
+    "relationships": {
+      "mother": "Mãe",
+      "father": "Pai",
+      "spouse": "Cônjuge",
+      "brother": "Irmão",
+      "sister": "Irmã",
+      "grandmother": "Avó",
+      "grandfather": "Avô",
+      "uncle": "Tio",
+      "aunt": "Tia",
+      "friend": "Amigo(a)",
+      "other": "Outro"
+    }
+  },
+  "memberStatus": {
+    "active": "Ativo",
+    "inactive": "Inativo",
+    "on_time": "Em Dia",
+    "late": "Em Atraso",
+    "no_payment": "Sem Pagamento"
+  },
+  "paymentStatus": {
+    "paid": "Pago",
+    "pending": "Pendente",
+    "past_due": "Em Atraso"
   }
 }

@@ -238,6 +238,19 @@ function ReportsPage() {
     setGroupBy("member");
   };
 
+  const hasActiveFilter =
+    memberIdFilter !== "all" ||
+    nameFilter.trim() !== "" ||
+    methodFilter !== "all" ||
+    statusFilter !== "all";
+
+  const clearFilters = () => {
+    setMemberIdFilter("all");
+    setNameFilter("");
+    setMethodFilter("all");
+    setStatusFilter("all");
+  };
+
   return (
     <div className="space-y-6">
       {/* Period filter */}
@@ -318,7 +331,19 @@ function ReportsPage() {
       </div>
 
       {/* Filters */}
-      <div className="card-elevated p-4 grid gap-3 md:grid-cols-5">
+      <div className="card-elevated p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Filters</span>
+          {hasActiveFilter && (
+            <button
+              onClick={clearFilters}
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+        <div className="grid gap-3 md:grid-cols-5">
         <div>
           <label className="block text-xs font-medium text-muted-foreground mb-1">Select Member</label>
           <select
@@ -383,11 +408,20 @@ function ReportsPage() {
             <option value="transactions">Individual Transactions</option>
           </select>
         </div>
+        </div>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      ) : !hasActiveFilter ? (
+        <div className="card-elevated p-12 text-center">
+          <Users className="mx-auto h-10 w-10 text-muted-foreground/60" />
+          <h3 className="mt-3 font-display text-base font-medium text-foreground">Select filters to view data</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Choose a member, search a name, or apply a status/method filter to display results.
+          </p>
         </div>
       ) : (
         <div className="card-elevated overflow-hidden">

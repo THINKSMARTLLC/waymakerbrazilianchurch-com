@@ -306,10 +306,14 @@ function MembersPage() {
                                 type="button"
                                 onClick={() => openGroupForMember(member.id)}
                                 className="mt-0.5 inline-flex items-center gap-1 self-start rounded-full bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-900 transition-colors"
-                                title={`Possible duplicate (matched by ${dupGroup.reason.join(", ")})`}
+                                title={
+                                  dupGroup.severity === "warning"
+                                    ? "Shared phone with another member (different name/email) — both records coexist."
+                                    : `Possible duplicate (matched by ${dupGroup.reason.join(", ")})`
+                                }
                               >
                                 <AlertTriangle className="h-3 w-3" />
-                                Duplicate detected
+                                {dupGroup.severity === "warning" ? "Shared phone" : "Duplicate detected"}
                               </button>
                             )}
                           </div>

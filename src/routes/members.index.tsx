@@ -38,6 +38,7 @@ interface MemberWithStatus extends Member {
   last_payment_date: string | null;
   last_payment_method: string | null;
   payment_status: MemberPaymentStatus;
+  monthly_total: number;
 }
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {

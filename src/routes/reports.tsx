@@ -58,6 +58,7 @@ function ReportsPage() {
 
   // Latest payment dates per member (for status filter — uses ALL payments, not just filtered range)
   const [lastByMember, setLastByMember] = useState<Map<string, string>>(new Map());
+  const [monthsByMember, setMonthsByMember] = useState<Map<string, Set<string>>>(new Map());
   const [freqByMember, setFreqByMember] = useState<Map<string, "weekly" | "monthly" | "one_time" | "flexible">>(new Map());
 
   // Edit modal

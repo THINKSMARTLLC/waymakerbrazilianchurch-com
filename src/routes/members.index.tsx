@@ -230,26 +230,33 @@ function MembersPage() {
         </button>
       </div>
 
-      {duplicateGroups.length > 0 && (
-        <button
-          type="button"
-          onClick={() => setActiveDupGroup(duplicateGroups[0])}
-          className="w-full flex items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/40 px-4 py-3 text-left hover:bg-amber-100 dark:hover:bg-amber-950/60 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
-            <div>
-              <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
-                {duplicateGroups.length} possible duplicate{duplicateGroups.length > 1 ? " groups" : " group"} detected
-              </p>
-              <p className="text-xs text-amber-800 dark:text-amber-200">
-                {totalDuplicateMembers} records share email, phone, or very similar names. Click to review and merge safely.
-              </p>
+      {duplicateGroups.length > 0 && (() => {
+        const trueDups = duplicateGroups.filter((g) => g.severity === "duplicate");
+        const warnings = duplicateGroups.filter((g) => g.severity === "warning");
+        const first = trueDups[0] ?? warnings[0];
+        return (
+          <button
+            type="button"
+            onClick={() => setActiveDupGroup(first)}
+            className="w-full flex items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/40 px-4 py-3 text-left hover:bg-amber-100 dark:hover:bg-amber-950/60 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                  {trueDups.length > 0 && `${trueDups.length} duplicate group${trueDups.length > 1 ? "s" : ""}`}
+                  {trueDups.length > 0 && warnings.length > 0 && " · "}
+                  {warnings.length > 0 && `${warnings.length} shared-phone alert${warnings.length > 1 ? "s" : ""}`}
+                </p>
+                <p className="text-xs text-amber-800 dark:text-amber-200">
+                  Duplicates (same email, or same name + phone) can be merged. Shared-phone alerts are informational only — both members coexist.
+                </p>
+              </div>
             </div>
-          </div>
-          <span className="text-xs font-medium text-amber-900 dark:text-amber-100 underline">Review</span>
-        </button>
-      )}
+            <span className="text-xs font-medium text-amber-900 dark:text-amber-100 underline">Review</span>
+          </button>
+        );
+      })()}
 
       <div className="card-elevated overflow-hidden">
         {loading ? (
@@ -299,10 +306,14 @@ function MembersPage() {
                                 type="button"
                                 onClick={() => openGroupForMember(member.id)}
                                 className="mt-0.5 inline-flex items-center gap-1 self-start rounded-full bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-900 transition-colors"
-                                title={`Possible duplicate (matched by ${dupGroup.reason.join(", ")})`}
+                                title={
+                                  dupGroup.severity === "warning"
+                                    ? "Shared phone with another member (different name/email) — both records coexist."
+                                    : `Possible duplicate (matched by ${dupGroup.reason.join(", ")})`
+                                }
                               >
                                 <AlertTriangle className="h-3 w-3" />
-                                Duplicate detected
+                                {dupGroup.severity === "warning" ? "Shared phone" : "Duplicate detected"}
                               </button>
                             )}
                           </div>
@@ -398,6 +409,7 @@ function MembersPage() {
             .map((id) => members.find((m) => m.id === id))
             .filter((m): m is MemberWithStatus => !!m)}
           reasons={activeDupGroup.reason}
+          severity={activeDupGroup.severity}
           onClose={() => setActiveDupGroup(null)}
           onResolved={() => {
             setActiveDupGroup(null);
@@ -483,13 +495,13 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
   const weeklyNum = Number(weekly) || 0;
   const monthlyNum = weeklyNum * 4;
 
-  const runDuplicateCheck = async (email: string | null, phone: string | null) => {
+  const runDuplicateCheck = async (email: string | null, phone: string | null, name: string | null) => {
     if (!email && !phone) {
       setDuplicates([]);
       return [];
     }
     setCheckingDupes(true);
-    const found = await findDuplicates({ email, phone, excludeMemberId: member?.id });
+    const found = await findDuplicates({ email, phone, name, excludeMemberId: member?.id });
     setCheckingDupes(false);
     setDuplicates(found);
     return found;
@@ -502,8 +514,9 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
     const form = new FormData(e.currentTarget);
     const emailRaw = ((form.get("email") as string) || "").trim() || null;
     const phoneRaw = buildE164();
+    const nameRaw = toTitleCase(form.get("name") as string);
     const payload = {
-      name: toTitleCase(form.get("name") as string),
+      name: nameRaw,
       email: emailRaw,
       phone: phoneRaw,
       payment_type: form.get("payment_type") as "card" | "cash",
@@ -511,10 +524,12 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
       weekly_contribution_usd: weeklyNum,
     };
 
-    // Duplicate detection — only block if user hasn't chosen "create anyway".
+    // Duplicate detection — only BLOCK on true duplicates. Shared-phone
+    // warnings are informational and should not stop the save.
     if (!allowOverride) {
-      const found = await runDuplicateCheck(emailRaw, phoneRaw);
-      if (found.length > 0) {
+      const found = await runDuplicateCheck(emailRaw, phoneRaw, nameRaw);
+      const blocking = found.filter((m) => m.severity === "duplicate");
+      if (blocking.length > 0) {
         setPendingPayload(payload);
         return; // Stop submit — admin must resolve via the warning UI.
       }

@@ -93,10 +93,13 @@ function SignupPage() {
 
     setLoading(true);
 
-    // Block registration if email or phone already exist in members/user_profiles.
+    // Block registration only on TRUE duplicates (same email, or same name +
+    // phone). Shared-phone matches alone (different name) are allowed —
+    // multiple people in a household may legitimately share a phone number.
     const { findDuplicates } = await import("@/lib/duplicates");
-    const dupes = await findDuplicates({ email: form.email, phone: fullPhone });
-    if (dupes.length > 0) {
+    const dupes = await findDuplicates({ email: form.email, phone: fullPhone, name: form.fullName });
+    const blocking = dupes.filter((d) => d.severity === "duplicate");
+    if (blocking.length > 0) {
       setError("Esta conta já existe. Por favor, faça login ou redefina sua senha.");
       setLoading(false);
       return;

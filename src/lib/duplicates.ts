@@ -12,6 +12,12 @@ export interface DuplicateMatch {
   name: string;
   email: string | null;
   phone: string | null;
+  /**
+   * "duplicate" → same email, OR same name + same phone. Merge offered.
+   * "warning"   → only phone matches and names differ → likely shared phone
+   *               (household). No merge; informational only.
+   */
+  severity: "duplicate" | "warning";
   // Only present for member matches — used for the merge UI.
   member?: Member;
 }
@@ -26,11 +32,31 @@ const phoneDigits = (v: string | null | undefined) => (v ?? "").replace(/\D/g, "
 export async function findDuplicates(opts: {
   email?: string | null;
   phone?: string | null;
+  /** Name being entered for the new/edited member — used to differentiate
+   *  true duplicates (name+phone match) from shared-phone warnings. */
+  name?: string | null;
   excludeMemberId?: string;
 }): Promise<DuplicateMatch[]> {
   const email = norm(opts.email);
   const phoneD = phoneDigits(opts.phone);
+  const candidateName = opts.name ?? "";
   if (!email && !phoneD) return [];
+
+  // Severity rules:
+  //  - email match  → duplicate
+  //  - phone match + similar name → duplicate
+  //  - phone match alone (different name) → warning
+  const computeSeverity = (
+    matched: Set<"email" | "phone">,
+    otherName: string,
+  ): "duplicate" | "warning" => {
+    if (matched.has("email")) return "duplicate";
+    if (matched.has("phone")) {
+      if (candidateName && namesAreSimilar(candidateName, otherName)) return "duplicate";
+      return "warning";
+    }
+    return "duplicate";
+  };
 
   const matches: DuplicateMatch[] = [];
 
@@ -70,6 +96,7 @@ export async function findDuplicates(opts: {
         name: row.name,
         email: row.email,
         phone: row.phone,
+        severity: computeSeverity(matched, row.name),
         member: row,
       });
     }
@@ -114,6 +141,7 @@ export async function findDuplicates(opts: {
         name: row.full_name,
         email: row.email,
         phone: row.phone,
+        severity: computeSeverity(matched, row.full_name),
       });
     }
   }
@@ -177,15 +205,27 @@ export interface DuplicateGroup {
   key: string;
   reason: ("email" | "phone" | "name")[];
   memberIds: string[];
+  /**
+   * "duplicate" → true duplicate (same email, OR same name + same phone).
+   *   Eligible for merge.
+   * "warning"   → soft match (e.g. shared phone with different name/email).
+   *   Coexist; show alert, no merge button.
+   */
+  severity: "duplicate" | "warning";
 }
 
 /**
  * Scan a list of members and group rows that look like duplicates of each
- * other (matching email, phone, or very similar name). Pure client-side,
- * does not query the database.
+ * other. Refined rules:
+ *   - Same email                     → TRUE duplicate (merge allowed).
+ *   - Same name AND same phone       → TRUE duplicate (merge allowed).
+ *   - Same phone only (different
+ *     name/email)                    → WARNING only (shared phone, coexist).
+ *   - Similar name only              → not flagged (avoid false positives).
+ * Pure client-side, does not query the database.
  */
 export function findDuplicateGroups(members: Member[]): DuplicateGroup[] {
-  // Union-find for grouping.
+  // Union-find for grouping TRUE duplicates only.
   const parent = new Map<string, string>();
   const find = (x: string): string => {
     const p = parent.get(x) ?? x;
@@ -225,30 +265,60 @@ export function findDuplicateGroups(members: Member[]): DuplicateGroup[] {
       byPhone.get(key)!.push(m.id);
     }
   }
+
+  const memberById = new Map(members.map((m) => [m.id, m]));
+
+  // 1) Email matches → always TRUE duplicate.
   for (const ids of byEmail.values()) {
     for (let i = 1; i < ids.length; i++) {
       union(ids[0], ids[i]);
       addReason(ids[0], ids[i], "email");
     }
   }
-  for (const ids of byPhone.values()) {
-    for (let i = 1; i < ids.length; i++) {
-      union(ids[0], ids[i]);
-      addReason(ids[0], ids[i], "phone");
-    }
-  }
 
-  // Name similarity — O(n^2) but n is bounded by member count.
-  for (let i = 0; i < members.length; i++) {
-    for (let j = i + 1; j < members.length; j++) {
-      if (namesAreSimilar(members[i].name, members[j].name)) {
-        union(members[i].id, members[j].id);
-        addReason(members[i].id, members[j].id, "name");
+  // 2) Phone matches → only TRUE duplicate when names are also similar.
+  //    Otherwise collected as "shared phone" warnings (separate groups).
+  const sharedPhoneGroups: DuplicateGroup[] = [];
+  for (const ids of byPhone.values()) {
+    if (ids.length < 2) continue;
+    const sharedOnly: string[] = [];
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) {
+        const a = memberById.get(ids[i])!;
+        const b = memberById.get(ids[j])!;
+        if (namesAreSimilar(a.name, b.name)) {
+          union(a.id, b.id);
+          addReason(a.id, b.id, "phone");
+          addReason(a.id, b.id, "name");
+        } else {
+          if (!sharedOnly.includes(a.id)) sharedOnly.push(a.id);
+          if (!sharedOnly.includes(b.id)) sharedOnly.push(b.id);
+        }
       }
     }
+    // Filter out members that are already part of a true-duplicate group via
+    // email/name+phone — we only want the truly "shared phone, distinct people"
+    // members in the warning group.
+    const trueDupRoots = new Set<string>();
+    for (const id of sharedOnly) {
+      const root = find(id);
+      // If this member is unioned with anyone else in `sharedOnly`, it's a true dup.
+      for (const other of sharedOnly) {
+        if (other !== id && find(other) === root) trueDupRoots.add(root);
+      }
+    }
+    const warningIds = sharedOnly.filter((id) => !trueDupRoots.has(find(id)));
+    if (warningIds.length >= 2) {
+      sharedPhoneGroups.push({
+        key: `phone-warn-${warningIds.slice().sort().join("-")}`,
+        reason: ["phone"],
+        memberIds: warningIds,
+        severity: "warning",
+      });
+    }
   }
 
-  // Collect groups of size >= 2.
+  // Collect TRUE duplicate groups of size >= 2.
   const groups = new Map<string, { ids: string[]; reasons: Set<"email" | "phone" | "name"> }>();
   for (const m of members) {
     const root = find(m.id);
@@ -264,10 +334,15 @@ export function findDuplicateGroups(members: Member[]): DuplicateGroup[] {
   const result: DuplicateGroup[] = [];
   for (const [key, g] of groups.entries()) {
     if (g.ids.length >= 2) {
-      result.push({ key, reason: Array.from(g.reasons), memberIds: g.ids });
+      result.push({
+        key,
+        reason: Array.from(g.reasons),
+        memberIds: g.ids,
+        severity: "duplicate",
+      });
     }
   }
-  return result;
+  return [...result, ...sharedPhoneGroups];
 }
 
 /**

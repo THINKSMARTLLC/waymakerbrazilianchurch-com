@@ -31,14 +31,17 @@ const completenessOf = (m: Member): number => {
 export function DuplicateResolutionModal({
   members,
   reasons,
+  severity = "duplicate",
   onClose,
   onResolved,
 }: {
   members: Member[];
   reasons: ("email" | "phone" | "name")[];
+  severity?: "duplicate" | "warning";
   onClose: () => void;
   onResolved: () => void;
 }) {
+  const isWarning = severity === "warning";
   const [stats, setStats] = useState<MemberStats[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -153,10 +156,13 @@ export function DuplicateResolutionModal({
               <AlertTriangle className="h-5 w-5 text-amber-600" />
             </div>
             <div>
-              <h2 className="font-display text-lg font-semibold text-foreground">This member appears duplicated</h2>
+              <h2 className="font-display text-lg font-semibold text-foreground">
+                {isWarning ? "Shared phone number detected" : "This member appears duplicated"}
+              </h2>
               <p className="text-sm text-muted-foreground mt-1">
-                {members.length} records match by {reasons.join(" + ") || "similar data"}. Pick which to keep
-                and which to merge into it. No data is deleted until you confirm.
+                {isWarning
+                  ? `${members.length} members share the same phone number but have different names/emails. They likely live together (e.g. family) — both records can coexist. No merge is offered.`
+                  : `${members.length} records match by ${reasons.join(" + ") || "similar data"}. Pick which to keep and which to merge into it. No data is deleted until you confirm.`}
               </p>
             </div>
           </div>
@@ -171,6 +177,31 @@ export function DuplicateResolutionModal({
           <div className="flex items-center justify-center py-10">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
+        ) : isWarning ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {stats.map((s) => (
+                <div key={s.member.id} className="rounded-xl border border-border bg-background p-4">
+                  <div className="mb-3">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Member</span>
+                  </div>
+                  <RecordCard s={s} />
+                </div>
+              ))}
+            </div>
+            <div className="mt-5 rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+              <strong className="text-foreground">Why no merge?</strong> These members share a phone number but have different names/emails — likely a household phone. Both records remain active. If they are actually the same person, edit one record to fix the name/email and the system will offer a merge.
+            </div>
+            <div className="flex gap-3 pt-5">
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn-google flex-1 inline-flex items-center justify-center gap-2"
+              >
+                Got it
+              </button>
+            </div>
+          </>
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

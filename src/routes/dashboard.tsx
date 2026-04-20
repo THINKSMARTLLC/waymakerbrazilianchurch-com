@@ -4,6 +4,8 @@ import { StatCard } from "@/components/StatCard";
 import { DonationsChart } from "@/components/DonationsChart";
 import { QuickActions } from "@/components/QuickActions";
 import { NewSignupsBanner } from "@/components/NewSignupsBanner";
+import { UpcomingBirthdays } from "@/components/UpcomingBirthdays";
+import { BirthdayLoginAlert } from "@/components/BirthdayLoginAlert";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatUSD } from "@/lib/format";
@@ -52,6 +54,7 @@ function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <BirthdayLoginAlert />
       <NewSignupsBanner />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total Members" value={String(stats.totalMembers)} icon={Users} />
@@ -70,6 +73,12 @@ function DashboardPage() {
           <DonationsChart />
         </div>
         <QuickActions />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-1">
+          <UpcomingBirthdays />
+        </div>
       </div>
     </div>
   );

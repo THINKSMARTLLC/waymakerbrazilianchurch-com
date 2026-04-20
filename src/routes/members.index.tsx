@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check, AlertTriangle } from "lucide-react";
+import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check, AlertTriangle, Archive } from "lucide-react";
+import { inactivateMember, reactivateMember } from "@/lib/memberLifecycle";
 import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -19,13 +20,17 @@ import { DuplicateWarning } from "@/components/DuplicateWarning";
 import { MergeMembersModal } from "@/components/MergeMembersModal";
 import { DuplicateResolutionModal } from "@/components/DuplicateResolutionModal";
 
+type LifecycleFilter = "active" | "inactive" | "all";
+
 interface MembersSearch {
   status?: MemberPaymentStatus;
+  lifecycle?: LifecycleFilter;
 }
 
 export const Route = createFileRoute("/members/")({
   validateSearch: (search: Record<string, unknown>): MembersSearch => ({
     status: (search.status as MemberPaymentStatus | undefined) ?? undefined,
+    lifecycle: (search.lifecycle as LifecycleFilter | undefined) ?? undefined,
   }),
   head: () => ({
     meta: [
@@ -56,10 +61,11 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
 };
 
 function MembersPage() {
-  const { status: statusParam } = Route.useSearch();
+  const { status: statusParam, lifecycle: lifecycleParam } = Route.useSearch();
   const [search, setSearch] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<MemberPaymentStatus | "all">(statusParam ?? "all");
+  const [lifecycleFilter, setLifecycleFilter] = useState<LifecycleFilter>(lifecycleParam ?? "active");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [recordingFor, setRecordingFor] = useState<Member | null>(null);
@@ -72,6 +78,10 @@ function MembersPage() {
   useEffect(() => {
     if (statusParam) setStatusFilter(statusParam);
   }, [statusParam]);
+
+  useEffect(() => {
+    if (lifecycleParam) setLifecycleFilter(lifecycleParam);
+  }, [lifecycleParam]);
 
   const fetchMembers = async () => {
     const { data: membersData } = await supabase
@@ -153,21 +163,31 @@ function MembersPage() {
   }, []);
 
   const toggleStatus = async (member: Member) => {
-    const newStatus = member.status === "active" ? "inactive" : "active";
-    await supabase.from("members").update({ status: newStatus }).eq("id", member.id);
+    if (member.status === "active") {
+      await inactivateMember(member.id);
+    } else {
+      await reactivateMember(member.id);
+    }
     fetchMembers();
   };
 
   const filtered = useMemo(
     () =>
       members.filter((m) => {
+        if (lifecycleFilter === "active" && m.status !== "active") return false;
+        if (lifecycleFilter === "inactive" && m.status !== "inactive") return false;
         if (selectedMemberId && m.id !== selectedMemberId) return false;
         if (statusFilter !== "all" && m.payment_status !== statusFilter) return false;
         if (!search) return true;
         const q = search.toLowerCase();
         return m.name.toLowerCase().includes(q) || (m.email || "").toLowerCase().includes(q);
       }),
-    [members, search, statusFilter, selectedMemberId]
+    [members, search, statusFilter, selectedMemberId, lifecycleFilter]
+  );
+
+  const inactiveCount = useMemo(
+    () => members.filter((m) => m.status === "inactive").length,
+    [members],
   );
 
   // Map member.id -> the duplicate group it belongs to (if any).
@@ -202,6 +222,16 @@ function MembersPage() {
             />
           </div>
           <select
+            value={lifecycleFilter}
+            onChange={(e) => setLifecycleFilter(e.target.value as LifecycleFilter)}
+            className="rounded-xl border border-input bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            aria-label="Filter by lifecycle status"
+          >
+            <option value="active">Active</option>
+            <option value="inactive">Inactive{inactiveCount > 0 ? ` (${inactiveCount})` : ""}</option>
+            <option value="all">All</option>
+          </select>
+          <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as MemberPaymentStatus | "all")}
             className="rounded-xl border border-input bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -224,10 +254,20 @@ function MembersPage() {
             ))}
           </select>
         </div>
-        <button onClick={() => setShowAddModal(true)} className="btn-google inline-flex items-center gap-2">
-          <UserPlus className="h-4 w-4" />
-          New Member
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/members/archive"
+            className="inline-flex items-center gap-2 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+            title="View inactive (archived) members"
+          >
+            <Archive className="h-4 w-4" />
+            Inactive {inactiveCount > 0 && <span className="rounded-full bg-muted px-1.5 text-xs">{inactiveCount}</span>}
+          </Link>
+          <button onClick={() => setShowAddModal(true)} className="btn-google inline-flex items-center gap-2">
+            <UserPlus className="h-4 w-4" />
+            New Member
+          </button>
+        </div>
       </div>
 
       {duplicateGroups.length > 0 && (() => {

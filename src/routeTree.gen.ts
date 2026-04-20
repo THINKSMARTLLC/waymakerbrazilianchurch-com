@@ -23,6 +23,7 @@ import { Route as PortalIndexRouteImport } from './routes/portal.index'
 import { Route as MembersIndexRouteImport } from './routes/members.index'
 import { Route as PortalProfileRouteImport } from './routes/portal.profile'
 import { Route as PortalContributionsRouteImport } from './routes/portal.contributions'
+import { Route as MembersArchiveRouteImport } from './routes/members.archive'
 import { Route as MembersMemberIdRouteImport } from './routes/members.$memberId'
 
 const SignupRoute = SignupRouteImport.update({
@@ -95,6 +96,11 @@ const PortalContributionsRoute = PortalContributionsRouteImport.update({
   path: '/contributions',
   getParentRoute: () => PortalRoute,
 } as any)
+const MembersArchiveRoute = MembersArchiveRouteImport.update({
+  id: '/members/archive',
+  path: '/members/archive',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MembersMemberIdRoute = MembersMemberIdRouteImport.update({
   id: '/members/$memberId',
   path: '/members/$memberId',
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/members/$memberId': typeof MembersMemberIdRoute
+  '/members/archive': typeof MembersArchiveRoute
   '/portal/contributions': typeof PortalContributionsRoute
   '/portal/profile': typeof PortalProfileRoute
   '/members/': typeof MembersIndexRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/members/$memberId': typeof MembersMemberIdRoute
+  '/members/archive': typeof MembersArchiveRoute
   '/portal/contributions': typeof PortalContributionsRoute
   '/portal/profile': typeof PortalProfileRoute
   '/members': typeof MembersIndexRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/members/$memberId': typeof MembersMemberIdRoute
+  '/members/archive': typeof MembersArchiveRoute
   '/portal/contributions': typeof PortalContributionsRoute
   '/portal/profile': typeof PortalProfileRoute
   '/members/': typeof MembersIndexRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/members/$memberId'
+    | '/members/archive'
     | '/portal/contributions'
     | '/portal/profile'
     | '/members/'
@@ -182,6 +192,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/members/$memberId'
+    | '/members/archive'
     | '/portal/contributions'
     | '/portal/profile'
     | '/members'
@@ -199,6 +210,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/members/$memberId'
+    | '/members/archive'
     | '/portal/contributions'
     | '/portal/profile'
     | '/members/'
@@ -217,6 +229,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   MembersMemberIdRoute: typeof MembersMemberIdRoute
+  MembersArchiveRoute: typeof MembersArchiveRoute
   MembersIndexRoute: typeof MembersIndexRoute
 }
 
@@ -320,6 +333,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalContributionsRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/members/archive': {
+      id: '/members/archive'
+      path: '/members/archive'
+      fullPath: '/members/archive'
+      preLoaderRoute: typeof MembersArchiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/members/$memberId': {
       id: '/members/$memberId'
       path: '/members/$memberId'
@@ -357,6 +377,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   MembersMemberIdRoute: MembersMemberIdRoute,
+  MembersArchiveRoute: MembersArchiveRoute,
   MembersIndexRoute: MembersIndexRoute,
 }
 export const routeTree = rootRouteImport

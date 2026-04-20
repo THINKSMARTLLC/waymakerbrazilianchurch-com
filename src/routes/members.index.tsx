@@ -167,6 +167,17 @@ function MembersPage() {
             <option value="late">Late</option>
             <option value="no_payment">No Payment Yet</option>
           </select>
+          <select
+            value={selectedMemberId}
+            onChange={(e) => setSelectedMemberId(e.target.value)}
+            className="rounded-xl border border-input bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring max-w-[220px]"
+            aria-label="Select Member"
+          >
+            <option value="">Select Member</option>
+            {members.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
         </div>
         <button onClick={() => setShowAddModal(true)} className="btn-google inline-flex items-center gap-2">
           <UserPlus className="h-4 w-4" />
@@ -374,7 +385,7 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
 
     const form = new FormData(e.currentTarget);
     const payload = {
-      name: form.get("name") as string,
+      name: toTitleCase(form.get("name") as string),
       email: (form.get("email") as string) || null,
       phone: buildE164(),
       payment_type: form.get("payment_type") as "card" | "cash",

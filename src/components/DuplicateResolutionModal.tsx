@@ -31,14 +31,17 @@ const completenessOf = (m: Member): number => {
 export function DuplicateResolutionModal({
   members,
   reasons,
+  severity = "duplicate",
   onClose,
   onResolved,
 }: {
   members: Member[];
   reasons: ("email" | "phone" | "name")[];
+  severity?: "duplicate" | "warning";
   onClose: () => void;
   onResolved: () => void;
 }) {
+  const isWarning = severity === "warning";
   const [stats, setStats] = useState<MemberStats[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

@@ -392,6 +392,20 @@ function MembersPage() {
         )}
       </div>
 
+      {activeDupGroup && (
+        <DuplicateResolutionModal
+          members={activeDupGroup.memberIds
+            .map((id) => members.find((m) => m.id === id))
+            .filter((m): m is MemberWithStatus => !!m)}
+          reasons={activeDupGroup.reason}
+          onClose={() => setActiveDupGroup(null)}
+          onResolved={() => {
+            setActiveDupGroup(null);
+            fetchMembers();
+          }}
+        />
+      )}
+
       {showAddModal && <MemberFormModal onClose={() => setShowAddModal(false)} onSaved={fetchMembers} />}
       {editingMember && <MemberFormModal member={editingMember} onClose={() => setEditingMember(null)} onSaved={fetchMembers} />}
       {recordingFor && (

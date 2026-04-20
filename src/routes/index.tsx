@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
 import heroImage from "@/assets/waymaker-hero.jpg";
+import whatsappIcon from "@/assets/whatsapp-icon.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({

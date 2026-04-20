@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, CreditCard, DollarSign, Mail, Phone, Pencil, Trash2 } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { formatUSD } from "@/lib/format";
 import { EditPaymentModal } from "@/components/EditPaymentModal";
-import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses } from "@/lib/memberStatus";
-import { PAYMENT_METHOD_LABEL } from "@/components/RecordPaymentModal";
+import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, buildMonthsCovered } from "@/lib/memberStatus";
+import { PAYMENT_METHOD_LABEL, RecordPaymentModal } from "@/components/RecordPaymentModal";
 import { formatPhoneDisplay } from "@/lib/phone";
 
 export const Route = createFileRoute("/members/$memberId")({
@@ -27,7 +27,7 @@ function MemberProfilePage() {
   const [member, setMember] = useState<Member | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCashModal, setShowCashModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -64,7 +64,12 @@ function MemberProfilePage() {
 
   const initials = member.name.split(" ").map((n) => n[0]).join("").slice(0, 2);
   const lastPaymentDate = payments[0]?.payment_date ?? null;
-  const memberStatus = computeMemberStatus(lastPaymentDate, (member as Member & { contribution_frequency?: "weekly" | "monthly" | "one_time" | "flexible" }).contribution_frequency ?? "weekly");
+  const monthsCovered = buildMonthsCovered(payments as Array<{ payment_frequency?: string | null; reference_month?: string | null }>);
+  const memberStatus = computeMemberStatus(
+    lastPaymentDate,
+    (member as Member & { contribution_frequency?: "weekly" | "monthly" | "one_time" | "flexible" }).contribution_frequency ?? "weekly",
+    monthsCovered,
+  );
 
   const handleDeletePayment = async (id: string) => {
     if (!confirm("Are you sure you want to delete this payment?")) return;
@@ -120,11 +125,11 @@ function MemberProfilePage() {
         <h3 className="font-display text-base font-medium text-foreground mb-4">Ações</h3>
         <div className="flex gap-3">
           <button
-            onClick={() => setShowCashModal(true)}
+            onClick={() => setShowPaymentModal(true)}
             className="inline-flex items-center gap-2 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
           >
             <DollarSign className="h-4 w-4" />
-            Registrar Doação em Dinheiro
+            Registrar Pagamento
           </button>
         </div>
       </div>
@@ -189,10 +194,11 @@ function MemberProfilePage() {
         )}
       </div>
 
-      {showCashModal && (
-        <CashDonationModal
+      {showPaymentModal && (
+        <RecordPaymentModal
           memberId={memberId}
-          onClose={() => setShowCashModal(false)}
+          memberName={member.name}
+          onClose={() => setShowPaymentModal(false)}
           onSaved={fetchData}
         />
       )}
@@ -203,57 +209,6 @@ function MemberProfilePage() {
           onSaved={fetchData}
         />
       )}
-    </div>
-  );
-}
-
-function CashDonationModal({ memberId, onClose, onSaved }: { memberId: string; onClose: () => void; onSaved: () => void }) {
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setSaving(true);
-    setError("");
-
-    const form = new FormData(e.currentTarget);
-    const { error } = await supabase.from("payments").insert({
-      member_id: memberId,
-      amount: Number(form.get("amount")),
-      payment_method: "cash" as const,
-      status: "paid" as const,
-      payment_date: form.get("date") as string,
-    });
-
-    if (error) {
-      setError(error.message);
-      setSaving(false);
-    } else {
-      onSaved();
-      onClose();
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-4">
-      <div className="card-elevated w-full max-w-md p-6">
-        <h2 className="font-display text-lg font-semibold text-foreground mb-5">Registrar Doação em Dinheiro</h2>
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          {error && <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Amount (USD)</label>
-            <input name="amount" type="number" step="0.01" min="0.01" required className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" placeholder="100.00" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Data</label>
-            <input name="date" type="date" required defaultValue={new Date().toISOString().split("T")[0]} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors">Cancelar</button>
-            <button type="submit" disabled={saving} className="btn-google flex-1 disabled:opacity-50">{saving ? "Salvando..." : "Registrar"}</button>
-          </div>
-        </form>
-      </div>
     </div>
   );
 }

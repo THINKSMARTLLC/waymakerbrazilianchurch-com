@@ -75,16 +75,23 @@ function MembersPage() {
     const ids = list.map((m) => m.id);
 
     let lastByMember = new Map<string, { payment_date: string; payment_method: string }>();
+    const monthsByMember = new Map<string, Set<string>>();
     if (ids.length > 0) {
       const { data: paymentsData } = await supabase
         .from("payments")
-        .select("member_id, payment_date, payment_method")
+        .select("member_id, payment_date, payment_method, payment_frequency, reference_month")
         .in("member_id", ids)
         .order("payment_date", { ascending: false });
 
       for (const p of paymentsData || []) {
         if (!lastByMember.has(p.member_id)) {
           lastByMember.set(p.member_id, { payment_date: p.payment_date, payment_method: p.payment_method });
+        }
+        if (p.payment_frequency === "monthly" && p.reference_month) {
+          const d = new Date(p.reference_month);
+          const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+          if (!monthsByMember.has(p.member_id)) monthsByMember.set(p.member_id, new Set());
+          monthsByMember.get(p.member_id)!.add(key);
         }
       }
     }
@@ -96,7 +103,7 @@ function MembersPage() {
         ...m,
         last_payment_date: last?.payment_date ?? null,
         last_payment_method: last?.payment_method ?? null,
-        payment_status: computeMemberStatus(last?.payment_date ?? null, freq),
+        payment_status: computeMemberStatus(last?.payment_date ?? null, freq, monthsByMember.get(m.id) ?? null),
       };
     });
 

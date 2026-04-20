@@ -58,6 +58,7 @@ function ReportsPage() {
 
   // Latest payment dates per member (for status filter — uses ALL payments, not just filtered range)
   const [lastByMember, setLastByMember] = useState<Map<string, string>>(new Map());
+  const [monthsByMember, setMonthsByMember] = useState<Map<string, Set<string>>>(new Map());
   const [freqByMember, setFreqByMember] = useState<Map<string, "weekly" | "monthly" | "one_time" | "flexible">>(new Map());
 
   // Edit modal
@@ -81,13 +82,21 @@ function ReportsPage() {
     // Fetch latest payment per member globally for accurate status
     const { data: lastData } = await supabase
       .from("payments")
-      .select("member_id, payment_date")
+      .select("member_id, payment_date, payment_frequency, reference_month")
       .order("payment_date", { ascending: false });
     const map = new Map<string, string>();
+    const monthsMap = new Map<string, Set<string>>();
     for (const p of lastData || []) {
       if (!map.has(p.member_id)) map.set(p.member_id, p.payment_date);
+      if (p.payment_frequency === "monthly" && p.reference_month) {
+        const d = new Date(p.reference_month);
+        const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+        if (!monthsMap.has(p.member_id)) monthsMap.set(p.member_id, new Set());
+        monthsMap.get(p.member_id)!.add(key);
+      }
     }
     setLastByMember(map);
+    setMonthsByMember(monthsMap);
 
     // Fetch frequency per member for status calc
     const { data: memberFreq } = await supabase
@@ -125,12 +134,12 @@ function ReportsPage() {
         if (normalized !== methodFilter) return false;
       }
       if (statusFilter !== "all" && p.members) {
-        const status = computeMemberStatus(lastByMember.get(p.members.id) ?? null, freqByMember.get(p.members.id) ?? "weekly");
+        const status = computeMemberStatus(lastByMember.get(p.members.id) ?? null, freqByMember.get(p.members.id) ?? "weekly", monthsByMember.get(p.members.id) ?? null);
         if (status !== statusFilter) return false;
       }
       return true;
     });
-  }, [payments, nameFilter, methodFilter, statusFilter, lastByMember, freqByMember]);
+  }, [payments, nameFilter, methodFilter, statusFilter, lastByMember, freqByMember, monthsByMember]);
 
   // Metrics — distinct members from filtered payments
   const distinctPaidMembers = useMemo(() => {
@@ -156,11 +165,11 @@ function ReportsPage() {
     const ids = new Set<string>();
     for (const p of filteredPayments) {
       if (!p.members) continue;
-      const status = computeMemberStatus(lastByMember.get(p.members.id) ?? null, freqByMember.get(p.members.id) ?? "weekly");
+      const status = computeMemberStatus(lastByMember.get(p.members.id) ?? null, freqByMember.get(p.members.id) ?? "weekly", monthsByMember.get(p.members.id) ?? null);
       if (status === "late") ids.add(p.members.id);
     }
     return ids.size;
-  }, [filteredPayments, lastByMember, freqByMember]);
+  }, [filteredPayments, lastByMember, freqByMember, monthsByMember]);
 
   // Grouped view
   const grouped = useMemo(() => {
@@ -333,7 +342,7 @@ function ReportsPage() {
                 </thead>
                 <tbody>
                   {grouped.map((g) => {
-                    const status = computeMemberStatus(lastByMember.get(g.id) ?? null, freqByMember.get(g.id) ?? "weekly");
+                    const status = computeMemberStatus(lastByMember.get(g.id) ?? null, freqByMember.get(g.id) ?? "weekly", monthsByMember.get(g.id) ?? null);
                     return (
                       <tr key={g.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
                         <td className="px-5 py-3 text-sm font-medium text-foreground">{g.name}</td>

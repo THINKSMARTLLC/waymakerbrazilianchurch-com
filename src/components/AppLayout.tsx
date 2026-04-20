@@ -7,6 +7,7 @@ import {
   X,
   LogOut,
   Shield,
+  Database,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,7 +28,11 @@ export function AppLayout() {
   const { isSuperAdmin } = useUserRole();
 
   const navItems = isSuperAdmin
-    ? [...baseNavItems, { label: "Admin", to: "/admin" as const, icon: Shield }]
+    ? [
+        ...baseNavItems,
+        { label: "Importar/Exportar", to: "/admin/data" as const, icon: Database },
+        { label: "Admin", to: "/admin" as const, icon: Shield },
+      ]
     : baseNavItems;
 
   const handleSignOut = async () => {

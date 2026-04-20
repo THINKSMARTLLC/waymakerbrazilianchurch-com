@@ -24,12 +24,20 @@ const FIELDS: FieldKey[] = ["name", "email", "phone", "address", "emergency_cont
 
 export function MergeMembersModal({
   candidate,
+  candidateMemberId,
   existing,
   onClose,
   onMerged,
 }: {
   /** The values the admin just typed in the form (not yet saved). */
   candidate: Partial<Member> & { name: string };
+  /**
+   * If the candidate is an already-saved member (editing flow), pass its id
+   * here so its payments are reassigned and the duplicate row is deleted.
+   * If undefined, we are merging during a new-member creation — only the
+   * existing record is updated with chosen fields.
+   */
+  candidateMemberId?: string;
   /** The existing member found as a duplicate. */
   existing: Member;
   onClose: () => void;
@@ -70,22 +78,39 @@ export function MergeMembersModal({
   }, [keepExisting, existing, candidate]);
 
   const handleConfirm = async () => {
-    if (!confirm("Merge will move all payments to the kept record and delete the duplicate. Continue?")) return;
+    const msg = candidateMemberId
+      ? "Merge will move all payments to the kept record and delete the duplicate. Continue?"
+      : "Merge will update the existing record with the new values. Continue?";
+    if (!confirm(msg)) return;
     setSaving(true);
     setError("");
-    // Winner = existing (we keep its id and payment history). Apply chosen updates.
-    const { error: mErr } = await mergeMembers({
-      winnerId: existing.id,
-      loserId: existing.id, // placeholder — see below
-      winnerUpdates: updates,
-    });
-    // NOTE: when merging during creation, there is no loser member yet (the
-    // candidate hasn't been saved). In that case loserId === winnerId is a no-op
-    // for delete + payment reassign (no payments under the unsaved candidate).
-    setSaving(false);
-    if (mErr) {
-      setError(mErr);
-      return;
+
+    if (candidateMemberId && candidateMemberId !== existing.id) {
+      // Editing flow with two distinct rows — reassign + delete loser.
+      const { error: mErr } = await mergeMembers({
+        winnerId: existing.id,
+        loserId: candidateMemberId,
+        winnerUpdates: updates,
+      });
+      setSaving(false);
+      if (mErr) {
+        setError(mErr);
+        return;
+      }
+    } else {
+      // Creation flow — no loser to delete. Just apply updates to existing.
+      if (Object.keys(updates).length > 0) {
+        const { error: updErr } = await import("@/integrations/supabase/client").then(({ supabase }) =>
+          supabase.from("members").update(updates as never).eq("id", existing.id),
+        );
+        setSaving(false);
+        if (updErr) {
+          setError(updErr.message);
+          return;
+        }
+      } else {
+        setSaving(false);
+      }
     }
     onMerged(existing.id);
   };

@@ -408,6 +408,7 @@ function ReportsPage() {
             <option value="transactions">Individual Transactions</option>
           </select>
         </div>
+        </div>
       </div>
 
       {loading ? (

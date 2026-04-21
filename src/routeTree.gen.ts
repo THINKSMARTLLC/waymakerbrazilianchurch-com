@@ -19,6 +19,7 @@ import { Route as OfertaRouteImport } from './routes/oferta'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ImportExportRouteImport } from './routes/import-export'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as DonateRouteImport } from './routes/donate'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -85,6 +86,11 @@ const ImportExportRoute = ImportExportRouteImport.update({
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DonateRoute = DonateRouteImport.update({
+  id: '/donate',
+  path: '/donate',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -180,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
+  '/donate': typeof DonateRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/import-export': typeof ImportExportRoute
   '/login': typeof LoginRoute
@@ -209,6 +216,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
+  '/donate': typeof DonateRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/import-export': typeof ImportExportRoute
   '/login': typeof LoginRoute
@@ -238,6 +246,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
+  '/donate': typeof DonateRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/import-export': typeof ImportExportRoute
   '/login': typeof LoginRoute
@@ -269,6 +278,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/dashboard'
+    | '/donate'
     | '/forgot-password'
     | '/import-export'
     | '/login'
@@ -298,6 +308,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/dashboard'
+    | '/donate'
     | '/forgot-password'
     | '/import-export'
     | '/login'
@@ -326,6 +337,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/dashboard'
+    | '/donate'
     | '/forgot-password'
     | '/import-export'
     | '/login'
@@ -356,6 +368,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   DashboardRoute: typeof DashboardRoute
+  DonateRoute: typeof DonateRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ImportExportRoute: typeof ImportExportRoute
   LoginRoute: typeof LoginRoute
@@ -449,6 +462,13 @@ declare module '@tanstack/react-router' {
       path: '/forgot-password'
       fullPath: '/forgot-password'
       preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/donate': {
+      id: '/donate'
+      path: '/donate'
+      fullPath: '/donate'
+      preLoaderRoute: typeof DonateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -592,6 +612,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   DashboardRoute: DashboardRoute,
+  DonateRoute: DonateRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   ImportExportRoute: ImportExportRoute,
   LoginRoute: LoginRoute,

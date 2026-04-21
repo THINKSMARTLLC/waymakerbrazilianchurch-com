@@ -612,6 +612,27 @@ function LandingPage() {
         </div>
       </footer>
 
+      {/* FLOATING DONATE BUTTON (top-left) */}
+      <Link
+        to="/donate"
+        aria-label="Doar Agora"
+        onClick={() => {
+          try {
+            (window as unknown as { dataLayer?: unknown[] }).dataLayer?.push?.({
+              event: "donate_clicked",
+              source: "floating_button",
+              timestamp: new Date().toISOString(),
+            });
+          } catch {
+            // ignore
+          }
+        }}
+        className="fixed left-4 top-4 z-50 inline-flex items-center gap-2 rounded-full bg-[oklch(0.82_0.17_90)] px-4 py-2 text-sm font-semibold text-[oklch(0.2_0.02_60)] shadow-lg transition hover:scale-105 hover:shadow-[0_0_20px_oklch(0.82_0.17_90/0.6)] sm:left-6 sm:top-6 sm:px-5 sm:py-2.5 sm:text-base"
+      >
+        <Heart className="h-4 w-4 fill-current" />
+        <span>Doar Agora</span>
+      </Link>
+
       {/* FLOATING WHATSAPP BUTTON */}
       <a
         href={WHATSAPP_URL}

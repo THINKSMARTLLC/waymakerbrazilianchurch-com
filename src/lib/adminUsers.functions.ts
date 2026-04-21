@@ -7,6 +7,67 @@ type AppRole = Database["public"]["Enums"]["app_role"];
 
 const ALLOWED_ROLES: AppRole[] = ["member", "finance_manager", "admin", "church_admin"];
 
+const ROLE_LABEL: Record<AppRole, string> = {
+  super_admin: "Super Admin",
+  church_admin: "Admin Igreja",
+  admin: "Admin",
+  finance_manager: "Staff",
+  member: "Membro",
+};
+
+const APP_ORIGIN =
+  process.env.APP_PUBLIC_URL ||
+  "https://waymakerbrazilianchurch.com";
+
+/**
+ * Enqueue a "welcome access" email containing the magic link
+ * and (optionally) a temporary password as fallback.
+ */
+async function enqueueWelcomeEmail(args: {
+  email: string;
+  fullName: string;
+  role: AppRole;
+  magicLink: string | null;
+  tempPassword: string | null;
+}) {
+  try {
+    await supabaseAdmin.rpc("enqueue_email", {
+      queue_name: "transactional_emails",
+      payload: {
+        templateName: "welcome-access",
+        recipientEmail: args.email,
+        idempotencyKey: `welcome-access-${args.email}-${Date.now()}`,
+        templateData: {
+          fullName: args.fullName,
+          email: args.email,
+          magicLink: args.magicLink,
+          tempPassword: args.tempPassword,
+          loginUrl: `${APP_ORIGIN}/login`,
+          roleLabel: ROLE_LABEL[args.role],
+        },
+      },
+    });
+  } catch (e) {
+    console.error("Failed to enqueue welcome email:", e);
+  }
+}
+
+async function generateMagicLink(email: string): Promise<string | null> {
+  const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+    type: "magiclink",
+    email,
+    options: {
+      redirectTo: `${APP_ORIGIN}/reset-password`,
+    },
+  });
+  if (error) {
+    console.error("Magic link generation failed:", error.message);
+    return null;
+  }
+  return data?.properties?.action_link ?? null;
+}
+
+
 interface CreateUserInput {
   full_name: string;
   email: string;

@@ -15,6 +15,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as PendingRouteImport } from './routes/pending'
+import { Route as OfertaRouteImport } from './routes/oferta'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ImportExportRouteImport } from './routes/import-export'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
@@ -64,6 +65,11 @@ const PortalRoute = PortalRouteImport.update({
 const PendingRoute = PendingRouteImport.update({
   id: '/pending',
   path: '/pending',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OfertaRoute = OfertaRouteImport.update({
+  id: '/oferta',
+  path: '/oferta',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -177,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/import-export': typeof ImportExportRoute
   '/login': typeof LoginRoute
+  '/oferta': typeof OfertaRoute
   '/pending': typeof PendingRoute
   '/portal': typeof PortalRouteWithChildren
   '/reports': typeof ReportsRoute
@@ -205,6 +212,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/import-export': typeof ImportExportRoute
   '/login': typeof LoginRoute
+  '/oferta': typeof OfertaRoute
   '/pending': typeof PendingRoute
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -233,6 +241,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/import-export': typeof ImportExportRoute
   '/login': typeof LoginRoute
+  '/oferta': typeof OfertaRoute
   '/pending': typeof PendingRoute
   '/portal': typeof PortalRouteWithChildren
   '/reports': typeof ReportsRoute
@@ -263,6 +272,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/import-export'
     | '/login'
+    | '/oferta'
     | '/pending'
     | '/portal'
     | '/reports'
@@ -291,6 +301,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/import-export'
     | '/login'
+    | '/oferta'
     | '/pending'
     | '/reports'
     | '/reset-password'
@@ -318,6 +329,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/import-export'
     | '/login'
+    | '/oferta'
     | '/pending'
     | '/portal'
     | '/reports'
@@ -347,6 +359,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ImportExportRoute: typeof ImportExportRoute
   LoginRoute: typeof LoginRoute
+  OfertaRoute: typeof OfertaRoute
   PendingRoute: typeof PendingRoute
   PortalRoute: typeof PortalRouteWithChildren
   ReportsRoute: typeof ReportsRoute
@@ -408,6 +421,13 @@ declare module '@tanstack/react-router' {
       path: '/pending'
       fullPath: '/pending'
       preLoaderRoute: typeof PendingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/oferta': {
+      id: '/oferta'
+      path: '/oferta'
+      fullPath: '/oferta'
+      preLoaderRoute: typeof OfertaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -575,6 +595,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   ImportExportRoute: ImportExportRoute,
   LoginRoute: LoginRoute,
+  OfertaRoute: OfertaRoute,
   PendingRoute: PendingRoute,
   PortalRoute: PortalRouteWithChildren,
   ReportsRoute: ReportsRoute,

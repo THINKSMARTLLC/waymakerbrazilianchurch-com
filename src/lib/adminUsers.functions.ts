@@ -7,6 +7,67 @@ type AppRole = Database["public"]["Enums"]["app_role"];
 
 const ALLOWED_ROLES: AppRole[] = ["member", "finance_manager", "admin", "church_admin"];
 
+const ROLE_LABEL: Record<AppRole, string> = {
+  super_admin: "Super Admin",
+  church_admin: "Admin Igreja",
+  admin: "Admin",
+  finance_manager: "Staff",
+  member: "Membro",
+};
+
+const APP_ORIGIN =
+  process.env.APP_PUBLIC_URL ||
+  "https://waymakerbrazilianchurch.com";
+
+/**
+ * Enqueue a "welcome access" email containing the magic link
+ * and (optionally) a temporary password as fallback.
+ */
+async function enqueueWelcomeEmail(args: {
+  email: string;
+  fullName: string;
+  role: AppRole;
+  magicLink: string | null;
+  tempPassword: string | null;
+}) {
+  try {
+    await supabaseAdmin.rpc("enqueue_email", {
+      queue_name: "transactional_emails",
+      payload: {
+        templateName: "welcome-access",
+        recipientEmail: args.email,
+        idempotencyKey: `welcome-access-${args.email}-${Date.now()}`,
+        templateData: {
+          fullName: args.fullName,
+          email: args.email,
+          magicLink: args.magicLink,
+          tempPassword: args.tempPassword,
+          loginUrl: `${APP_ORIGIN}/login`,
+          roleLabel: ROLE_LABEL[args.role],
+        },
+      },
+    });
+  } catch (e) {
+    console.error("Failed to enqueue welcome email:", e);
+  }
+}
+
+async function generateMagicLink(email: string): Promise<string | null> {
+  const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+    type: "magiclink",
+    email,
+    options: {
+      redirectTo: `${APP_ORIGIN}/reset-password`,
+    },
+  });
+  if (error) {
+    console.error("Magic link generation failed:", error.message);
+    return null;
+  }
+  return data?.properties?.action_link ?? null;
+}
+
+
 interface CreateUserInput {
   full_name: string;
   email: string;
@@ -98,16 +159,13 @@ export const createManagedUser = createServerFn({ method: "POST" })
       (u) => (u.email ?? "").toLowerCase() === data.email,
     );
     if (dup) {
-      // Generate a recovery link so admin can offer "send reset" workflow
-      const { data: recoveryData } = await supabaseAdmin.auth.admin.generateLink({
-        type: "recovery",
-        email: data.email,
-      });
+      // Already exists — offer "resend access" workflow with a fresh magic link
+      const magicLink = await generateMagicLink(data.email);
       return {
         ok: false as const,
         reason: "email_exists" as const,
         message: "Este email já está cadastrado.",
-        recoveryLink: recoveryData?.properties?.action_link ?? null,
+        magicLink,
         existingUserId: dup.id,
       };
     }
@@ -155,15 +213,17 @@ export const createManagedUser = createServerFn({ method: "POST" })
       .from("user_roles")
       .insert([{ user_id: newUserId, role: data.role }]);
 
-    // Generate recovery link so user can reset on first login
-    const { data: recoveryData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
-      type: "recovery",
+    // Generate magic link (passwordless one-tap login that will then force password reset)
+    const magicLink = await generateMagicLink(data.email);
+
+    // Auto-send welcome email (magic link + temp password fallback)
+    await enqueueWelcomeEmail({
       email: data.email,
+      fullName: data.full_name,
+      role: data.role,
+      magicLink,
+      tempPassword,
     });
-    if (linkErr) {
-      // Non-fatal — temp password still works
-      console.error("Recovery link generation failed:", linkErr.message);
-    }
 
     // Activity log
     await supabaseAdmin.from("activity_logs").insert({
@@ -173,6 +233,7 @@ export const createManagedUser = createServerFn({ method: "POST" })
         target_user_id: newUserId,
         target_email: data.email,
         role: data.role,
+        email_sent: true,
       },
     });
 
@@ -181,13 +242,73 @@ export const createManagedUser = createServerFn({ method: "POST" })
       userId: newUserId,
       email: data.email,
       tempPassword,
-      recoveryLink: recoveryData?.properties?.action_link ?? null,
+      magicLink,
+      emailSent: true,
     };
   });
 
 /**
- * Generate a recovery link for an existing user (admin-only).
- * Used for "Send password reset instructions" workflow.
+ * (Re)send the access email to an existing user.
+ * Generates a fresh magic link and enqueues the welcome-access template.
+ */
+export const sendAccessEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { email: string }) => ({
+    email: String(input.email ?? "").trim().toLowerCase(),
+  }))
+  .handler(async ({ data, context }) => {
+    const { userId, supabase } = context;
+    const { data: callerRoles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const roles = (callerRoles ?? []).map((r) => r.role) as AppRole[];
+    const isStaff = roles.some((r) =>
+      ["super_admin", "admin", "church_admin", "finance_manager"].includes(r),
+    );
+    if (!isStaff) throw new Error("Sem permissão");
+
+    // Look up profile for full_name + role
+    const { data: profile } = await supabaseAdmin
+      .from("user_profiles")
+      .select("full_name, user_id")
+      .eq("email", data.email)
+      .maybeSingle();
+
+    let role: AppRole = "member";
+    if (profile?.user_id) {
+      const { data: r } = await supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", profile.user_id)
+        .limit(1)
+        .maybeSingle();
+      if (r?.role) role = r.role as AppRole;
+    }
+
+    const magicLink = await generateMagicLink(data.email);
+    if (!magicLink) throw new Error("Não foi possível gerar o link de acesso");
+
+    await enqueueWelcomeEmail({
+      email: data.email,
+      fullName: profile?.full_name ?? "",
+      role,
+      magicLink,
+      tempPassword: null,
+    });
+
+    await supabaseAdmin.from("activity_logs").insert({
+      user_id: userId,
+      action: "access_email_resent",
+      metadata: { target_email: data.email },
+    });
+
+    return { ok: true as const, magicLink };
+  });
+
+/**
+ * Backwards-compatible alias kept so existing callers don't break.
+ * Internally returns a magic link (not a recovery link).
  */
 export const generateRecoveryForEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -206,10 +327,7 @@ export const generateRecoveryForEmail = createServerFn({ method: "POST" })
     );
     if (!isStaff) throw new Error("Sem permissão");
 
-    const { data: recoveryData, error } = await supabaseAdmin.auth.admin.generateLink({
-      type: "recovery",
-      email: data.email,
-    });
-    if (error) throw new Error(error.message);
-    return { recoveryLink: recoveryData?.properties?.action_link ?? null };
+    const magicLink = await generateMagicLink(data.email);
+    return { recoveryLink: magicLink };
   });
+

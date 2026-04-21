@@ -25,7 +25,8 @@ interface Props {
 interface CreatedCredentials {
   email: string;
   tempPassword: string;
-  recoveryLink: string | null;
+  magicLink: string | null;
+  emailSent: boolean;
 }
 
 const ROLE_LABEL: Record<AppRole, string> = {
@@ -88,7 +89,7 @@ export function CreateUserModal({
       });
       if (!res.ok) {
         if (res.reason === "email_exists") {
-          setDuplicateRecovery({ link: res.recoveryLink, email });
+          setDuplicateRecovery({ link: res.magicLink, email });
         } else {
           setError("Falha ao criar conta");
         }
@@ -97,7 +98,8 @@ export function CreateUserModal({
       setCredentials({
         email: res.email,
         tempPassword: res.tempPassword,
-        recoveryLink: res.recoveryLink,
+        magicLink: res.magicLink,
+        emailSent: res.emailSent,
       });
       onCreated?.();
     } catch (err) {
@@ -257,19 +259,20 @@ function CredentialsView({ credentials, onClose }: { credentials: CreatedCredent
       <div className="rounded-xl bg-primary/10 px-4 py-3 text-sm text-foreground">
         <p className="font-medium">Conta criada com sucesso!</p>
         <p className="text-xs text-muted-foreground mt-1">
-          Copie as credenciais abaixo e envie ao novo usuário. Após o primeiro login, ele será obrigado a
-          trocar a senha.
+          {credentials.emailSent
+            ? `Um email de acesso foi enviado para ${credentials.email}. Os dados abaixo são um fallback caso o email não chegue.`
+            : "Copie e envie os dados abaixo ao novo usuário."}
         </p>
       </div>
 
       <CopyField label="Email de login" value={credentials.email} />
       <CopyField label="Senha temporária" value={credentials.tempPassword} mono />
-      {credentials.recoveryLink && (
-        <CopyField label="Link de recuperação (alternativa)" value={credentials.recoveryLink} />
+      {credentials.magicLink && (
+        <CopyField label="Magic link (login direto)" value={credentials.magicLink} />
       )}
 
       <div className="rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-900 dark:text-amber-200">
-        <strong>Importante:</strong> esta senha não será mostrada novamente. Salve agora.
+        <strong>Importante:</strong> a senha temporária não será mostrada novamente. Salve agora caso precise reenviar manualmente.
       </div>
 
       <button onClick={onClose} className="btn-google w-full">

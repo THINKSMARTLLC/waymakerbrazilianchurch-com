@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Shield, UserCheck, UserX, Trash2, ArrowLeft, UserPlus, KeyRound } from "lucide-react";
+import { Shield, UserCheck, UserX, Trash2, ArrowLeft, UserPlus, KeyRound, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { logActivity } from "@/lib/activityLog";
 import { CreateUserModal } from "@/components/CreateUserModal";
 import { useServerFn } from "@tanstack/react-start";
-import { generateRecoveryForEmail } from "@/lib/adminUsers.functions";
+import { generateRecoveryForEmail, sendAccessEmail } from "@/lib/adminUsers.functions";
 import { formatDate, formatDateTime } from "@/lib/datetime";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -39,6 +39,8 @@ function AdminPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [recoveryFor, setRecoveryFor] = useState<{ email: string; link: string | null } | null>(null);
   const sendRecovery = useServerFn(generateRecoveryForEmail);
+  const sendAccess = useServerFn(sendAccessEmail);
+  const [sendingAccessFor, setSendingAccessFor] = useState<string | null>(null);
 
   const requestRecovery = async (email: string) => {
     setRecoveryFor({ email, link: null });
@@ -48,6 +50,18 @@ function AdminPage() {
     } catch (err) {
       setRecoveryFor({ email, link: null });
       alert(err instanceof Error ? err.message : "Falha ao gerar link");
+    }
+  };
+
+  const resendAccess = async (email: string) => {
+    setSendingAccessFor(email);
+    try {
+      await sendAccess({ data: { email } });
+      alert(`Email de acesso reenviado para ${email}`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Falha ao enviar email");
+    } finally {
+      setSendingAccessFor(null);
     }
   };
 
@@ -196,6 +210,14 @@ function AdminPage() {
                             <UserX className="h-4 w-4" />
                           </button>
                         )}
+                        <button
+                          onClick={() => resendAccess(u.email)}
+                          disabled={sendingAccessFor === u.email}
+                          title="Enviar email de acesso (magic link)"
+                          className="p-1.5 rounded-md hover:bg-primary/10 text-primary disabled:opacity-50"
+                        >
+                          <Mail className="h-4 w-4" />
+                        </button>
                         <button onClick={() => requestRecovery(u.email)} title="Gerar link de redefinição de senha"
                           className="p-1.5 rounded-md hover:bg-primary/10 text-primary">
                           <KeyRound className="h-4 w-4" />

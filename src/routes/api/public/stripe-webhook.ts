@@ -72,25 +72,12 @@ async function findMemberForStripeEmail(email?: string | null) {
   return null;
 }
 
-async function paymentAlreadyRegistered(memberId: string, externalPaymentId: string, paymentDate: string) {
-  const { data: existing } = await supabaseAdmin
-    .from("payments")
-    .select("id")
-    .eq("member_id", memberId)
-    .eq("payment_date", paymentDate)
-    .eq("payment_method", "stripe")
-    .eq("contribution_type", "pastor_salary")
-    .eq("status", "paid")
-    .limit(1);
-
-  if ((existing?.length ?? 0) > 0) {
-    return true;
-  }
-
+async function paymentAlreadyRegistered(memberId: string, externalPaymentId: string) {
   const { data: exactEventMatch } = await supabaseAdmin
     .from("payments")
     .select("id")
     .eq("member_id", memberId)
+    .eq("payment_method", "stripe")
     .ilike("notes", `%${externalPaymentId}%`)
     .limit(1);
 
@@ -107,11 +94,7 @@ async function registerMatchedStripePayment(input: {
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
 }) {
-  const alreadyRegistered = await paymentAlreadyRegistered(
-    input.memberId,
-    input.externalPaymentId,
-    input.paymentDate,
-  );
+  const alreadyRegistered = await paymentAlreadyRegistered(input.memberId, input.externalPaymentId);
 
   if (alreadyRegistered) {
     await logStripeEvent("stripe_payment_duplicate_ignored", {

@@ -46,38 +46,30 @@ async function logStripeEvent(action: string, metadata: Record<string, unknown>)
   ]);
 }
 
-async function findMemberForStripeEmail(email?: string | null, fallbackMemberId?: string | null) {
+async function findMemberForStripeEmail(email?: string | null) {
   const normalizedEmail = normalizeEmail(email);
 
-  if (normalizedEmail) {
-    const { data: members } = await supabaseAdmin
-      .from("members")
-      .select("id, email, status, status_payment, stripe_customer_id, stripe_subscription_id")
-      .ilike("email", normalizedEmail)
-      .limit(2);
+  if (!normalizedEmail) return null;
 
-    if ((members ?? []).length === 1) {
-      return members?.[0] ?? null;
-    }
-
-    if ((members ?? []).length > 1) {
-      await logStripeEvent("stripe_payment_duplicate_email_match", {
-        email: normalizedEmail,
-        member_ids: members?.map((member) => member.id) ?? [],
-      });
-      return null;
-    }
-  }
-
-  if (!fallbackMemberId) return null;
-
-  const { data: member } = await supabaseAdmin
+  const { data: members } = await supabaseAdmin
     .from("members")
     .select("id, email, status, status_payment, stripe_customer_id, stripe_subscription_id")
-    .eq("id", fallbackMemberId)
-    .maybeSingle();
+    .ilike("email", normalizedEmail)
+    .limit(2);
 
-  return member ?? null;
+  if ((members ?? []).length === 1) {
+    return members?.[0] ?? null;
+  }
+
+  if ((members ?? []).length > 1) {
+    await logStripeEvent("stripe_payment_duplicate_email_match", {
+      email: normalizedEmail,
+      member_ids: members?.map((member) => member.id) ?? [],
+    });
+    return null;
+  }
+
+  return null;
 }
 
 async function paymentAlreadyRegistered(memberId: string, externalPaymentId: string, paymentDate: string) {

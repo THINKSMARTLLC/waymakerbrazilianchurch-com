@@ -38,6 +38,8 @@ export const Route = createFileRoute("/portal/")({
   component: MemberDashboard,
 });
 
+const QUICK_PAYMENT_URL = "https://buy.stripe.com/6oU9AVdhw6mJgBg3jD8og01";
+
 function MemberDashboard() {
   const { user } = useAuth();
   const [memberId, setMemberId] = useState<string | null>(null);
@@ -121,7 +123,18 @@ function MemberDashboard() {
     load();
   }, [user]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("payment") !== "success") return;
+
+    toast.success("Payment received successfully");
+  }, []);
+
   const points = calculatePoints(activities);
+
+  const handleQuickPay = () => {
+    window.open(QUICK_PAYMENT_URL, "_blank", "noopener,noreferrer");
+  };
 
   const handleSubscribe = async () => {
     if (!memberId || billingStatus?.subscription_active) return;
@@ -222,15 +235,29 @@ function MemberDashboard() {
           )}
 
           <div className="mt-5 pt-4 border-t border-border">
-            <button
-              disabled={!memberId || billingStatus?.subscription_active || subscribing}
-              onClick={handleSubscribe}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Heart className="h-4 w-4" />
-              {billingStatus?.subscription_active ? "Active" : subscribing ? "Redirecting..." : "Subscribe $20/week"}
-            </button>
+            <div className="space-y-3">
+              <button
+                onClick={handleQuickPay}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow transition hover:opacity-90"
+              >
+                <DollarSign className="h-4 w-4" />
+                Pay Now
+              </button>
+
+              <button
+                disabled={!memberId || billingStatus?.subscription_active || subscribing}
+                onClick={handleSubscribe}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Heart className="h-4 w-4" />
+                {billingStatus?.subscription_active ? "Active" : subscribing ? "Redirecting..." : "Subscribe $20/week"}
+              </button>
+            </div>
+
             <p className="mt-3 text-xs text-muted-foreground">
+              Secure payment powered by Stripe
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
               Pastor Salary · {billingStatus?.status_payment ?? "Pending"}
             </p>
           </div>

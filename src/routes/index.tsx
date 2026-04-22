@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Heart,
   Users,
@@ -16,10 +17,14 @@ import {
   MapPin,
   Instagram,
   Navigation,
+  Church,
+  Gift,
+  Plus,
 } from "lucide-react";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
 import heroImage from "@/assets/waymaker-hero.jpg";
 import whatsappIcon from "@/assets/whatsapp-icon.png";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -55,7 +60,11 @@ const AB_VARIATIONS = {
 const WHATSAPP_URL =
   'https://wa.me/15512237610?text=Olá,%20quero%20mais%20informações.';
 
+const ACTIVE_DONATION_URL = "https://buy.stripe.com/6oU9AVdhw6mJgBg3jD8og01";
+
 function LandingPage() {
+  const { t } = useTranslation();
+
   // Smooth scroll
   useEffect(() => {
     const root = document.documentElement;
@@ -67,6 +76,56 @@ function LandingPage() {
       root.style.scrollBehavior = previous;
     };
   }, []);
+
+  const donationOptions = [
+    {
+      key: "pastoral",
+      icon: Church,
+      title: t("landingDonation.options.pastoral.title"),
+      description: t("landingDonation.options.pastoral.description"),
+      status: t("landingDonation.active"),
+      enabled: true,
+    },
+    {
+      key: "tithes",
+      icon: HandHeart,
+      title: t("landingDonation.options.tithes.title"),
+      description: t("landingDonation.options.tithes.description"),
+      status: t("landingDonation.comingSoon"),
+      enabled: false,
+    },
+    {
+      key: "offerings",
+      icon: Gift,
+      title: t("landingDonation.options.offerings.title"),
+      description: t("landingDonation.options.offerings.description"),
+      status: t("landingDonation.comingSoon"),
+      enabled: false,
+    },
+    {
+      key: "other",
+      icon: Plus,
+      title: t("landingDonation.options.other.title"),
+      description: t("landingDonation.options.other.description"),
+      status: t("landingDonation.comingSoon"),
+      enabled: false,
+    },
+  ] as const;
+
+  const handleDonationOptionClick = () => {
+    try {
+      (window as unknown as { dataLayer?: unknown[] }).dataLayer?.push?.({
+        event: "donate_clicked",
+        source: "floating_button",
+        category: "pastoral_ministry",
+        timestamp: new Date().toISOString(),
+      });
+    } catch {
+      // ignore
+    }
+
+    window.open(ACTIVE_DONATION_URL, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <div className="min-h-screen bg-[oklch(0.99_0.003_85)] text-[oklch(0.18_0.01_60)] antialiased">
@@ -613,25 +672,75 @@ function LandingPage() {
       </footer>
 
       {/* FLOATING DONATE BUTTON (top-left) */}
-      <Link
-        to="/donate"
-        aria-label="Doar Agora"
-        onClick={() => {
-          try {
-            (window as unknown as { dataLayer?: unknown[] }).dataLayer?.push?.({
-              event: "donate_clicked",
-              source: "floating_button",
-              timestamp: new Date().toISOString(),
-            });
-          } catch {
-            // ignore
-          }
-        }}
-        className="fixed left-4 top-6 z-50 inline-flex items-center gap-2 rounded-full bg-[oklch(0.82_0.17_90)] px-3.5 py-2 text-xs font-semibold text-[oklch(0.2_0.02_60)] shadow-lg transition hover:scale-105 hover:shadow-[0_0_20px_oklch(0.82_0.17_90/0.6)] sm:left-6 sm:top-10 sm:px-5 sm:py-2.5 sm:text-base"
-      >
-        <Heart className="h-4 w-4 fill-current" />
-        <span>Doar Agora</span>
-      </Link>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-label={t("landingDonation.button")}
+            className="fixed left-4 top-6 z-50 inline-flex items-center gap-2 rounded-full bg-[oklch(0.82_0.17_90)] px-3.5 py-2 text-xs font-semibold text-[oklch(0.2_0.02_60)] shadow-lg transition hover:scale-105 hover:shadow-[0_0_20px_oklch(0.82_0.17_90/0.6)] sm:left-6 sm:top-10 sm:px-5 sm:py-2.5 sm:text-sm"
+          >
+            <Heart className="h-4 w-4 fill-current" />
+            <span>{t("landingDonation.button")}</span>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" side="bottom" sideOffset={12} className="w-[min(22rem,calc(100vw-2rem))] rounded-3xl border border-black/10 bg-white p-3 shadow-2xl">
+          <div className="mb-2 px-2 pt-1">
+            <p className="font-display text-base font-semibold text-[oklch(0.18_0.01_60)]">
+              {t("landingDonation.title")}
+            </p>
+            <p className="mt-1 text-xs text-[oklch(0.45_0.02_60)]">
+              {t("landingDonation.subtitle")}
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            {donationOptions.map((option) => {
+              const Icon = option.icon;
+
+              if (option.enabled) {
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={handleDonationOptionClick}
+                    className="flex w-full items-center gap-3 rounded-2xl border border-black/10 bg-[oklch(0.98_0.01_90)] px-3 py-3 text-left transition hover:-translate-y-0.5 hover:border-[oklch(0.5_0.12_110)] hover:bg-[oklch(0.96_0.02_95)]"
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[oklch(0.95_0.04_95)] text-[oklch(0.5_0.12_110)]">
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-[oklch(0.18_0.01_60)]">{option.title}</span>
+                      <span className="mt-0.5 block text-xs text-[oklch(0.45_0.02_60)]">{option.description}</span>
+                    </span>
+                    <span className="shrink-0 rounded-full bg-[oklch(0.95_0.04_95)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[oklch(0.5_0.12_110)]">
+                      {option.status}
+                    </span>
+                  </button>
+                );
+              }
+
+              return (
+                <div
+                  key={option.key}
+                  aria-disabled="true"
+                  className="flex items-center gap-3 rounded-2xl border border-black/5 bg-[oklch(0.985_0.003_85)] px-3 py-3 opacity-50"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[oklch(0.95_0.01_85)] text-[oklch(0.4_0.01_60)]">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-[oklch(0.18_0.01_60)]">{option.title}</span>
+                    <span className="mt-0.5 block text-xs text-[oklch(0.45_0.02_60)]">{option.description}</span>
+                  </span>
+                  <span className="shrink-0 rounded-full bg-[oklch(0.94_0.003_85)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[oklch(0.4_0.01_60)]">
+                    {option.status}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </PopoverContent>
+      </Popover>
 
       {/* FLOATING WHATSAPP BUTTON */}
       <a

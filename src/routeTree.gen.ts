@@ -21,6 +21,7 @@ import { Route as ImportExportRouteImport } from './routes/import-export'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DonateRouteImport } from './routes/donate'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CreateSubscriptionSessionRouteImport } from './routes/create-subscription-session'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
@@ -98,6 +99,12 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CreateSubscriptionSessionRoute =
+  CreateSubscriptionSessionRouteImport.update({
+    id: '/create-subscription-session',
+    path: '/create-subscription-session',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -185,6 +192,7 @@ const LovableEmailQueueProcessRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/create-subscription-session': typeof CreateSubscriptionSessionRoute
   '/dashboard': typeof DashboardRoute
   '/donate': typeof DonateRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -215,6 +223,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/create-subscription-session': typeof CreateSubscriptionSessionRoute
   '/dashboard': typeof DashboardRoute
   '/donate': typeof DonateRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -245,6 +254,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/create-subscription-session': typeof CreateSubscriptionSessionRoute
   '/dashboard': typeof DashboardRoute
   '/donate': typeof DonateRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -277,6 +287,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/create-subscription-session'
     | '/dashboard'
     | '/donate'
     | '/forgot-password'
@@ -307,6 +318,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/create-subscription-session'
     | '/dashboard'
     | '/donate'
     | '/forgot-password'
@@ -336,6 +348,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/create-subscription-session'
     | '/dashboard'
     | '/donate'
     | '/forgot-password'
@@ -367,6 +380,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  CreateSubscriptionSessionRoute: typeof CreateSubscriptionSessionRoute
   DashboardRoute: typeof DashboardRoute
   DonateRoute: typeof DonateRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
@@ -476,6 +490,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create-subscription-session': {
+      id: '/create-subscription-session'
+      path: '/create-subscription-session'
+      fullPath: '/create-subscription-session'
+      preLoaderRoute: typeof CreateSubscriptionSessionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -611,6 +632,7 @@ const PortalRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  CreateSubscriptionSessionRoute: CreateSubscriptionSessionRoute,
   DashboardRoute: DashboardRoute,
   DonateRoute: DonateRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,

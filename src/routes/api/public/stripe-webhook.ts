@@ -46,59 +46,38 @@ async function logStripeEvent(action: string, metadata: Record<string, unknown>)
   ]);
 }
 
-async function findMemberForStripeEmail(email?: string | null, fallbackMemberId?: string | null) {
+async function findMemberForStripeEmail(email?: string | null) {
   const normalizedEmail = normalizeEmail(email);
 
-  if (normalizedEmail) {
-    const { data: members } = await supabaseAdmin
-      .from("members")
-      .select("id, email, status, status_payment, stripe_customer_id, stripe_subscription_id")
-      .ilike("email", normalizedEmail)
-      .limit(2);
+  if (!normalizedEmail) return null;
 
-    if ((members ?? []).length === 1) {
-      return members?.[0] ?? null;
-    }
-
-    if ((members ?? []).length > 1) {
-      await logStripeEvent("stripe_payment_duplicate_email_match", {
-        email: normalizedEmail,
-        member_ids: members?.map((member) => member.id) ?? [],
-      });
-      return null;
-    }
-  }
-
-  if (!fallbackMemberId) return null;
-
-  const { data: member } = await supabaseAdmin
+  const { data: members } = await supabaseAdmin
     .from("members")
     .select("id, email, status, status_payment, stripe_customer_id, stripe_subscription_id")
-    .eq("id", fallbackMemberId)
-    .maybeSingle();
+    .ilike("email", normalizedEmail)
+    .limit(2);
 
-  return member ?? null;
-}
-
-async function paymentAlreadyRegistered(memberId: string, externalPaymentId: string, paymentDate: string) {
-  const { data: existing } = await supabaseAdmin
-    .from("payments")
-    .select("id")
-    .eq("member_id", memberId)
-    .eq("payment_date", paymentDate)
-    .eq("payment_method", "stripe")
-    .eq("contribution_type", "pastor_salary")
-    .eq("status", "paid")
-    .limit(1);
-
-  if ((existing?.length ?? 0) > 0) {
-    return true;
+  if ((members ?? []).length === 1) {
+    return members?.[0] ?? null;
   }
 
+  if ((members ?? []).length > 1) {
+    await logStripeEvent("stripe_payment_duplicate_email_match", {
+      email: normalizedEmail,
+      member_ids: members?.map((member) => member.id) ?? [],
+    });
+    return null;
+  }
+
+  return null;
+}
+
+async function paymentAlreadyRegistered(memberId: string, externalPaymentId: string) {
   const { data: exactEventMatch } = await supabaseAdmin
     .from("payments")
     .select("id")
     .eq("member_id", memberId)
+    .eq("payment_method", "stripe")
     .ilike("notes", `%${externalPaymentId}%`)
     .limit(1);
 
@@ -115,11 +94,7 @@ async function registerMatchedStripePayment(input: {
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
 }) {
-  const alreadyRegistered = await paymentAlreadyRegistered(
-    input.memberId,
-    input.externalPaymentId,
-    input.paymentDate,
-  );
+  const alreadyRegistered = await paymentAlreadyRegistered(input.memberId, input.externalPaymentId);
 
   if (alreadyRegistered) {
     await logStripeEvent("stripe_payment_duplicate_ignored", {
@@ -273,7 +248,7 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
               ? session.subscription
               : session.subscription?.id ?? null;
             const paymentDate = getNewYorkDateFromUnix(session.created);
-            const member = await findMemberForStripeEmail(email, session.metadata?.memberId ?? null);
+            const member = await findMemberForStripeEmail(email);
 
             if (!member) {
               await markUnmatchedStripePayment({
@@ -317,8 +292,7 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
               customerEmail: invoice.customer_email,
               customerId: stripeCustomerId,
             });
-            const memberId = invoice.parent?.subscription_details?.metadata?.memberId ?? invoice.lines.data[0]?.metadata?.memberId ?? null;
-            const member = await findMemberForStripeEmail(email, memberId);
+            const member = await findMemberForStripeEmail(email);
             const paymentDate = getNewYorkDateFromUnix(invoice.status_transitions.paid_at ?? invoice.created);
 
             if (!member) {

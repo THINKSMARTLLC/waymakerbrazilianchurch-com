@@ -12,6 +12,14 @@ const createSessionInput = z.object({
   memberId: z.string().uuid(),
 });
 
+const finalizeSessionInput = z.object({
+  sessionId: z.string().min(1),
+});
+
+const markCanceledInput = z.object({
+  memberId: z.string().uuid(),
+});
+
 function getStripeClient() {
   const secretKey = process.env.STRIPE_SECRET_KEY;
 
@@ -39,6 +47,25 @@ export function getCurrentNewYorkDate() {
   }).format(new Date());
 
   return formatted;
+}
+
+async function updateMemberContributionState(input: {
+  memberId: string;
+  statusPayment: "On Time" | "Late" | "Pending";
+  subscriptionActive: boolean;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+}) {
+  await supabaseAdmin
+    .from("members")
+    .update({
+      status_payment: input.statusPayment,
+      last_payment_date: input.statusPayment === "On Time" ? getCurrentNewYorkDate() : null,
+      subscription_active: input.subscriptionActive,
+      stripe_customer_id: input.stripeCustomerId ?? null,
+      stripe_subscription_id: input.stripeSubscriptionId ?? null,
+    })
+    .eq("id", input.memberId);
 }
 
 export const createSubscriptionSession = createServerFn({ method: "POST" })
@@ -104,4 +131,66 @@ export const createSubscriptionSession = createServerFn({ method: "POST" })
     });
 
     return { url: session.url };
+  });
+
+export const finalizeSubscriptionSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(finalizeSessionInput)
+  .handler(async ({ data, context }) => {
+    const stripe = getStripeClient();
+    const session = await stripe.checkout.sessions.retrieve(data.sessionId, {
+      expand: ["subscription", "customer"],
+    });
+
+    if (session.mode !== "subscription" || session.payment_status !== "paid") {
+      throw new Error("Subscription payment has not been completed.");
+    }
+
+    const memberId = session.metadata.memberId;
+
+    const { data: member, error: memberError } = await context.supabase
+      .from("members")
+      .select("id, user_id")
+      .eq("id", memberId)
+      .maybeSingle();
+
+    if (memberError || !member || member.user_id !== context.userId) {
+      throw new Error("Member not found.");
+    }
+
+    await updateMemberContributionState({
+      memberId,
+      statusPayment: "On Time",
+      subscriptionActive: true,
+      stripeCustomerId: typeof session.customer === "string" ? session.customer : session.customer?.id ?? null,
+      stripeSubscriptionId:
+        typeof session.subscription === "string" ? session.subscription : session.subscription?.id ?? null,
+    });
+
+    return { ok: true };
+  });
+
+export const markSubscriptionCanceled = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(markCanceledInput)
+  .handler(async ({ data, context }) => {
+    const { data: member, error: memberError } = await context.supabase
+      .from("members")
+      .select("id, user_id, subscription_active")
+      .eq("id", data.memberId)
+      .maybeSingle();
+
+    if (memberError || !member || member.user_id !== context.userId) {
+      throw new Error("Member not found.");
+    }
+
+    if (!member.subscription_active) {
+      await updateMemberContributionState({
+        memberId: member.id,
+        statusPayment: "Pending",
+        subscriptionActive: false,
+      });
+    }
+
+    return { ok: true };
   });

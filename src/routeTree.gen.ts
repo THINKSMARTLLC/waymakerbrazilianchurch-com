@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
+import { Route as SuccessRouteImport } from './routes/success'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReportsRouteImport } from './routes/reports'
@@ -21,6 +22,8 @@ import { Route as ImportExportRouteImport } from './routes/import-export'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DonateRouteImport } from './routes/donate'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CreateSubscriptionSessionRouteImport } from './routes/create-subscription-session'
+import { Route as CancelRouteImport } from './routes/cancel'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
@@ -34,6 +37,7 @@ import { Route as MembersMemberIdRouteImport } from './routes/members.$memberId'
 import { Route as EngagementVisitsRouteImport } from './routes/engagement.visits'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -41,6 +45,11 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
   path: '/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SuccessRoute = SuccessRouteImport.update({
+  id: '/success',
+  path: '/success',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -96,6 +105,17 @@ const DonateRoute = DonateRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreateSubscriptionSessionRoute =
+  CreateSubscriptionSessionRouteImport.update({
+    id: '/create-subscription-session',
+    path: '/create-subscription-session',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const CancelRoute = CancelRouteImport.update({
+  id: '/cancel',
+  path: '/cancel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -163,6 +183,11 @@ const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   path: '/lovable/email/suppression',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
+  id: '/api/public/stripe-webhook',
+  path: '/api/public/stripe-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
     id: '/lovable/email/transactional/send',
@@ -185,6 +210,8 @@ const LovableEmailQueueProcessRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/cancel': typeof CancelRoute
+  '/create-subscription-session': typeof CreateSubscriptionSessionRoute
   '/dashboard': typeof DashboardRoute
   '/donate': typeof DonateRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -196,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/success': typeof SuccessRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/engagement/visits': typeof EngagementVisitsRoute
@@ -207,6 +235,7 @@ export interface FileRoutesByFullPath {
   '/engagement/': typeof EngagementIndexRoute
   '/members/': typeof MembersIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -215,6 +244,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/cancel': typeof CancelRoute
+  '/create-subscription-session': typeof CreateSubscriptionSessionRoute
   '/dashboard': typeof DashboardRoute
   '/donate': typeof DonateRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -225,6 +256,7 @@ export interface FileRoutesByTo {
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/success': typeof SuccessRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/engagement/visits': typeof EngagementVisitsRoute
@@ -236,6 +268,7 @@ export interface FileRoutesByTo {
   '/engagement': typeof EngagementIndexRoute
   '/members': typeof MembersIndexRoute
   '/portal': typeof PortalIndexRoute
+  '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -245,6 +278,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/cancel': typeof CancelRoute
+  '/create-subscription-session': typeof CreateSubscriptionSessionRoute
   '/dashboard': typeof DashboardRoute
   '/donate': typeof DonateRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -256,6 +291,7 @@ export interface FileRoutesById {
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/success': typeof SuccessRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/engagement/visits': typeof EngagementVisitsRoute
@@ -267,6 +303,7 @@ export interface FileRoutesById {
   '/engagement/': typeof EngagementIndexRoute
   '/members/': typeof MembersIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -277,6 +314,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/cancel'
+    | '/create-subscription-session'
     | '/dashboard'
     | '/donate'
     | '/forgot-password'
@@ -288,6 +327,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/reset-password'
     | '/signup'
+    | '/success'
     | '/unsubscribe'
     | '/email/unsubscribe'
     | '/engagement/visits'
@@ -299,6 +339,7 @@ export interface FileRouteTypes {
     | '/engagement/'
     | '/members/'
     | '/portal/'
+    | '/api/public/stripe-webhook'
     | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
@@ -307,6 +348,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/cancel'
+    | '/create-subscription-session'
     | '/dashboard'
     | '/donate'
     | '/forgot-password'
@@ -317,6 +360,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/reset-password'
     | '/signup'
+    | '/success'
     | '/unsubscribe'
     | '/email/unsubscribe'
     | '/engagement/visits'
@@ -328,6 +372,7 @@ export interface FileRouteTypes {
     | '/engagement'
     | '/members'
     | '/portal'
+    | '/api/public/stripe-webhook'
     | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
@@ -336,6 +381,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/cancel'
+    | '/create-subscription-session'
     | '/dashboard'
     | '/donate'
     | '/forgot-password'
@@ -347,6 +394,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/reset-password'
     | '/signup'
+    | '/success'
     | '/unsubscribe'
     | '/email/unsubscribe'
     | '/engagement/visits'
@@ -358,6 +406,7 @@ export interface FileRouteTypes {
     | '/engagement/'
     | '/members/'
     | '/portal/'
+    | '/api/public/stripe-webhook'
     | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
@@ -367,6 +416,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  CancelRoute: typeof CancelRoute
+  CreateSubscriptionSessionRoute: typeof CreateSubscriptionSessionRoute
   DashboardRoute: typeof DashboardRoute
   DonateRoute: typeof DonateRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
@@ -378,6 +429,7 @@ export interface RootRouteChildren {
   ReportsRoute: typeof ReportsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  SuccessRoute: typeof SuccessRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EngagementVisitsRoute: typeof EngagementVisitsRoute
@@ -386,6 +438,7 @@ export interface RootRouteChildren {
   SettingsChurchRoute: typeof SettingsChurchRoute
   EngagementIndexRoute: typeof EngagementIndexRoute
   MembersIndexRoute: typeof MembersIndexRoute
+  ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
@@ -399,6 +452,13 @@ declare module '@tanstack/react-router' {
       path: '/unsubscribe'
       fullPath: '/unsubscribe'
       preLoaderRoute: typeof UnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/success': {
+      id: '/success'
+      path: '/success'
+      fullPath: '/success'
+      preLoaderRoute: typeof SuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -476,6 +536,20 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create-subscription-session': {
+      id: '/create-subscription-session'
+      path: '/create-subscription-session'
+      fullPath: '/create-subscription-session'
+      preLoaderRoute: typeof CreateSubscriptionSessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cancel': {
+      id: '/cancel'
+      path: '/cancel'
+      fullPath: '/cancel'
+      preLoaderRoute: typeof CancelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -569,6 +643,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailSuppressionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/stripe-webhook': {
+      id: '/api/public/stripe-webhook'
+      path: '/api/public/stripe-webhook'
+      fullPath: '/api/public/stripe-webhook'
+      preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/transactional/send': {
       id: '/lovable/email/transactional/send'
       path: '/lovable/email/transactional/send'
@@ -611,6 +692,8 @@ const PortalRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  CancelRoute: CancelRoute,
+  CreateSubscriptionSessionRoute: CreateSubscriptionSessionRoute,
   DashboardRoute: DashboardRoute,
   DonateRoute: DonateRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
@@ -622,6 +705,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsRoute: ReportsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  SuccessRoute: SuccessRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EngagementVisitsRoute: EngagementVisitsRoute,
@@ -630,6 +714,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsChurchRoute: SettingsChurchRoute,
   EngagementIndexRoute: EngagementIndexRoute,
   MembersIndexRoute: MembersIndexRoute,
+  ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,

@@ -329,12 +329,17 @@ export type Database = {
           inactivated_at: string | null
           inactivated_by: string | null
           inactivation_reason: string | null
+          last_payment_date: string | null
           member_role: string | null
           name: string
           payment_type: Database["public"]["Enums"]["payment_type"]
           phone: string | null
           profile_photo_url: string | null
           status: Database["public"]["Enums"]["member_status"]
+          status_payment: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_active: boolean
           updated_at: string
           user_id: string | null
           weekly_contribution_usd: number
@@ -351,12 +356,17 @@ export type Database = {
           inactivated_at?: string | null
           inactivated_by?: string | null
           inactivation_reason?: string | null
+          last_payment_date?: string | null
           member_role?: string | null
           name: string
           payment_type?: Database["public"]["Enums"]["payment_type"]
           phone?: string | null
           profile_photo_url?: string | null
           status?: Database["public"]["Enums"]["member_status"]
+          status_payment?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_active?: boolean
           updated_at?: string
           user_id?: string | null
           weekly_contribution_usd?: number
@@ -373,12 +383,17 @@ export type Database = {
           inactivated_at?: string | null
           inactivated_by?: string | null
           inactivation_reason?: string | null
+          last_payment_date?: string | null
           member_role?: string | null
           name?: string
           payment_type?: Database["public"]["Enums"]["payment_type"]
           phone?: string | null
           profile_photo_url?: string | null
           status?: Database["public"]["Enums"]["member_status"]
+          status_payment?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_active?: boolean
           updated_at?: string
           user_id?: string | null
           weekly_contribution_usd?: number

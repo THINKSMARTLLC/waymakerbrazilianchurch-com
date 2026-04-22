@@ -10,10 +10,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { formatUSD } from "@/lib/format";
 import { formatLocalDateOnly } from "@/lib/datetime";
 import { ACTIVITY_ICON, ACTIVITY_LABEL, calculatePoints, type ActivityType } from "@/lib/engagement";
+import { toast } from "sonner";
+import { createSubscriptionSession } from "@/lib/stripe-subscriptions.functions";
 
 const MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-const STRIPE_CONNECTED = false;
-
 interface Payment {
   id: string;
   amount: number;
@@ -28,6 +28,12 @@ interface ActivityRow {
   source: string;
 }
 
+interface MemberBillingStatus {
+  id: string;
+  subscription_active: boolean;
+  status_payment: string | null;
+}
+
 export const Route = createFileRoute("/portal/")({
   component: MemberDashboard,
 });
@@ -36,6 +42,7 @@ function MemberDashboard() {
   const { user } = useAuth();
   const [memberId, setMemberId] = useState<string | null>(null);
   const [memberName, setMemberName] = useState<string>("");
+  const [billingStatus, setBillingStatus] = useState<MemberBillingStatus | null>(null);
   const [weekTotal, setWeekTotal] = useState(0);
   const [monthTotal, setMonthTotal] = useState(0);
   const [chartData, setChartData] = useState<{ month: string; amount: number }[]>([]);
@@ -43,6 +50,7 @@ function MemberDashboard() {
   const [activities, setActivities] = useState<ActivityRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCheckIn, setShowCheckIn] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
 
   const loadActivities = async (mid: string) => {
     const { data } = await supabase
@@ -59,7 +67,7 @@ function MemberDashboard() {
       if (!user) return;
       const { data: member } = await supabase
         .from("members")
-        .select("id, name")
+        .select("id, name, subscription_active, status_payment")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -69,6 +77,7 @@ function MemberDashboard() {
       }
       setMemberId(member.id);
       setMemberName(member.name);
+      setBillingStatus(member as MemberBillingStatus);
 
       const now = new Date();
       const startOfWeek = new Date(now);
@@ -113,6 +122,28 @@ function MemberDashboard() {
   }, [user]);
 
   const points = calculatePoints(activities);
+
+  const handleSubscribe = async () => {
+    if (!memberId || billingStatus?.subscription_active) return;
+    setSubscribing(true);
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+
+      if (!token) throw new Error("Please sign in again.");
+
+      const result = await createSubscriptionSession({
+        data: { memberId },
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      if (!result.url) throw new Error("Unable to start checkout.");
+      window.location.href = result.url;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to start checkout.");
+      setSubscribing(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -192,13 +223,16 @@ function MemberDashboard() {
 
           <div className="mt-5 pt-4 border-t border-border">
             <button
-              disabled
-              title="Em breve — pagamentos online ainda não estão configurados"
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-muted px-4 py-2.5 text-sm font-medium text-muted-foreground cursor-not-allowed"
+              disabled={!memberId || billingStatus?.subscription_active || subscribing}
+              onClick={handleSubscribe}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Heart className="h-4 w-4" />
-              {STRIPE_CONNECTED ? "Fazer uma Doação" : "Doação Online — Em breve"}
+              {billingStatus?.subscription_active ? "Active" : subscribing ? "Redirecting..." : "Subscribe $20/week"}
             </button>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Pastor Salary · {billingStatus?.status_payment ?? "Pending"}
+            </p>
           </div>
         </div>
       </div>

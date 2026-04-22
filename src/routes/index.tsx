@@ -677,7 +677,7 @@ function LandingPage() {
           <button
             type="button"
             aria-label={t("landingDonation.button")}
-            className="fixed left-4 top-6 z-50 inline-flex items-center gap-2 rounded-full bg-[oklch(0.82_0.17_90)] px-3.5 py-2 text-xs font-semibold text-[oklch(0.2_0.02_60)] shadow-lg transition hover:scale-105 hover:shadow-[0_0_20px_oklch(0.82_0.17_90/0.6)] sm:left-6 sm:top-10 sm:px-5 sm:py-2.5 sm:text-sm"
+            className="fixed left-4 top-[5.25rem] z-50 inline-flex items-center gap-2 rounded-full bg-[oklch(0.82_0.17_90)] px-3 py-2 text-xs font-semibold text-[oklch(0.2_0.02_60)] shadow-lg transition hover:scale-105 hover:shadow-[0_0_20px_oklch(0.82_0.17_90/0.6)] sm:left-5 sm:top-24 sm:px-4 sm:py-2.5 sm:text-sm lg:left-8 lg:top-28"
           >
             <Heart className="h-4 w-4 fill-current" />
             <span>{t("landingDonation.button")}</span>
@@ -748,7 +748,7 @@ function LandingPage() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Fale conosco no WhatsApp"
-        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center transition hover:scale-110 sm:bottom-6 sm:right-6 sm:h-16 sm:w-16"
+        className="fixed bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center transition hover:scale-110 sm:bottom-6 sm:right-6 sm:h-14 sm:w-14 lg:bottom-8 lg:right-8 lg:h-16 lg:w-16"
         style={{ animation: "wmc-pulse 2.4s ease-in-out infinite", filter: "drop-shadow(0 6px 12px rgba(0,0,0,0.25))", borderRadius: "9999px" }}
       >
         <img src={whatsappIcon} alt="" className="h-full w-full" />

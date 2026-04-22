@@ -140,5 +140,30 @@
     "paid": "Paid",
     "pending": "Pending",
     "past_due": "Past Due"
+  },
+  "landingDonation": {
+    "button": "Donate Now",
+    "title": "Choose a contribution",
+    "subtitle": "Select how you would like to support.",
+    "active": "Active",
+    "comingSoon": "Coming soon",
+    "options": {
+      "pastoral": {
+        "title": "Support for Pastoral Ministry",
+        "description": "Weekly pastoral support"
+      },
+      "tithes": {
+        "title": "Tithes",
+        "description": "Dedicated tithe contribution"
+      },
+      "offerings": {
+        "title": "Offerings",
+        "description": "General offering support"
+      },
+      "other": {
+        "title": "Other Contributions",
+        "description": "Additional contribution categories"
+      }
+    }
   }
 }

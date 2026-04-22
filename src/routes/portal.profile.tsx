@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { EmergencyContactFields } from "@/components/EmergencyContactFields";
 import { parseEmergencyContact, serializeEmergencyContact, type EmergencyContact } from "@/lib/emergencyContact";
+import { createSubscriptionSession } from "@/lib/stripe-subscriptions.functions";
 
 interface MemberData {
   id: string;
@@ -15,6 +16,8 @@ interface MemberData {
   address: string | null;
   emergency_contact: string | null;
   profile_photo_url: string | null;
+  subscription_active: boolean;
+  status_payment: string | null;
 }
 
 export const Route = createFileRoute("/portal/profile")({
@@ -28,6 +31,7 @@ function MemberProfile() {
   const [emergency, setEmergency] = useState<EmergencyContact>({ name: "", phone: "", relationship: "" });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -35,7 +39,7 @@ function MemberProfile() {
       if (!user) return;
       const { data } = await supabase
         .from("members")
-        .select("id, name, email, phone, address, emergency_contact, profile_photo_url")
+        .select("id, name, email, phone, address, emergency_contact, profile_photo_url, subscription_active, status_payment")
         .eq("user_id", user.id)
         .maybeSingle();
       if (data) {
@@ -61,6 +65,28 @@ function MemberProfile() {
     } else {
       toast.success("Perfil atualizado");
       setMember({ ...member, address, emergency_contact: serialized });
+    }
+  };
+
+  const handleSubscribe = async () => {
+    if (!member || member.subscription_active) return;
+
+    setSubscribing(true);
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) throw new Error("Please sign in again.");
+
+      const result = await createSubscriptionSession({
+        data: { memberId: member.id },
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      if (!result.url) throw new Error("Unable to start checkout.");
+      window.location.href = result.url;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to start checkout.");
+      setSubscribing(false);
     }
   };
 
@@ -160,6 +186,21 @@ function MemberProfile() {
         <button onClick={handleSave} disabled={saving} className="btn-google flex items-center gap-2 disabled:opacity-50">
           <Save className="h-4 w-4" />
           {saving ? "Salvando..." : "Salvar alterações"}
+        </button>
+      </div>
+
+      <div className="card-elevated p-6 space-y-4">
+        <h3 className="font-display text-base font-medium text-foreground">Pastor Salary</h3>
+        <div className="grid gap-3 sm:grid-cols-2 text-sm">
+          <ReadField label="Subscription" value={member.subscription_active ? "Active" : "Pending"} />
+          <ReadField label="Status" value={member.status_payment ?? "Pending"} />
+        </div>
+        <button
+          onClick={handleSubscribe}
+          disabled={member.subscription_active || subscribing}
+          className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {member.subscription_active ? "Active" : subscribing ? "Redirecting..." : "Subscribe $20/week"}
         </button>
       </div>
     </div>

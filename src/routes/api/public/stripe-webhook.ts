@@ -66,7 +66,9 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
                 statusPayment: "On Time",
                 subscriptionActive: true,
                 stripeCustomerId: typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id ?? null,
-                stripeSubscriptionId: typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id ?? null,
+                stripeSubscriptionId: typeof invoice.parent?.subscription_details?.subscription === "string"
+                  ? invoice.parent.subscription_details.subscription
+                  : invoice.parent?.subscription_details?.subscription?.id ?? null,
               });
             }
           }
@@ -80,7 +82,9 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
                 statusPayment: "Late",
                 subscriptionActive: true,
                 stripeCustomerId: typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id ?? null,
-                stripeSubscriptionId: typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id ?? null,
+                stripeSubscriptionId: typeof invoice.parent?.subscription_details?.subscription === "string"
+                  ? invoice.parent.subscription_details.subscription
+                  : invoice.parent?.subscription_details?.subscription?.id ?? null,
               });
             }
           }

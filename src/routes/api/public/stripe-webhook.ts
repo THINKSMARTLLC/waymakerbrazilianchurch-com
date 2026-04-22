@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import Stripe from "stripe";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { Json } from "@/integrations/supabase/types";
 import { getCurrentNewYorkDate } from "@/lib/stripe-subscriptions.functions";
 
 const corsHeaders = {
@@ -40,7 +41,7 @@ async function logStripeEvent(action: string, metadata: Record<string, unknown>)
   await supabaseAdmin.from("activity_logs").insert([
     {
       action,
-      metadata,
+      metadata: metadata as Json,
     },
   ]);
 }
@@ -160,6 +161,25 @@ async function registerMatchedStripePayment(input: {
     stripe_payment_id: input.externalPaymentId,
     stripe_subscription_id: input.stripeSubscriptionId ?? null,
   });
+}
+
+async function resolveCustomerEmail(
+  stripe: Stripe,
+  input: {
+    checkoutEmail?: string | null;
+    customerEmail?: string | null;
+    customerId?: string | null;
+  },
+) {
+  const directEmail = normalizeEmail(input.checkoutEmail ?? input.customerEmail);
+  if (directEmail) return directEmail;
+
+  if (!input.customerId) return null;
+
+  const customer = await stripe.customers.retrieve(input.customerId);
+  if (customer.deleted) return null;
+
+  return normalizeEmail(customer.email);
 }
 
 async function updateMemberSubscriptionStatus(input: {

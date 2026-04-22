@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { DollarSign, TrendingUp, Heart, MapPin } from "lucide-react";
+import { DollarSign, TrendingUp, Heart, MapPin, CheckCircle2, Wallet, HandCoins, CircleDollarSign, ChevronRight } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { StatCard } from "@/components/StatCard";
 import { JourneyPath } from "@/components/JourneyPath";
@@ -39,6 +39,37 @@ export const Route = createFileRoute("/portal/")({
 });
 
 const QUICK_PAYMENT_URL = "https://buy.stripe.com/6oU9AVdhw6mJgBg3jD8og01";
+
+const contributionOptions = [
+  {
+    title: "Support for Pastoral Ministry",
+    description: "Weekly support for pastoral ministry",
+    status: "ACTIVE",
+    icon: Heart,
+    clickable: true,
+  },
+  {
+    title: "Tithes",
+    description: "Coming soon",
+    status: "COMING SOON",
+    icon: Wallet,
+    clickable: false,
+  },
+  {
+    title: "Offerings",
+    description: "Coming soon",
+    status: "COMING SOON",
+    icon: HandCoins,
+    clickable: false,
+  },
+  {
+    title: "Other Contributions",
+    description: "Coming soon",
+    status: "COMING SOON",
+    icon: CircleDollarSign,
+    clickable: false,
+  },
+] as const;
 
 function MemberDashboard() {
   const { user } = useAuth();
@@ -216,34 +247,66 @@ function MemberDashboard() {
 
         <div className="card-elevated p-5">
           <h3 className="font-display text-base font-medium text-foreground mb-4">Suas Contribuições</h3>
-          {recent.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma contribuição registrada ainda.</p>
-          ) : (
-            <ul className="space-y-3">
-              {recent.map((p) => (
-                <li key={p.id} className="flex items-center justify-between text-sm border-b border-border pb-2 last:border-0">
-                  <div>
-                    <p className="font-medium text-foreground">{formatUSD(p.amount)}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{p.payment_method}</p>
+          <div className="space-y-3">
+            {contributionOptions.map((option) => {
+              const Icon = option.icon;
+              const isPaid = option.clickable && billingStatus?.status_payment === "On Time";
+
+              return (
+                <button
+                  key={option.title}
+                  type="button"
+                  disabled={!option.clickable}
+                  onClick={option.clickable ? handleQuickPay : undefined}
+                  className={[
+                    "w-full rounded-xl border p-4 text-left transition-all",
+                    option.clickable
+                      ? isPaid
+                        ? "border-primary/25 bg-accent/40 shadow-sm"
+                        : "border-primary/25 bg-primary/10 shadow-sm hover:border-primary/40 hover:shadow-md"
+                      : "cursor-not-allowed border-border bg-muted/40 opacity-60",
+                  ].join(" ")}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div className={[
+                        "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border",
+                        option.clickable ? "border-primary/20 bg-background/80 text-primary" : "border-border bg-background text-muted-foreground",
+                      ].join(" ")}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-medium text-foreground">{option.title}</p>
+                          <span className={[
+                            "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-[0.04em]",
+                            option.clickable ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+                          ].join(" ")}>
+                            {option.status}
+                          </span>
+                        </div>
+
+                        <p className="mt-1 text-xs text-muted-foreground">{option.description}</p>
+
+                        {isPaid && (
+                          <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-foreground">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                            ✔ Contribution up to date
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {option.clickable && <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-primary" />}
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    {formatLocalDateOnly(p.payment_date)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
+                </button>
+              );
+            })}
+          </div>
 
           <div className="mt-5 pt-4 border-t border-border">
             <div className="space-y-3">
-              <button
-                onClick={handleQuickPay}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow transition hover:opacity-90"
-              >
-                <DollarSign className="h-4 w-4" />
-                Pay Now
-              </button>
-
               <button
                 disabled={!memberId || billingStatus?.subscription_active || subscribing}
                 onClick={handleSubscribe}

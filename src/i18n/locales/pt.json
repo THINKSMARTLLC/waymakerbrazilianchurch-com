@@ -140,5 +140,30 @@
     "paid": "Pago",
     "pending": "Pendente",
     "past_due": "Em Atraso"
+  },
+  "landingDonation": {
+    "button": "Doar Agora",
+    "title": "Escolha uma contribuição",
+    "subtitle": "Selecione como você deseja apoiar.",
+    "active": "Ativo",
+    "comingSoon": "Em breve",
+    "options": {
+      "pastoral": {
+        "title": "Apoio ao Ministério Pastoral",
+        "description": "Apoio semanal ao ministério pastoral"
+      },
+      "tithes": {
+        "title": "Dízimos",
+        "description": "Contribuição de dízimo dedicada"
+      },
+      "offerings": {
+        "title": "Ofertas",
+        "description": "Apoio para ofertas gerais"
+      },
+      "other": {
+        "title": "Outras Contribuições",
+        "description": "Categorias adicionais de contribuição"
+      }
+    }
   }
 }

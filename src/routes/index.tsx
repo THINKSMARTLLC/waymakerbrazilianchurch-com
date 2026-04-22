@@ -671,19 +671,20 @@ function LandingPage() {
         </div>
       </footer>
 
-      {/* FLOATING DONATE BUTTON (top-left) */}
-      <Popover>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            aria-label={t("landingDonation.button")}
-            className="fixed left-4 top-[5.25rem] z-50 inline-flex items-center gap-2 rounded-full bg-[oklch(0.82_0.17_90)] px-3 py-2 text-xs font-semibold text-[oklch(0.2_0.02_60)] shadow-lg transition hover:scale-105 hover:shadow-[0_0_20px_oklch(0.82_0.17_90/0.6)] sm:left-5 sm:top-24 sm:px-4 sm:py-2.5 sm:text-sm lg:left-8 lg:top-28"
-          >
-            <Heart className="h-4 w-4 fill-current" />
-            <span>{t("landingDonation.button")}</span>
-          </button>
-        </PopoverTrigger>
-        <PopoverContent align="start" side="bottom" sideOffset={12} className="w-[min(22rem,calc(100vw-2rem))] rounded-3xl border border-black/10 bg-white p-3 shadow-2xl">
+      {/* FLOATING DONATE + WHATSAPP STACK */}
+      <div className="fixed bottom-4 right-4 z-[60] flex flex-col items-end gap-3 sm:bottom-6 sm:right-6 sm:gap-3.5 lg:bottom-8 lg:right-8 lg:gap-4">
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              aria-label={t("landingDonation.button")}
+              className="inline-flex items-center gap-2 rounded-full bg-[oklch(0.82_0.17_90)] px-3 py-2 text-xs font-semibold text-[oklch(0.2_0.02_60)] shadow-[0_10px_24px_rgba(0,0,0,0.22)] transition duration-200 hover:scale-[1.03] hover:brightness-[1.03] sm:px-4 sm:py-2.5 sm:text-sm"
+            >
+              <Heart className="h-4 w-4 fill-current" />
+              <span>{t("landingDonation.button")}</span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" side="top" sideOffset={12} className="w-[min(22rem,calc(100vw-2rem))] rounded-3xl border border-black/10 bg-white p-3 shadow-2xl">
           <div className="mb-2 px-2 pt-1">
             <p className="font-display text-base font-semibold text-[oklch(0.18_0.01_60)]">
               {t("landingDonation.title")}
@@ -739,20 +740,20 @@ function LandingPage() {
               );
             })}
           </div>
-        </PopoverContent>
-      </Popover>
+          </PopoverContent>
+        </Popover>
 
-      {/* FLOATING WHATSAPP BUTTON */}
-      <a
-        href={WHATSAPP_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Fale conosco no WhatsApp"
-        className="fixed bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center transition hover:scale-110 sm:bottom-6 sm:right-6 sm:h-14 sm:w-14 lg:bottom-8 lg:right-8 lg:h-16 lg:w-16"
-        style={{ animation: "wmc-pulse 2.4s ease-in-out infinite", filter: "drop-shadow(0 6px 12px rgba(0,0,0,0.25))", borderRadius: "9999px" }}
-      >
-        <img src={whatsappIcon} alt="" className="h-full w-full" />
-      </a>
+        <a
+          href={WHATSAPP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Fale conosco no WhatsApp"
+          className="flex h-12 w-12 items-center justify-center transition hover:scale-110 sm:h-14 sm:w-14 lg:h-16 lg:w-16"
+          style={{ animation: "wmc-pulse 2.4s ease-in-out infinite", filter: "drop-shadow(0 6px 12px rgba(0,0,0,0.25))", borderRadius: "9999px" }}
+        >
+          <img src={whatsappIcon} alt="" className="h-full w-full" />
+        </a>
+      </div>
       <style>{`
         @keyframes wmc-pulse {
           0%, 100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.55), 0 10px 25px -5px rgba(0,0,0,0.3); }

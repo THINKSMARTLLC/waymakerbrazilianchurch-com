@@ -671,8 +671,8 @@ function LandingPage() {
         </div>
       </footer>
 
-      {/* FLOATING DONATE + WHATSAPP STACK */}
-      <div className="fixed bottom-4 right-4 z-[60] flex flex-col items-end gap-3 sm:bottom-6 sm:right-6 sm:gap-3.5 lg:bottom-8 lg:right-8 lg:gap-4">
+      {/* FLOATING DONATE + WHATSAPP ACTIONS */}
+      <div className="fixed bottom-4 right-4 z-[60] flex flex-row items-center gap-3 sm:bottom-6 sm:right-6 lg:bottom-8 lg:right-8">
         <Popover>
           <PopoverTrigger asChild>
             <button

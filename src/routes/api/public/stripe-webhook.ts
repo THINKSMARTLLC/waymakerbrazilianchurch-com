@@ -248,7 +248,7 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
               ? session.subscription
               : session.subscription?.id ?? null;
             const paymentDate = getNewYorkDateFromUnix(session.created);
-            const member = await findMemberForStripeEmail(email, session.metadata?.memberId ?? null);
+            const member = await findMemberForStripeEmail(email);
 
             if (!member) {
               await markUnmatchedStripePayment({
@@ -292,8 +292,7 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
               customerEmail: invoice.customer_email,
               customerId: stripeCustomerId,
             });
-            const memberId = invoice.parent?.subscription_details?.metadata?.memberId ?? invoice.lines.data[0]?.metadata?.memberId ?? null;
-            const member = await findMemberForStripeEmail(email, memberId);
+            const member = await findMemberForStripeEmail(email);
             const paymentDate = getNewYorkDateFromUnix(invoice.status_transitions.paid_at ?? invoice.created);
 
             if (!member) {

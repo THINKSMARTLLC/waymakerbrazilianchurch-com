@@ -146,7 +146,11 @@ export const finalizeSubscriptionSession = createServerFn({ method: "POST" })
       throw new Error("Subscription payment has not been completed.");
     }
 
-    const memberId = session.metadata.memberId;
+    const memberId = session.metadata?.memberId;
+
+    if (!memberId) {
+      throw new Error("Subscription member metadata is missing.");
+    }
 
     const { data: member, error: memberError } = await context.supabase
       .from("members")

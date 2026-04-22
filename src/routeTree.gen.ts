@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
+import { Route as SuccessRouteImport } from './routes/success'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReportsRouteImport } from './routes/reports'
@@ -22,6 +23,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DonateRouteImport } from './routes/donate'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CreateSubscriptionSessionRouteImport } from './routes/create-subscription-session'
+import { Route as CancelRouteImport } from './routes/cancel'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortalIndexRouteImport } from './routes/portal.index'
@@ -43,6 +45,11 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
   path: '/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SuccessRoute = SuccessRouteImport.update({
+  id: '/success',
+  path: '/success',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -106,6 +113,11 @@ const CreateSubscriptionSessionRoute =
     path: '/create-subscription-session',
     getParentRoute: () => rootRouteImport,
   } as any)
+const CancelRoute = CancelRouteImport.update({
+  id: '/cancel',
+  path: '/cancel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -198,6 +210,7 @@ const LovableEmailQueueProcessRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/cancel': typeof CancelRoute
   '/create-subscription-session': typeof CreateSubscriptionSessionRoute
   '/dashboard': typeof DashboardRoute
   '/donate': typeof DonateRoute
@@ -210,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/success': typeof SuccessRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/engagement/visits': typeof EngagementVisitsRoute
@@ -230,6 +244,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/cancel': typeof CancelRoute
   '/create-subscription-session': typeof CreateSubscriptionSessionRoute
   '/dashboard': typeof DashboardRoute
   '/donate': typeof DonateRoute
@@ -241,6 +256,7 @@ export interface FileRoutesByTo {
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/success': typeof SuccessRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/engagement/visits': typeof EngagementVisitsRoute
@@ -262,6 +278,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/cancel': typeof CancelRoute
   '/create-subscription-session': typeof CreateSubscriptionSessionRoute
   '/dashboard': typeof DashboardRoute
   '/donate': typeof DonateRoute
@@ -274,6 +291,7 @@ export interface FileRoutesById {
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/success': typeof SuccessRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/engagement/visits': typeof EngagementVisitsRoute
@@ -296,6 +314,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/cancel'
     | '/create-subscription-session'
     | '/dashboard'
     | '/donate'
@@ -308,6 +327,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/reset-password'
     | '/signup'
+    | '/success'
     | '/unsubscribe'
     | '/email/unsubscribe'
     | '/engagement/visits'
@@ -328,6 +348,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/cancel'
     | '/create-subscription-session'
     | '/dashboard'
     | '/donate'
@@ -339,6 +360,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/reset-password'
     | '/signup'
+    | '/success'
     | '/unsubscribe'
     | '/email/unsubscribe'
     | '/engagement/visits'
@@ -359,6 +381,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/cancel'
     | '/create-subscription-session'
     | '/dashboard'
     | '/donate'
@@ -371,6 +394,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/reset-password'
     | '/signup'
+    | '/success'
     | '/unsubscribe'
     | '/email/unsubscribe'
     | '/engagement/visits'
@@ -392,6 +416,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  CancelRoute: typeof CancelRoute
   CreateSubscriptionSessionRoute: typeof CreateSubscriptionSessionRoute
   DashboardRoute: typeof DashboardRoute
   DonateRoute: typeof DonateRoute
@@ -404,6 +429,7 @@ export interface RootRouteChildren {
   ReportsRoute: typeof ReportsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  SuccessRoute: typeof SuccessRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EngagementVisitsRoute: typeof EngagementVisitsRoute
@@ -426,6 +452,13 @@ declare module '@tanstack/react-router' {
       path: '/unsubscribe'
       fullPath: '/unsubscribe'
       preLoaderRoute: typeof UnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/success': {
+      id: '/success'
+      path: '/success'
+      fullPath: '/success'
+      preLoaderRoute: typeof SuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -510,6 +543,13 @@ declare module '@tanstack/react-router' {
       path: '/create-subscription-session'
       fullPath: '/create-subscription-session'
       preLoaderRoute: typeof CreateSubscriptionSessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cancel': {
+      id: '/cancel'
+      path: '/cancel'
+      fullPath: '/cancel'
+      preLoaderRoute: typeof CancelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -652,6 +692,7 @@ const PortalRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  CancelRoute: CancelRoute,
   CreateSubscriptionSessionRoute: CreateSubscriptionSessionRoute,
   DashboardRoute: DashboardRoute,
   DonateRoute: DonateRoute,
@@ -664,6 +705,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsRoute: ReportsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  SuccessRoute: SuccessRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EngagementVisitsRoute: EngagementVisitsRoute,

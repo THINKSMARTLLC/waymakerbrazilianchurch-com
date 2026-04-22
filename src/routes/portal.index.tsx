@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { DollarSign, TrendingUp, Heart, MapPin } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -40,7 +40,6 @@ export const Route = createFileRoute("/portal/")({
 
 function MemberDashboard() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [memberId, setMemberId] = useState<string | null>(null);
   const [memberName, setMemberName] = useState<string>("");
   const [billingStatus, setBillingStatus] = useState<MemberBillingStatus | null>(null);
@@ -139,7 +138,7 @@ function MemberDashboard() {
       });
 
       if (!result.url) throw new Error("Unable to start checkout.");
-      navigate({ to: result.url, href: result.url });
+      window.location.href = result.url;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to start checkout.");
       setSubscribing(false);

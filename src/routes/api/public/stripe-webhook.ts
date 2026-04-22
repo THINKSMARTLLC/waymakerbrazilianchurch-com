@@ -21,6 +21,145 @@ function getStripeClient() {
   });
 }
 
+function normalizeEmail(email?: string | null) {
+  return email?.trim().toLowerCase() ?? null;
+}
+
+function getNewYorkDateFromUnix(timestamp?: number | null) {
+  if (!timestamp) return getCurrentNewYorkDate();
+
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(timestamp * 1000));
+}
+
+async function logStripeEvent(action: string, metadata: Record<string, unknown>) {
+  await supabaseAdmin.from("activity_logs").insert({
+    action,
+    metadata,
+  });
+}
+
+async function findMemberForStripeEmail(email?: string | null, fallbackMemberId?: string | null) {
+  const normalizedEmail = normalizeEmail(email);
+
+  if (normalizedEmail) {
+    const { data: members } = await supabaseAdmin
+      .from("members")
+      .select("id, email, status, status_payment, stripe_customer_id, stripe_subscription_id")
+      .ilike("email", normalizedEmail)
+      .limit(2);
+
+    if ((members ?? []).length === 1) {
+      return members?.[0] ?? null;
+    }
+
+    if ((members ?? []).length > 1) {
+      await logStripeEvent("stripe_payment_duplicate_email_match", {
+        email: normalizedEmail,
+        member_ids: members?.map((member) => member.id) ?? [],
+      });
+      return null;
+    }
+  }
+
+  if (!fallbackMemberId) return null;
+
+  const { data: member } = await supabaseAdmin
+    .from("members")
+    .select("id, email, status, status_payment, stripe_customer_id, stripe_subscription_id")
+    .eq("id", fallbackMemberId)
+    .maybeSingle();
+
+  return member ?? null;
+}
+
+async function paymentAlreadyRegistered(memberId: string, externalPaymentId: string, paymentDate: string) {
+  const { data: existing } = await supabaseAdmin
+    .from("payments")
+    .select("id")
+    .eq("member_id", memberId)
+    .eq("payment_date", paymentDate)
+    .eq("payment_method", "stripe")
+    .eq("status", "paid")
+    .ilike("notes", `%${externalPaymentId}%`)
+    .limit(1);
+
+  return (existing?.length ?? 0) > 0;
+}
+
+async function registerMatchedStripePayment(input: {
+  amount: number;
+  email?: string | null;
+  eventType: string;
+  externalPaymentId: string;
+  memberId: string;
+  paymentDate: string;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+}) {
+  const alreadyRegistered = await paymentAlreadyRegistered(
+    input.memberId,
+    input.externalPaymentId,
+    input.paymentDate,
+  );
+
+  if (alreadyRegistered) {
+    await logStripeEvent("stripe_payment_duplicate_ignored", {
+      email: normalizeEmail(input.email),
+      event_type: input.eventType,
+      member_id: input.memberId,
+      payment_date: input.paymentDate,
+      stripe_payment_id: input.externalPaymentId,
+    });
+    return;
+  }
+
+  const { data: payment, error: paymentError } = await supabaseAdmin
+    .from("payments")
+    .insert({
+      amount: input.amount,
+      base_amount: input.amount,
+      contribution_type: "pastor_salary",
+      extra_amount: 0,
+      member_id: input.memberId,
+      notes: `Stripe payment ID: ${input.externalPaymentId} | Event: ${input.eventType}`,
+      payment_date: input.paymentDate,
+      payment_frequency: "weekly",
+      payment_method: "stripe",
+      reference_month: null,
+      status: "paid",
+      stripe_subscription_id: input.stripeSubscriptionId ?? null,
+    })
+    .select("id")
+    .single();
+
+  if (paymentError || !payment) {
+    throw new Error(paymentError?.message ?? "Failed to register Stripe payment.");
+  }
+
+  await supabaseAdmin.from("payment_contributions").insert({
+    amount: input.amount,
+    contribution_type: "pastor_salary",
+    destination: null,
+    payment_id: payment.id,
+  });
+
+  await logStripeEvent("stripe_payment_matched", {
+    amount: input.amount,
+    email: normalizeEmail(input.email),
+    event_type: input.eventType,
+    member_id: input.memberId,
+    payment_date: input.paymentDate,
+    stripe_customer_id: input.stripeCustomerId ?? null,
+    stripe_payment_id: input.externalPaymentId,
+    stripe_subscription_id: input.stripeSubscriptionId ?? null,
+  });
+}
+
 async function updateMemberSubscriptionStatus(input: {
   memberId: string;
   statusPayment: "On Time" | "Late" | "Pending";
@@ -31,6 +170,7 @@ async function updateMemberSubscriptionStatus(input: {
   await supabaseAdmin
     .from("members")
     .update({
+      status: input.statusPayment === "On Time" ? "active" : undefined,
       status_payment: input.statusPayment,
       last_payment_date: input.statusPayment === "On Time" ? getCurrentNewYorkDate() : null,
       subscription_active: input.subscriptionActive,

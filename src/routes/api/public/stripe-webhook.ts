@@ -37,10 +37,12 @@ function getNewYorkDateFromUnix(timestamp?: number | null) {
 }
 
 async function logStripeEvent(action: string, metadata: Record<string, unknown>) {
-  await supabaseAdmin.from("activity_logs").insert({
-    action,
-    metadata,
-  });
+  await supabaseAdmin.from("activity_logs").insert([
+    {
+      action,
+      metadata,
+    },
+  ]);
 }
 
 async function findMemberForStripeEmail(email?: string | null, fallbackMemberId?: string | null) {
@@ -167,16 +169,28 @@ async function updateMemberSubscriptionStatus(input: {
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
 }) {
+  const memberUpdate: {
+    last_payment_date: string | null;
+    status?: "active";
+    status_payment: "On Time" | "Late" | "Pending";
+    stripe_customer_id: string | null;
+    stripe_subscription_id: string | null;
+    subscription_active: boolean;
+  } = {
+    last_payment_date: input.statusPayment === "On Time" ? getCurrentNewYorkDate() : null,
+    status_payment: input.statusPayment,
+    stripe_customer_id: input.stripeCustomerId ?? null,
+    stripe_subscription_id: input.stripeSubscriptionId ?? null,
+    subscription_active: input.subscriptionActive,
+  };
+
+  if (input.statusPayment === "On Time") {
+    memberUpdate.status = "active";
+  }
+
   await supabaseAdmin
     .from("members")
-    .update({
-      status: input.statusPayment === "On Time" ? "active" : undefined,
-      status_payment: input.statusPayment,
-      last_payment_date: input.statusPayment === "On Time" ? getCurrentNewYorkDate() : null,
-      subscription_active: input.subscriptionActive,
-      stripe_customer_id: input.stripeCustomerId ?? null,
-      stripe_subscription_id: input.stripeSubscriptionId ?? null,
-    })
+    .update(memberUpdate)
     .eq("id", input.memberId);
 }
 

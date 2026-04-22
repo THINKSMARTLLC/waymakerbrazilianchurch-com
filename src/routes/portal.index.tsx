@@ -310,9 +310,8 @@ function MemberDashboard() {
               <button
                 disabled={!memberId || billingStatus?.subscription_active || subscribing}
                 onClick={handleSubscribe}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex w-full items-center justify-center rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <Heart className="h-4 w-4" />
                 {billingStatus?.subscription_active ? "Active" : subscribing ? "Redirecting..." : "Subscribe $20/week"}
               </button>
             </div>

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import Stripe from "stripe";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { Json } from "@/integrations/supabase/types";
 import { getCurrentNewYorkDate } from "@/lib/stripe-subscriptions.functions";
 
 const corsHeaders = {
@@ -21,6 +22,197 @@ function getStripeClient() {
   });
 }
 
+function normalizeEmail(email?: string | null) {
+  return email?.trim().toLowerCase() ?? null;
+}
+
+function getNewYorkDateFromUnix(timestamp?: number | null) {
+  if (!timestamp) return getCurrentNewYorkDate();
+
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(timestamp * 1000));
+}
+
+async function logStripeEvent(action: string, metadata: Record<string, unknown>) {
+  await supabaseAdmin.from("activity_logs").insert([
+    {
+      action,
+      metadata: metadata as Json,
+    },
+  ]);
+}
+
+async function findMemberForStripeEmail(email?: string | null, fallbackMemberId?: string | null) {
+  const normalizedEmail = normalizeEmail(email);
+
+  if (normalizedEmail) {
+    const { data: members } = await supabaseAdmin
+      .from("members")
+      .select("id, email, status, status_payment, stripe_customer_id, stripe_subscription_id")
+      .ilike("email", normalizedEmail)
+      .limit(2);
+
+    if ((members ?? []).length === 1) {
+      return members?.[0] ?? null;
+    }
+
+    if ((members ?? []).length > 1) {
+      await logStripeEvent("stripe_payment_duplicate_email_match", {
+        email: normalizedEmail,
+        member_ids: members?.map((member) => member.id) ?? [],
+      });
+      return null;
+    }
+  }
+
+  if (!fallbackMemberId) return null;
+
+  const { data: member } = await supabaseAdmin
+    .from("members")
+    .select("id, email, status, status_payment, stripe_customer_id, stripe_subscription_id")
+    .eq("id", fallbackMemberId)
+    .maybeSingle();
+
+  return member ?? null;
+}
+
+async function paymentAlreadyRegistered(memberId: string, externalPaymentId: string, paymentDate: string) {
+  const { data: existing } = await supabaseAdmin
+    .from("payments")
+    .select("id")
+    .eq("member_id", memberId)
+    .eq("payment_date", paymentDate)
+    .eq("payment_method", "stripe")
+    .eq("contribution_type", "pastor_salary")
+    .eq("status", "paid")
+    .limit(1);
+
+  if ((existing?.length ?? 0) > 0) {
+    return true;
+  }
+
+  const { data: exactEventMatch } = await supabaseAdmin
+    .from("payments")
+    .select("id")
+    .eq("member_id", memberId)
+    .ilike("notes", `%${externalPaymentId}%`)
+    .limit(1);
+
+  return (exactEventMatch?.length ?? 0) > 0;
+}
+
+async function registerMatchedStripePayment(input: {
+  amount: number;
+  email?: string | null;
+  eventType: string;
+  externalPaymentId: string;
+  memberId: string;
+  paymentDate: string;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+}) {
+  const alreadyRegistered = await paymentAlreadyRegistered(
+    input.memberId,
+    input.externalPaymentId,
+    input.paymentDate,
+  );
+
+  if (alreadyRegistered) {
+    await logStripeEvent("stripe_payment_duplicate_ignored", {
+      email: normalizeEmail(input.email),
+      event_type: input.eventType,
+      member_id: input.memberId,
+      payment_date: input.paymentDate,
+      stripe_payment_id: input.externalPaymentId,
+    });
+    return;
+  }
+
+  const { data: payment, error: paymentError } = await supabaseAdmin
+    .from("payments")
+    .insert({
+      amount: input.amount,
+      base_amount: input.amount,
+      contribution_type: "pastor_salary",
+      extra_amount: 0,
+      member_id: input.memberId,
+      notes: `Stripe payment ID: ${input.externalPaymentId} | Event: ${input.eventType}`,
+      payment_date: input.paymentDate,
+      payment_frequency: "weekly",
+      payment_method: "stripe",
+      reference_month: null,
+      status: "paid",
+      stripe_subscription_id: input.stripeSubscriptionId ?? null,
+    })
+    .select("id")
+    .single();
+
+  if (paymentError || !payment) {
+    throw new Error(paymentError?.message ?? "Failed to register Stripe payment.");
+  }
+
+  await supabaseAdmin.from("payment_contributions").insert({
+    amount: input.amount,
+    contribution_type: "pastor_salary",
+    destination: null,
+    payment_id: payment.id,
+  });
+
+  await logStripeEvent("stripe_payment_matched", {
+    amount: input.amount,
+    email: normalizeEmail(input.email),
+    event_type: input.eventType,
+    member_id: input.memberId,
+    payment_date: input.paymentDate,
+    stripe_customer_id: input.stripeCustomerId ?? null,
+    stripe_payment_id: input.externalPaymentId,
+    stripe_subscription_id: input.stripeSubscriptionId ?? null,
+  });
+}
+
+async function resolveCustomerEmail(
+  stripe: Stripe,
+  input: {
+    checkoutEmail?: string | null;
+    customerEmail?: string | null;
+    customerId?: string | null;
+  },
+) {
+  const directEmail = normalizeEmail(input.checkoutEmail ?? input.customerEmail);
+  if (directEmail) return directEmail;
+
+  if (!input.customerId) return null;
+
+  const customer = await stripe.customers.retrieve(input.customerId);
+  if (customer.deleted) return null;
+
+  return normalizeEmail(customer.email);
+}
+
+async function markUnmatchedStripePayment(input: {
+  amount: number;
+  email?: string | null;
+  eventType: string;
+  externalPaymentId: string;
+  paymentDate: string;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+}) {
+  await logStripeEvent("stripe_payment_unmatched", {
+    amount: input.amount,
+    email: normalizeEmail(input.email),
+    event_type: input.eventType,
+    payment_date: input.paymentDate,
+    stripe_customer_id: input.stripeCustomerId ?? null,
+    stripe_payment_id: input.externalPaymentId,
+    stripe_subscription_id: input.stripeSubscriptionId ?? null,
+  });
+}
+
 async function updateMemberSubscriptionStatus(input: {
   memberId: string;
   statusPayment: "On Time" | "Late" | "Pending";
@@ -28,15 +220,28 @@ async function updateMemberSubscriptionStatus(input: {
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
 }) {
+  const memberUpdate: {
+    last_payment_date: string | null;
+    status?: "active";
+    status_payment: "On Time" | "Late" | "Pending";
+    stripe_customer_id: string | null;
+    stripe_subscription_id: string | null;
+    subscription_active: boolean;
+  } = {
+    last_payment_date: input.statusPayment === "On Time" ? getCurrentNewYorkDate() : null,
+    status_payment: input.statusPayment,
+    stripe_customer_id: input.stripeCustomerId ?? null,
+    stripe_subscription_id: input.stripeSubscriptionId ?? null,
+    subscription_active: input.subscriptionActive,
+  };
+
+  if (input.statusPayment === "On Time") {
+    memberUpdate.status = "active";
+  }
+
   await supabaseAdmin
     .from("members")
-    .update({
-      status_payment: input.statusPayment,
-      last_payment_date: input.statusPayment === "On Time" ? getCurrentNewYorkDate() : null,
-      subscription_active: input.subscriptionActive,
-      stripe_customer_id: input.stripeCustomerId ?? null,
-      stripe_subscription_id: input.stripeSubscriptionId ?? null,
-    })
+    .update(memberUpdate)
     .eq("id", input.memberId);
 }
 
@@ -57,18 +262,93 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
 
           const event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
 
+          if (event.type === "checkout.session.completed") {
+            const session = event.data.object;
+            const email = await resolveCustomerEmail(stripe, {
+              checkoutEmail: session.customer_details?.email ?? session.customer_email ?? null,
+              customerId: typeof session.customer === "string" ? session.customer : session.customer?.id ?? null,
+            });
+            const stripeCustomerId = typeof session.customer === "string" ? session.customer : session.customer?.id ?? null;
+            const stripeSubscriptionId = typeof session.subscription === "string"
+              ? session.subscription
+              : session.subscription?.id ?? null;
+            const paymentDate = getNewYorkDateFromUnix(session.created);
+            const member = await findMemberForStripeEmail(email, session.metadata?.memberId ?? null);
+
+            if (!member) {
+              await markUnmatchedStripePayment({
+                amount: (session.amount_total ?? 0) / 100,
+                email,
+                eventType: event.type,
+                externalPaymentId: session.payment_intent?.toString() ?? session.id,
+                paymentDate,
+                stripeCustomerId,
+                stripeSubscriptionId,
+              });
+            } else {
+              await updateMemberSubscriptionStatus({
+                memberId: member.id,
+                statusPayment: "On Time",
+                subscriptionActive: Boolean(stripeSubscriptionId) || member.stripe_subscription_id !== null,
+                stripeCustomerId,
+                stripeSubscriptionId,
+              });
+
+              await registerMatchedStripePayment({
+                amount: (session.amount_total ?? 0) / 100,
+                email,
+                eventType: event.type,
+                externalPaymentId: session.payment_intent?.toString() ?? session.id,
+                memberId: member.id,
+                paymentDate,
+                stripeCustomerId,
+                stripeSubscriptionId,
+              });
+            }
+          }
+
           if (event.type === "invoice.paid") {
             const invoice = event.data.object;
-            const memberId = invoice.parent?.subscription_details?.metadata?.memberId ?? invoice.lines.data[0]?.metadata?.memberId;
-            if (memberId) {
+            const stripeCustomerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id ?? null;
+            const stripeSubscriptionId = typeof invoice.parent?.subscription_details?.subscription === "string"
+              ? invoice.parent.subscription_details.subscription
+              : invoice.parent?.subscription_details?.subscription?.id ?? null;
+            const email = await resolveCustomerEmail(stripe, {
+              customerEmail: invoice.customer_email,
+              customerId: stripeCustomerId,
+            });
+            const memberId = invoice.parent?.subscription_details?.metadata?.memberId ?? invoice.lines.data[0]?.metadata?.memberId ?? null;
+            const member = await findMemberForStripeEmail(email, memberId);
+            const paymentDate = getNewYorkDateFromUnix(invoice.status_transitions.paid_at ?? invoice.created);
+
+            if (!member) {
+              await markUnmatchedStripePayment({
+                amount: (invoice.amount_paid ?? 0) / 100,
+                email,
+                eventType: event.type,
+                externalPaymentId: invoice.id,
+                paymentDate,
+                stripeCustomerId,
+                stripeSubscriptionId,
+              });
+            } else {
               await updateMemberSubscriptionStatus({
-                memberId,
+                memberId: member.id,
                 statusPayment: "On Time",
                 subscriptionActive: true,
-                stripeCustomerId: typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id ?? null,
-                stripeSubscriptionId: typeof invoice.parent?.subscription_details?.subscription === "string"
-                  ? invoice.parent.subscription_details.subscription
-                  : invoice.parent?.subscription_details?.subscription?.id ?? null,
+                stripeCustomerId,
+                stripeSubscriptionId,
+              });
+
+              await registerMatchedStripePayment({
+                amount: (invoice.amount_paid ?? 0) / 100,
+                email,
+                eventType: event.type,
+                externalPaymentId: invoice.id,
+                memberId: member.id,
+                paymentDate,
+                stripeCustomerId,
+                stripeSubscriptionId,
               });
             }
           }

@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Activity, Users, AlertCircle, Plus, MapPin, Calendar, Settings2, Pencil, X } from "lucide-react";
+import { Activity, Users, AlertCircle, Plus, MapPin, Calendar, Settings2, Pencil, X, Check, XCircle, Clock } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "@/components/StatCard";
 import {
@@ -44,6 +46,8 @@ interface ActivityRow {
   created_at: string;
   notes: string | null;
   event_type_id: string | null;
+  status: "pending" | "approved" | "rejected";
+  photo_url: string | null;
 }
 
 interface EventTypeRow {
@@ -81,7 +85,7 @@ function EngagementDashboard() {
       supabase.from("members").select("id, name, email, status").eq("status", "active").order("name"),
       supabase
         .from("member_activities")
-        .select("id, member_id, activity_type, activity_date, source, created_at, notes, event_type_id")
+        .select("id, member_id, activity_type, activity_date, source, created_at, notes, event_type_id, status, photo_url")
         .order("activity_date", { ascending: false }),
       supabase.from("church_settings").select("inactivity_days").maybeSingle(),
       supabase.from("event_types").select("id, name, category, base_activity_type, icon, active").order("name"),

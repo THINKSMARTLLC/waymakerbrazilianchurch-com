@@ -35,6 +35,7 @@ import { Route as PortalContributionsRouteImport } from './routes/portal.contrib
 import { Route as MembersArchiveRouteImport } from './routes/members.archive'
 import { Route as MembersMemberIdRouteImport } from './routes/members.$memberId'
 import { Route as EngagementVisitsRouteImport } from './routes/engagement.visits'
+import { Route as EngagementReviewRouteImport } from './routes/engagement.review'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
@@ -173,6 +174,11 @@ const EngagementVisitsRoute = EngagementVisitsRouteImport.update({
   path: '/engagement/visits',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EngagementReviewRoute = EngagementReviewRouteImport.update({
+  id: '/engagement/review',
+  path: '/engagement/review',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
@@ -226,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/success': typeof SuccessRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/engagement/review': typeof EngagementReviewRoute
   '/engagement/visits': typeof EngagementVisitsRoute
   '/members/$memberId': typeof MembersMemberIdRoute
   '/members/archive': typeof MembersArchiveRoute
@@ -259,6 +266,7 @@ export interface FileRoutesByTo {
   '/success': typeof SuccessRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/engagement/review': typeof EngagementReviewRoute
   '/engagement/visits': typeof EngagementVisitsRoute
   '/members/$memberId': typeof MembersMemberIdRoute
   '/members/archive': typeof MembersArchiveRoute
@@ -294,6 +302,7 @@ export interface FileRoutesById {
   '/success': typeof SuccessRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/engagement/review': typeof EngagementReviewRoute
   '/engagement/visits': typeof EngagementVisitsRoute
   '/members/$memberId': typeof MembersMemberIdRoute
   '/members/archive': typeof MembersArchiveRoute
@@ -330,6 +339,7 @@ export interface FileRouteTypes {
     | '/success'
     | '/unsubscribe'
     | '/email/unsubscribe'
+    | '/engagement/review'
     | '/engagement/visits'
     | '/members/$memberId'
     | '/members/archive'
@@ -363,6 +373,7 @@ export interface FileRouteTypes {
     | '/success'
     | '/unsubscribe'
     | '/email/unsubscribe'
+    | '/engagement/review'
     | '/engagement/visits'
     | '/members/$memberId'
     | '/members/archive'
@@ -397,6 +408,7 @@ export interface FileRouteTypes {
     | '/success'
     | '/unsubscribe'
     | '/email/unsubscribe'
+    | '/engagement/review'
     | '/engagement/visits'
     | '/members/$memberId'
     | '/members/archive'
@@ -432,6 +444,7 @@ export interface RootRouteChildren {
   SuccessRoute: typeof SuccessRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
+  EngagementReviewRoute: typeof EngagementReviewRoute
   EngagementVisitsRoute: typeof EngagementVisitsRoute
   MembersMemberIdRoute: typeof MembersMemberIdRoute
   MembersArchiveRoute: typeof MembersArchiveRoute
@@ -629,6 +642,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngagementVisitsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/engagement/review': {
+      id: '/engagement/review'
+      path: '/engagement/review'
+      fullPath: '/engagement/review'
+      preLoaderRoute: typeof EngagementReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/email/unsubscribe': {
       id: '/email/unsubscribe'
       path: '/email/unsubscribe'
@@ -708,6 +728,7 @@ const rootRouteChildren: RootRouteChildren = {
   SuccessRoute: SuccessRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
+  EngagementReviewRoute: EngagementReviewRoute,
   EngagementVisitsRoute: EngagementVisitsRoute,
   MembersMemberIdRoute: MembersMemberIdRoute,
   MembersArchiveRoute: MembersArchiveRoute,

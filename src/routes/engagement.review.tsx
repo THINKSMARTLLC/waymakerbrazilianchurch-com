@@ -38,7 +38,7 @@ const PLATFORM_LABELS: Record<Platform, string> = {
 };
 
 function EngagementReviewPage() {
-  const { isActiveStaff, loading: roleLoading } = useUserRole();
+  const { isStaff, loading: roleLoading } = useUserRole();
   const [rows, setRows] = useState<Row[]>([]);
   const [filter, setFilter] = useState<Status | "all">("pending");
   const [loading, setLoading] = useState(true);
@@ -58,8 +58,8 @@ function EngagementReviewPage() {
   };
 
   useEffect(() => {
-    if (isActiveStaff) load();
-  }, [isActiveStaff, filter]);
+    if (isStaff) load();
+  }, [isStaff, filter]);
 
   const review = async (id: string, status: Status) => {
     const { data: auth } = await supabase.auth.getUser();
@@ -76,7 +76,7 @@ function EngagementReviewPage() {
   };
 
   if (roleLoading) return <div className="p-6 text-sm text-muted-foreground">Loading...</div>;
-  if (!isActiveStaff) return <div className="p-6 text-sm text-destructive">Access denied.</div>;
+  if (!isStaff) return <div className="p-6 text-sm text-destructive">Access denied.</div>;
 
   return (
     <div className="space-y-4">

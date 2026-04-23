@@ -358,8 +358,10 @@ function MemberProfilePage() {
       })()}
 
       <div className="card-elevated overflow-hidden">
+        <div className="p-5 border-b border-border">
+          <h3 className="font-display text-base font-medium text-foreground">{t("memberProfile.paymentHistory")}</h3>
+        </div>
 
-        {payments.length === 0 ? (
           <div className="py-8 text-center text-sm text-muted-foreground">{t("memberProfile.noPayments")}</div>
         ) : (
           <table className="w-full">

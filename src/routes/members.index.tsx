@@ -789,12 +789,16 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
     onClose();
   };
 
+  // "Keep existing" in the inline warning now means: confirm UPDATE the existing record.
   const handleKeepExisting = (_match: DuplicateMatch) => {
-    onClose();
+    setDuplicateResolution("update");
+    setError("");
   };
 
   const handleMerge = (match: DuplicateMatch) => {
     if (!match.member) return;
+    setDuplicateResolution("merge");
+    setError("");
     setMergeWith(match.member);
   };
 

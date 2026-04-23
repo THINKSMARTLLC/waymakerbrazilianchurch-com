@@ -44,6 +44,69 @@ export type Database = {
         }
         Relationships: []
       }
+      bible_notes: {
+        Row: {
+          book: string
+          chapter: number
+          created_at: string
+          id: string
+          member_id: string
+          note_text: string
+          share_with_pastor: boolean
+          updated_at: string
+          verse: number
+        }
+        Insert: {
+          book: string
+          chapter: number
+          created_at?: string
+          id?: string
+          member_id: string
+          note_text?: string
+          share_with_pastor?: boolean
+          updated_at?: string
+          verse: number
+        }
+        Update: {
+          book?: string
+          chapter?: number
+          created_at?: string
+          id?: string
+          member_id?: string
+          note_text?: string
+          share_with_pastor?: boolean
+          updated_at?: string
+          verse?: number
+        }
+        Relationships: []
+      }
+      bible_readings: {
+        Row: {
+          book: string
+          chapter: number
+          created_at: string
+          id: string
+          member_id: string
+          read_date: string
+        }
+        Insert: {
+          book: string
+          chapter: number
+          created_at?: string
+          id?: string
+          member_id: string
+          read_date: string
+        }
+        Update: {
+          book?: string
+          chapter?: number
+          created_at?: string
+          id?: string
+          member_id?: string
+          read_date?: string
+        }
+        Relationships: []
+      }
       church_settings: {
         Row: {
           address: string | null
@@ -80,6 +143,77 @@ export type Database = {
           singleton?: boolean
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      devotional_completions: {
+        Row: {
+          completed_date: string
+          created_at: string
+          devotional_id: string
+          id: string
+          member_id: string
+        }
+        Insert: {
+          completed_date: string
+          created_at?: string
+          devotional_id: string
+          id?: string
+          member_id: string
+        }
+        Update: {
+          completed_date?: string
+          created_at?: string
+          devotional_id?: string
+          id?: string
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devotional_completions_devotional_id_fkey"
+            columns: ["devotional_id"]
+            isOneToOne: false
+            referencedRelation: "devotionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devotionals: {
+        Row: {
+          application: string
+          bible_reference: string
+          created_at: string
+          devotional_date: string
+          id: string
+          language: string
+          prayer: string
+          reflection: string
+          title: string
+          verse_text: string | null
+        }
+        Insert: {
+          application: string
+          bible_reference: string
+          created_at?: string
+          devotional_date: string
+          id?: string
+          language?: string
+          prayer: string
+          reflection: string
+          title: string
+          verse_text?: string | null
+        }
+        Update: {
+          application?: string
+          bible_reference?: string
+          created_at?: string
+          devotional_date?: string
+          id?: string
+          language?: string
+          prayer?: string
+          reflection?: string
+          title?: string
+          verse_text?: string | null
         }
         Relationships: []
       }

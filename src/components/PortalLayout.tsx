@@ -1,5 +1,5 @@
 import { Link, useLocation, Outlet } from "@tanstack/react-router";
-import { LayoutDashboard, User, History, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, User, History, LogOut, Menu, X, BookOpen } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,6 +18,7 @@ export function PortalLayout() {
 
   const navItems = [
     { label: t("nav.dashboard"), to: "/portal" as const, icon: LayoutDashboard },
+    { label: "Bíblia", to: "/portal/bible" as const, icon: BookOpen },
     { label: t("nav.contributions"), to: "/portal/contributions" as const, icon: History },
     { label: t("nav.profile"), to: "/portal/profile" as const, icon: User },
   ];

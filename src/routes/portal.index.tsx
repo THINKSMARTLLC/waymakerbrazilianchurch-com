@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { StatCard } from "@/components/StatCard";
 import { JourneyPath } from "@/components/JourneyPath";
 import { CheckInModal } from "@/components/CheckInModal";
+import { SocialEngagement } from "@/components/SocialEngagement";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatUSD } from "@/lib/format";
@@ -325,6 +326,8 @@ function MemberDashboard() {
           </div>
         </div>
       </div>
+
+      {memberId && <SocialEngagement memberId={memberId} />}
 
       {memberId && (
         <div className="card-elevated p-5">

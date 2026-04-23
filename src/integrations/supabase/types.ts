@@ -497,6 +497,62 @@ export type Database = {
           },
         ]
       }
+      social_engagements: {
+        Row: {
+          action_type: Database["public"]["Enums"]["social_action_type"]
+          created_at: string
+          id: string
+          member_id: string
+          platform: Database["public"]["Enums"]["social_platform"]
+          points: number
+          proof_link: string | null
+          proof_url: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewer_notes: string | null
+          status: Database["public"]["Enums"]["engagement_status"]
+          updated_at: string
+        }
+        Insert: {
+          action_type: Database["public"]["Enums"]["social_action_type"]
+          created_at?: string
+          id?: string
+          member_id: string
+          platform: Database["public"]["Enums"]["social_platform"]
+          points?: number
+          proof_link?: string | null
+          proof_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: Database["public"]["Enums"]["engagement_status"]
+          updated_at?: string
+        }
+        Update: {
+          action_type?: Database["public"]["Enums"]["social_action_type"]
+          created_at?: string
+          id?: string
+          member_id?: string
+          platform?: Database["public"]["Enums"]["social_platform"]
+          points?: number
+          proof_link?: string | null
+          proof_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: Database["public"]["Enums"]["engagement_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_engagements_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           created_at: string
@@ -686,6 +742,7 @@ export type Database = {
         | "special_donation"
         | "event_contribution"
         | "other"
+      engagement_status: "pending" | "approved" | "rejected"
       member_status: "active" | "inactive"
       payment_frequency: "weekly" | "monthly"
       payment_method:
@@ -698,6 +755,20 @@ export type Database = {
         | "other"
       payment_status: "paid" | "pending" | "past_due"
       payment_type: "card" | "cash"
+      social_action_type:
+        | "visit"
+        | "follow"
+        | "like"
+        | "comment"
+        | "subscribe"
+        | "watch"
+        | "review"
+      social_platform:
+        | "website"
+        | "instagram"
+        | "facebook"
+        | "youtube"
+        | "google_review"
       subscription_status: "active" | "canceled" | "past_due"
       visit_status: "scheduled" | "completed" | "cancelled"
     }
@@ -851,6 +922,7 @@ export const Constants = {
         "event_contribution",
         "other",
       ],
+      engagement_status: ["pending", "approved", "rejected"],
       member_status: ["active", "inactive"],
       payment_frequency: ["weekly", "monthly"],
       payment_method: [
@@ -864,6 +936,22 @@ export const Constants = {
       ],
       payment_status: ["paid", "pending", "past_due"],
       payment_type: ["card", "cash"],
+      social_action_type: [
+        "visit",
+        "follow",
+        "like",
+        "comment",
+        "subscribe",
+        "watch",
+        "review",
+      ],
+      social_platform: [
+        "website",
+        "instagram",
+        "facebook",
+        "youtube",
+        "google_review",
+      ],
       subscription_status: ["active", "canceled", "past_due"],
       visit_status: ["scheduled", "completed", "cancelled"],
     },

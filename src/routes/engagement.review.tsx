@@ -41,6 +41,7 @@ function EngagementReviewPage() {
   const { isStaff, loading: roleLoading } = useUserRole();
   const [rows, setRows] = useState<Row[]>([]);
   const [filter, setFilter] = useState<Status | "all">("pending");
+  const [memberFilter, setMemberFilter] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
@@ -49,7 +50,7 @@ function EngagementReviewPage() {
       .from("social_engagements")
       .select("id, member_id, platform, action_type, proof_url, proof_link, points, status, created_at, member:members(name, email)")
       .order("created_at", { ascending: false })
-      .limit(100);
+      .limit(200);
     if (filter !== "all") query = query.eq("status", filter);
     const { data, error } = await query;
     if (error) toast.error(error.message);
@@ -60,6 +61,16 @@ function EngagementReviewPage() {
   useEffect(() => {
     if (isStaff) load();
   }, [isStaff, filter]);
+
+  const filteredRows = memberFilter.trim()
+    ? rows.filter((r) => {
+        const q = memberFilter.toLowerCase();
+        return (
+          (r.member?.name?.toLowerCase().includes(q) ?? false) ||
+          (r.member?.email?.toLowerCase().includes(q) ?? false)
+        );
+      })
+    : rows;
 
   const review = async (id: string, status: Status) => {
     const { data: auth } = await supabase.auth.getUser();
@@ -85,7 +96,14 @@ function EngagementReviewPage() {
           <h2 className="font-display text-2xl font-semibold text-foreground">Social Engagement Review</h2>
           <p className="text-sm text-muted-foreground">Approve or reject member submissions.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center flex-wrap">
+          <input
+            type="text"
+            value={memberFilter}
+            onChange={(e) => setMemberFilter(e.target.value)}
+            placeholder="Filter by member name or email..."
+            className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm w-64"
+          />
           {(["pending", "approved", "rejected", "all"] as const).map((f) => (
             <button
               key={f}
@@ -103,11 +121,11 @@ function EngagementReviewPage() {
       <div className="card-elevated p-5">
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading...</p>
-        ) : rows.length === 0 ? (
+        ) : filteredRows.length === 0 ? (
           <p className="text-sm text-muted-foreground">No submissions.</p>
         ) : (
           <ul className="divide-y divide-border">
-            {rows.map((r) => (
+            {filteredRows.map((r) => (
               <li key={r.id} className="py-4 flex items-start gap-4 flex-wrap">
                 <div className="flex-1 min-w-[220px]">
                   <p className="text-sm font-medium text-foreground">

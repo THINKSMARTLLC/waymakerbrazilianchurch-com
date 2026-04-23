@@ -251,7 +251,7 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
         // ignore — not all browsers support files
       }
     }
-    if (navigator.share) {
+    if (typeof navigator.share === "function") {
       try {
         await navigator.share(shareData);
         return;
@@ -271,7 +271,7 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
   const handleShareInstagram = async () => {
     // Instagram has no web share intent on desktop; copy text + open IG
     await navigator.clipboard?.writeText(buildShareText()).catch(() => undefined);
-    if (navigator.share) {
+    if (typeof navigator.share === "function") {
       // On mobile, prefer the native share sheet (user can pick Instagram)
       void handleShareNative();
       return;

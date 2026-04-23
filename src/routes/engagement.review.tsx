@@ -131,6 +131,19 @@ function EngagementReviewPage() {
     if (isStaff) load();
   }, [isStaff, filter]);
 
+  // Realtime: auto-refresh when any activity/engagement changes
+  useEffect(() => {
+    if (!isStaff) return;
+    const channel = supabase
+      .channel("engagement-review-feed")
+      .on("postgres_changes", { event: "*", schema: "public", table: "member_activities" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "social_engagements" }, () => load())
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isStaff, filter]);
+
   const filteredRows = memberFilter.trim()
     ? rows.filter((r) => {
         const q = memberFilter.toLowerCase();

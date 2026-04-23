@@ -391,7 +391,7 @@ function ProofModal({
       }
 
       console.info("[SocialEngagement] saved", inserted);
-      toast.success("Your activity is under review");
+      toast.success(platform.key === "google_review" ? "Your review is under verification 🙌" : "Your activity is under review");
       onSuccess();
     } catch (err) {
       console.error("[SocialEngagement] submit error", err);

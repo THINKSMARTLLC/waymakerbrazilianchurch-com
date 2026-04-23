@@ -392,7 +392,6 @@ export async function executeImport(decisions: ImportDecision[]): Promise<Import
       });
       if (error) result.failed.push({ row: d.row, error: error.message });
       else result.created++;
-    }
     } else if (d.action === "update" && d.updateMemberId) {
       // Safe merge: NEVER overwrite the existing email or id.
       const patch: Database["public"]["Tables"]["members"]["Update"] = {};

@@ -184,6 +184,28 @@ function EngagementDashboard() {
     setDateTo("");
   };
 
+  const reviewActivity = async (id: string, decision: "approved" | "rejected") => {
+    const { error } = await supabase
+      .from("member_activities")
+      .update({
+        status: decision,
+        approved_at: decision === "approved" ? new Date().toISOString() : null,
+        approved_by: decision === "approved" ? user?.id ?? null : null,
+      })
+      .eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(decision === "approved" ? "Atividade aprovada" : "Atividade rejeitada");
+    load();
+  };
+
+  const pendingActivities = useMemo(
+    () => activities.filter((a) => a.status === "pending"),
+    [activities],
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-4">

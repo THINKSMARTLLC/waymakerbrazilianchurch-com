@@ -29,6 +29,7 @@ export function AppLayout() {
 
   const baseNavItems = [
     { label: t("nav.dashboard"), to: "/dashboard" as const, icon: LayoutDashboard },
+    { label: "Pastoral", to: "/pastoral" as const, icon: Heart },
     { label: t("nav.members"), to: "/members" as const, icon: Users },
     { label: t("nav.engagement"), to: "/engagement" as const, icon: Activity },
     { label: "Engagement Review", to: "/engagement/review" as const, icon: Shield },

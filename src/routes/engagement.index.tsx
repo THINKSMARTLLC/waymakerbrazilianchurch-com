@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Activity, Users, AlertCircle, Plus, MapPin, Calendar, Settings2, Pencil, X } from "lucide-react";
+import { Activity, Users, AlertCircle, Plus, MapPin, Calendar, Settings2, Pencil, X, Check, XCircle, Clock } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "@/components/StatCard";
 import {
@@ -44,6 +46,8 @@ interface ActivityRow {
   created_at: string;
   notes: string | null;
   event_type_id: string | null;
+  status: "pending" | "approved" | "rejected";
+  photo_url: string | null;
 }
 
 interface EventTypeRow {
@@ -59,6 +63,7 @@ type CardFilter = "all" | "checkins7" | "activities30" | "active" | "inactive";
 type LevelFilter = "all" | "high" | "medium" | "low" | "inactive";
 
 function EngagementDashboard() {
+  const { user } = useAuth();
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [activities, setActivities] = useState<ActivityRow[]>([]);
   const [eventTypes, setEventTypes] = useState<EventTypeRow[]>([]);
@@ -81,7 +86,7 @@ function EngagementDashboard() {
       supabase.from("members").select("id, name, email, status").eq("status", "active").order("name"),
       supabase
         .from("member_activities")
-        .select("id, member_id, activity_type, activity_date, source, created_at, notes, event_type_id")
+        .select("id, member_id, activity_type, activity_date, source, created_at, notes, event_type_id, status, photo_url")
         .order("activity_date", { ascending: false }),
       supabase.from("church_settings").select("inactivity_days").maybeSingle(),
       supabase.from("event_types").select("id, name, category, base_activity_type, icon, active").order("name"),
@@ -114,6 +119,7 @@ function EngagementDashboard() {
       map.set(m.id, { last: null, count7: 0, count30: 0, total: 0, points: 0 });
     }
     for (const a of filteredActivities) {
+      if (a.status !== "approved") continue; // only approved counts toward engagement & points
       const entry = map.get(a.member_id);
       if (!entry) continue;
       entry.total += 1;
@@ -125,6 +131,7 @@ function EngagementDashboard() {
     }
     return map;
   }, [members, filteredActivities]);
+
 
   const totalCheckinsWeek = useMemo(
     () => filteredActivities.filter((a) => (daysSince(a.activity_date) ?? 9999) <= 7).length,
@@ -172,6 +179,28 @@ function EngagementDashboard() {
     setDateFrom("");
     setDateTo("");
   };
+
+  const reviewActivity = async (id: string, decision: "approved" | "rejected") => {
+    const { error } = await supabase
+      .from("member_activities")
+      .update({
+        status: decision,
+        approved_at: decision === "approved" ? new Date().toISOString() : null,
+        approved_by: decision === "approved" ? user?.id ?? null : null,
+      })
+      .eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(decision === "approved" ? "Atividade aprovada" : "Atividade rejeitada");
+    load();
+  };
+
+  const pendingActivities = useMemo(
+    () => activities.filter((a) => a.status === "pending"),
+    [activities],
+  );
 
   return (
     <div className="space-y-6">
@@ -223,6 +252,60 @@ function EngagementDashboard() {
           onClick={() => setCardFilter(cardFilter === "inactive" ? "all" : "inactive")}
         />
       </div>
+
+      {pendingActivities.length > 0 && (
+        <div className="card-elevated p-5 border-l-4 border-warning">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-warning" />
+              <h3 className="font-display text-base font-medium text-foreground">
+                Atividades Pendentes ({pendingActivities.length})
+              </h3>
+            </div>
+            <p className="text-xs text-muted-foreground">Aprovar adiciona pontos automaticamente.</p>
+          </div>
+          <ul className="space-y-2">
+            {pendingActivities.slice(0, 10).map((a) => {
+              const member = members.find((m) => m.id === a.member_id);
+              return (
+                <li key={a.id} className="flex items-center justify-between gap-3 text-sm border-b border-border pb-2 last:border-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-lg" aria-hidden>{ACTIVITY_ICON[a.activity_type]}</span>
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground truncate">
+                        {member ? toTitleCase(member.name) : "—"} · {ACTIVITY_LABEL[a.activity_type]}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatLocalDate(a.activity_date)}
+                        {a.notes && ` · ${a.notes}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {a.photo_url && (
+                      <a href={a.photo_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                        Foto
+                      </a>
+                    )}
+                    <button
+                      onClick={() => reviewActivity(a.id, "approved")}
+                      className="inline-flex items-center gap-1 rounded-lg bg-success/15 text-success px-2 py-1 text-xs font-medium hover:bg-success/25"
+                    >
+                      <Check className="h-3 w-3" /> Aprovar
+                    </button>
+                    <button
+                      onClick={() => reviewActivity(a.id, "rejected")}
+                      className="inline-flex items-center gap-1 rounded-lg bg-destructive/15 text-destructive px-2 py-1 text-xs font-medium hover:bg-destructive/25"
+                    >
+                      <XCircle className="h-3 w-3" /> Rejeitar
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       {cardFilter !== "all" && (
         <div className="flex items-center gap-2 text-xs">

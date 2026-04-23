@@ -248,6 +248,8 @@ export type Database = {
         Row: {
           activity_date: string
           activity_type: Database["public"]["Enums"]["activity_type"]
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           event_type_id: string | null
           id: string
@@ -258,10 +260,13 @@ export type Database = {
           photo_url: string | null
           recorded_by: string | null
           source: Database["public"]["Enums"]["activity_source"]
+          status: Database["public"]["Enums"]["activity_status"]
         }
         Insert: {
           activity_date?: string
           activity_type: Database["public"]["Enums"]["activity_type"]
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           event_type_id?: string | null
           id?: string
@@ -272,10 +277,13 @@ export type Database = {
           photo_url?: string | null
           recorded_by?: string | null
           source?: Database["public"]["Enums"]["activity_source"]
+          status?: Database["public"]["Enums"]["activity_status"]
         }
         Update: {
           activity_date?: string
           activity_type?: Database["public"]["Enums"]["activity_type"]
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           event_type_id?: string | null
           id?: string
@@ -286,6 +294,7 @@ export type Database = {
           photo_url?: string | null
           recorded_by?: string | null
           source?: Database["public"]["Enums"]["activity_source"]
+          status?: Database["public"]["Enums"]["activity_status"]
         }
         Relationships: [
           {
@@ -793,6 +802,7 @@ export type Database = {
     Enums: {
       account_status: "pending" | "active" | "suspended"
       activity_source: "self_checkin" | "admin_manual"
+      activity_status: "pending" | "approved" | "rejected"
       activity_type:
         | "attendance"
         | "cell_group"
@@ -977,6 +987,7 @@ export const Constants = {
     Enums: {
       account_status: ["pending", "active", "suspended"],
       activity_source: ["self_checkin", "admin_manual"],
+      activity_status: ["pending", "approved", "rejected"],
       activity_type: [
         "attendance",
         "cell_group",

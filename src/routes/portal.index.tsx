@@ -86,12 +86,13 @@ function MemberDashboard() {
   const [activities, setActivities] = useState<ActivityRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCheckIn, setShowCheckIn] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
 
   const loadActivities = async (mid: string) => {
     const { data } = await supabase
       .from("member_activities")
-      .select("id, activity_type, activity_date, source")
+      .select("id, activity_type, activity_date, source, status")
       .eq("member_id", mid)
       .order("activity_date", { ascending: false })
       .limit(20);

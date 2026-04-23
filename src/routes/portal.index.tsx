@@ -158,6 +158,27 @@ function MemberDashboard() {
     load();
   }, [user]);
 
+  // Realtime: refetch My Activities when any of this member's rows change
+  useEffect(() => {
+    if (!memberId) return;
+    const channel = supabase
+      .channel(`my-activities-${memberId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "member_activities", filter: `member_id=eq.${memberId}` },
+        () => loadActivities(memberId),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "social_engagements", filter: `member_id=eq.${memberId}` },
+        () => loadActivities(memberId),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [memberId]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("payment") !== "success") return;

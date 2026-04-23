@@ -16,6 +16,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as PendingRouteImport } from './routes/pending'
+import { Route as PastoralRouteImport } from './routes/pastoral'
 import { Route as OfertaRouteImport } from './routes/oferta'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ImportExportRouteImport } from './routes/import-export'
@@ -76,6 +77,11 @@ const PortalRoute = PortalRouteImport.update({
 const PendingRoute = PendingRouteImport.update({
   id: '/pending',
   path: '/pending',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PastoralRoute = PastoralRouteImport.update({
+  id: '/pastoral',
+  path: '/pastoral',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OfertaRoute = OfertaRouteImport.update({
@@ -224,6 +230,7 @@ export interface FileRoutesByFullPath {
   '/import-export': typeof ImportExportRoute
   '/login': typeof LoginRoute
   '/oferta': typeof OfertaRoute
+  '/pastoral': typeof PastoralRoute
   '/pending': typeof PendingRoute
   '/portal': typeof PortalRouteWithChildren
   '/reports': typeof ReportsRoute
@@ -259,6 +266,7 @@ export interface FileRoutesByTo {
   '/import-export': typeof ImportExportRoute
   '/login': typeof LoginRoute
   '/oferta': typeof OfertaRoute
+  '/pastoral': typeof PastoralRoute
   '/pending': typeof PendingRoute
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -294,6 +302,7 @@ export interface FileRoutesById {
   '/import-export': typeof ImportExportRoute
   '/login': typeof LoginRoute
   '/oferta': typeof OfertaRoute
+  '/pastoral': typeof PastoralRoute
   '/pending': typeof PendingRoute
   '/portal': typeof PortalRouteWithChildren
   '/reports': typeof ReportsRoute
@@ -331,6 +340,7 @@ export interface FileRouteTypes {
     | '/import-export'
     | '/login'
     | '/oferta'
+    | '/pastoral'
     | '/pending'
     | '/portal'
     | '/reports'
@@ -366,6 +376,7 @@ export interface FileRouteTypes {
     | '/import-export'
     | '/login'
     | '/oferta'
+    | '/pastoral'
     | '/pending'
     | '/reports'
     | '/reset-password'
@@ -400,6 +411,7 @@ export interface FileRouteTypes {
     | '/import-export'
     | '/login'
     | '/oferta'
+    | '/pastoral'
     | '/pending'
     | '/portal'
     | '/reports'
@@ -436,6 +448,7 @@ export interface RootRouteChildren {
   ImportExportRoute: typeof ImportExportRoute
   LoginRoute: typeof LoginRoute
   OfertaRoute: typeof OfertaRoute
+  PastoralRoute: typeof PastoralRoute
   PendingRoute: typeof PendingRoute
   PortalRoute: typeof PortalRouteWithChildren
   ReportsRoute: typeof ReportsRoute
@@ -507,6 +520,13 @@ declare module '@tanstack/react-router' {
       path: '/pending'
       fullPath: '/pending'
       preLoaderRoute: typeof PendingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pastoral': {
+      id: '/pastoral'
+      path: '/pastoral'
+      fullPath: '/pastoral'
+      preLoaderRoute: typeof PastoralRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/oferta': {
@@ -720,6 +740,7 @@ const rootRouteChildren: RootRouteChildren = {
   ImportExportRoute: ImportExportRoute,
   LoginRoute: LoginRoute,
   OfertaRoute: OfertaRoute,
+  PastoralRoute: PastoralRoute,
   PendingRoute: PendingRoute,
   PortalRoute: PortalRouteWithChildren,
   ReportsRoute: ReportsRoute,

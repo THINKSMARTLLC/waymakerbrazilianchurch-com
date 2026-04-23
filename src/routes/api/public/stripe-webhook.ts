@@ -216,6 +216,7 @@ async function updateMemberSubscriptionStatus(input: {
 }) {
   const memberUpdate: {
     last_payment_date: string | null;
+    payment_type: "card";
     status?: "active";
     status_payment: "On Time" | "Late" | "Pending";
     stripe_customer_id: string | null;

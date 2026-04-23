@@ -347,35 +347,49 @@ export interface ImportResult {
 
 export async function executeImport(decisions: ImportDecision[]): Promise<ImportResult> {
   const result: ImportResult = { created: 0, updated: 0, skipped: 0, failed: [] };
-  const norm = (v: string | null | undefined) =>
-    v ? v.trim().toLowerCase() || null : null;
+  const norm = (v: string | null | undefined) => (v ? v.trim().toLowerCase() || null : null);
+
   for (const d of decisions) {
     if (d.action === "skip") {
       result.skipped++;
       continue;
     }
+
     if (d.action === "create") {
       const email = norm(d.row.email);
       const name = (d.row.name ?? "").trim();
-      // Lookup-first by email — never attempt a duplicate insert.
+
       if (email) {
-        const { data: existing } = await supabase
+        const { data: existing, error: existingError } = await supabase
           .from("members")
-          .select("id")
+          .select("id, created_at")
           .eq("email", email)
+          .order("created_at", { ascending: true })
+          .limit(1)
           .maybeSingle();
+
         if (existing?.id) {
           console.warn(`Duplicate prevented for email: ${email} — updating existing record ${existing.id}`);
-          // Safe merge: name/phone only. NEVER overwrite email or id.
           const patch: Database["public"]["Tables"]["members"]["Update"] = {};
           if (name) patch.name = name;
           if (d.row.phone) patch.phone = d.row.phone;
-          const { error } = await supabase.from("members").update(patch).eq("id", existing.id);
+
+          const { error } = await supabase
+            .from("members")
+            .update(patch)
+            .eq("id", existing.id);
+
           if (error) result.failed.push({ row: d.row, error: error.message });
           else result.updated++;
           continue;
         }
+
+        if (existingError && !/0 rows/i.test(existingError.message)) {
+          result.failed.push({ row: d.row, error: existingError.message });
+          continue;
+        }
       }
+
       const { error } = await supabase.from("members").insert({
         name,
         email,
@@ -384,21 +398,31 @@ export async function executeImport(decisions: ImportDecision[]): Promise<Import
         payment_type: "cash",
         weekly_contribution_usd: 0,
       });
+
       if (error) result.failed.push({ row: d.row, error: error.message });
       else result.created++;
-    } else if (d.action === "update" && d.updateMemberId) {
-      // Safe merge: NEVER overwrite the existing email or id.
+      continue;
+    }
+
+    if (d.action === "update" && d.updateMemberId) {
       const patch: Database["public"]["Tables"]["members"]["Update"] = {};
       if (d.row.phone) patch.phone = d.row.phone;
       if (d.row.name) patch.name = d.row.name.trim();
+
       if (Object.keys(patch).length === 0) {
         result.skipped++;
         continue;
       }
-      const { error } = await supabase.from("members").update(patch).eq("id", d.updateMemberId);
+
+      const { error } = await supabase
+        .from("members")
+        .update(patch)
+        .eq("id", d.updateMemberId);
+
       if (error) result.failed.push({ row: d.row, error: error.message });
       else result.updated++;
     }
   }
+
   return result;
 }

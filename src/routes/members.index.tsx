@@ -664,8 +664,20 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
       return rest;
     };
 
+    const findExistingByEmail = async (email: string) => {
+      const { data, error } = await supabase
+        .from("members")
+        .select("id, created_at")
+        .eq("email", email)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      return { data, error };
+    };
+
     let data: Member | null = null;
     let dbErr: { message: string } | null = null;
+    let createdNew = false;
 
     if (isEditing) {
       // Editing existing: keep original email — don't send email in patch.
@@ -678,42 +690,39 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
       // ever reaches the database layer.
       const emailVal = (payload.email as string | null) || null;
       if (emailVal) {
-        const { data: existing } = await supabase
-          .from("members")
-          .select("id")
-          .eq("email", emailVal)
-          .maybeSingle();
-        if (existing?.id) {
-          console.warn(`Duplicate prevented for email: ${emailVal} — updating existing record ${existing.id}`);
+        const existingRes = await findExistingByEmail(emailVal);
+        if (existingRes.data?.id) {
+          console.warn(`Duplicate prevented for email: ${emailVal} — updating existing record ${existingRes.data.id}`);
           const patch = stripIdentity(payload); // never overwrite email/id
-          const upd = await supabase.from("members").update(patch as never).eq("id", existing.id).select().single();
+          const upd = await supabase.from("members").update(patch as never).eq("id", existingRes.data.id).select().single();
           data = upd.data as Member | null;
           dbErr = upd.error;
+        } else if (existingRes.error && !/0 rows/i.test(existingRes.error.message)) {
+          dbErr = existingRes.error;
         } else {
           const ins = await supabase.from("members").insert(payload as never).select().single();
           data = ins.data as Member | null;
           dbErr = ins.error;
+          createdNew = !ins.error;
         }
       } else {
         const ins = await supabase.from("members").insert(payload as never).select().single();
         data = ins.data as Member | null;
         dbErr = ins.error;
+        createdNew = !ins.error;
       }
 
       // Defensive fallback — if a race still produced a unique violation,
       // resolve it by updating the existing row instead of surfacing an error.
       if (dbErr && /duplicate|unique/i.test(dbErr.message) && emailVal) {
         console.warn(`Duplicate prevented (race) for email: ${emailVal}`);
-        const { data: existing } = await supabase
-          .from("members")
-          .select("id")
-          .eq("email", emailVal)
-          .maybeSingle();
-        if (existing?.id) {
+        const existingRes = await findExistingByEmail(emailVal);
+        if (existingRes.data?.id) {
           const patch = stripIdentity(payload);
-          const upd = await supabase.from("members").update(patch as never).eq("id", existing.id).select().single();
+          const upd = await supabase.from("members").update(patch as never).eq("id", existingRes.data.id).select().single();
           data = upd.data as Member | null;
           dbErr = upd.error;
+          createdNew = false;
         }
       }
     }
@@ -724,8 +733,9 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
       return;
     }
 
-    // For new admin-created members: generate a temp access code and show it.
-    if (!isEditing && data) {
+    // For new admin-created members: generate a temp access code only when a
+    // brand-new row was actually inserted.
+    if (!isEditing && createdNew && data) {
       const code = generateTempAccessCode();
       const identifier = (payload.email as string) || (payload.phone as string) || (payload.name as string);
       setTempCredential({ identifier, code });

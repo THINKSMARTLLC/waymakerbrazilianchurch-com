@@ -122,7 +122,7 @@ export function AppLayout() {
         <nav className="flex-1 space-y-1 px-3 py-4">
           {navItems.map((item) => {
             const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + "/");
-
+            const showBadge = item.to === "/engagement/review" && pendingCount > 0;
 
             return (
               <Link
@@ -132,7 +132,12 @@ export function AppLayout() {
                 onClick={() => setSidebarOpen(false)}
               >
                 <item.icon className="h-5 w-5" />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {showBadge && (
+                  <span className="ml-auto inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-warning px-1.5 py-0.5 text-[10px] font-semibold text-warning-foreground">
+                    {pendingCount > 99 ? "99+" : pendingCount}
+                  </span>
+                )}
               </Link>
             );
           })}

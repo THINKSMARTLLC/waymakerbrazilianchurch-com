@@ -787,6 +787,7 @@ export type Database = {
       is_non_super_staff: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      merge_members_by_email: { Args: { _email: string }; Returns: string }
       move_to_dlq: {
         Args: {
           dlq_name: string

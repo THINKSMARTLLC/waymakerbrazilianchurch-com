@@ -665,14 +665,28 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
       weekly_contribution_usd: weeklyNum,
     };
 
-    // Duplicate detection — only BLOCK on true duplicates. Shared-phone
-    // warnings are informational and should not stop the save.
+    // Duplicate detection — when true duplicates exist, REQUIRE the admin to
+    // explicitly choose a resolution (Update existing or Merge records) before
+    // we proceed. Shared-phone warnings are informational and do not block.
     if (!allowOverride) {
       const found = await runDuplicateCheck(emailRaw, phoneRaw, nameRaw);
       const blocking = found.filter((m) => m.severity === "duplicate");
       if (blocking.length > 0) {
         setPendingPayload(payload);
-        return; // Stop submit — admin must resolve via the warning UI.
+        if (duplicateResolution === "update") {
+          // Admin confirmed: update the existing record (lookup-first in persistMember).
+          await persistMember(payload);
+          return;
+        }
+        if (duplicateResolution === "merge") {
+          // Open merge modal with the first blocking match.
+          const target = blocking.find((m) => m.source === "member" && m.member);
+          if (target?.member) setMergeWith(target.member);
+          return;
+        }
+        // No resolution chosen yet — stop and force the admin to pick one.
+        setError("Duplicate detected. Please choose 'Update existing member' or 'Merge records' below before saving.");
+        return;
       }
     }
 

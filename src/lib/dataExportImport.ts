@@ -357,7 +357,7 @@ export async function executeImport(decisions: ImportDecision[]): Promise<Import
     if (d.action === "create") {
       const email = norm(d.row.email);
       const name = (d.row.name ?? "").trim();
-      // If the email already exists, transparently update instead of failing.
+      // Lookup-first by email — never attempt a duplicate insert.
       if (email) {
         const { data: existing } = await supabase
           .from("members")
@@ -365,8 +365,10 @@ export async function executeImport(decisions: ImportDecision[]): Promise<Import
           .eq("email", email)
           .maybeSingle();
         if (existing?.id) {
-          console.warn(`Duplicate prevented for email: ${email}`);
-          const patch: Database["public"]["Tables"]["members"]["Update"] = { name, email };
+          console.warn(`Duplicate prevented for email: ${email} — updating existing record ${existing.id}`);
+          // Safe merge: name/phone only. NEVER overwrite email or id.
+          const patch: Database["public"]["Tables"]["members"]["Update"] = {};
+          if (name) patch.name = name;
           if (d.row.phone) patch.phone = d.row.phone;
           const { error } = await supabase.from("members").update(patch).eq("id", existing.id);
           if (error) result.failed.push({ row: d.row, error: error.message });
@@ -385,10 +387,14 @@ export async function executeImport(decisions: ImportDecision[]): Promise<Import
       if (error) result.failed.push({ row: d.row, error: error.message });
       else result.created++;
     } else if (d.action === "update" && d.updateMemberId) {
+      // Safe merge: NEVER overwrite the existing email or id.
       const patch: Database["public"]["Tables"]["members"]["Update"] = {};
-      if (d.row.email) patch.email = norm(d.row.email);
       if (d.row.phone) patch.phone = d.row.phone;
       if (d.row.name) patch.name = d.row.name.trim();
+      if (Object.keys(patch).length === 0) {
+        result.skipped++;
+        continue;
+      }
       const { error } = await supabase.from("members").update(patch).eq("id", d.updateMemberId);
       if (error) result.failed.push({ row: d.row, error: error.message });
       else result.updated++;

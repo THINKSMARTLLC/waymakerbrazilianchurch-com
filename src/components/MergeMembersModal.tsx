@@ -7,11 +7,12 @@ import { mergeMembers } from "@/lib/duplicates";
 import { toTitleCase } from "@/lib/format";
 import { formatPhoneDisplay } from "@/lib/phone";
 
-type FieldKey = "name" | "email" | "phone" | "address" | "emergency_contact" | "date_of_birth" | "member_role" | "department";
+// SAFE MERGE: email and id are intentionally excluded — the existing
+// record's email is the unique identifier and must never be overwritten.
+type FieldKey = "name" | "phone" | "address" | "emergency_contact" | "date_of_birth" | "member_role" | "department";
 
 const FIELD_LABEL: Record<FieldKey, string> = {
   name: "Name",
-  email: "Email",
   phone: "Phone",
   address: "Address",
   emergency_contact: "Emergency Contact",
@@ -20,7 +21,7 @@ const FIELD_LABEL: Record<FieldKey, string> = {
   department: "Department",
 };
 
-const FIELDS: FieldKey[] = ["name", "email", "phone", "address", "emergency_contact", "date_of_birth", "member_role", "department"];
+const FIELDS: FieldKey[] = ["name", "phone", "address", "emergency_contact", "date_of_birth", "member_role", "department"];
 
 export function MergeMembersModal({
   candidate,

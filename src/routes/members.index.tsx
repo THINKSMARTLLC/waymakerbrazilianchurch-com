@@ -594,6 +594,8 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
   const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
   const [checkingDupes, setCheckingDupes] = useState(false);
   const [allowOverride, setAllowOverride] = useState(false);
+  // Admin's explicit resolution of detected duplicates. Until set, Save is blocked.
+  const [duplicateResolution, setDuplicateResolution] = useState<"update" | "merge" | null>(null);
   const [mergeWith, setMergeWith] = useState<Member | null>(null);
   // Pending submit values used by the merge modal.
   const [pendingPayload, setPendingPayload] = useState<Record<string, unknown> | null>(null);
@@ -616,12 +618,15 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
   const runDuplicateCheck = async (email: string | null, phone: string | null, name: string | null) => {
     if (!email && !phone) {
       setDuplicates([]);
+      setDuplicateResolution(null);
       return [];
     }
     setCheckingDupes(true);
     const found = await findDuplicates({ email, phone, name, excludeMemberId: member?.id });
     setCheckingDupes(false);
     setDuplicates(found);
+    // Any change to detected duplicates clears the prior resolution — admin must reconfirm.
+    setDuplicateResolution(null);
     return found;
   };
 
@@ -660,14 +665,28 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
       weekly_contribution_usd: weeklyNum,
     };
 
-    // Duplicate detection — only BLOCK on true duplicates. Shared-phone
-    // warnings are informational and should not stop the save.
+    // Duplicate detection — when true duplicates exist, REQUIRE the admin to
+    // explicitly choose a resolution (Update existing or Merge records) before
+    // we proceed. Shared-phone warnings are informational and do not block.
     if (!allowOverride) {
       const found = await runDuplicateCheck(emailRaw, phoneRaw, nameRaw);
       const blocking = found.filter((m) => m.severity === "duplicate");
       if (blocking.length > 0) {
         setPendingPayload(payload);
-        return; // Stop submit — admin must resolve via the warning UI.
+        if (duplicateResolution === "update") {
+          // Admin confirmed: update the existing record (lookup-first in persistMember).
+          await persistMember(payload);
+          return;
+        }
+        if (duplicateResolution === "merge") {
+          // Open merge modal with the first blocking match.
+          const target = blocking.find((m) => m.source === "member" && m.member);
+          if (target?.member) setMergeWith(target.member);
+          return;
+        }
+        // No resolution chosen yet — stop and force the admin to pick one.
+        setError("Duplicate detected. Please choose 'Update existing member' or 'Merge records' below before saving.");
+        return;
       }
     }
 
@@ -770,12 +789,16 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
     onClose();
   };
 
+  // "Keep existing" in the inline warning now means: confirm UPDATE the existing record.
   const handleKeepExisting = (_match: DuplicateMatch) => {
-    onClose();
+    setDuplicateResolution("update");
+    setError("");
   };
 
   const handleMerge = (match: DuplicateMatch) => {
     if (!match.member) return;
+    setDuplicateResolution("merge");
+    setError("");
     setMergeWith(match.member);
   };
 
@@ -862,6 +885,12 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
               onMerge={handleMerge}
               onCreateAnyway={handleCreateAnyway}
             />
+          )}
+
+          {duplicates.some((m) => m.severity === "duplicate") && duplicateResolution === "update" && (
+            <div className="rounded-xl border border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950/40 px-4 py-3 text-xs text-emerald-900 dark:text-emerald-100">
+              ✓ Confirmed: clicking Save will <strong>update the existing member</strong> instead of creating a new record.
+            </div>
           )}
 
           <div>
@@ -957,9 +986,30 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
             <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors">
               Cancel
             </button>
-            <button type="submit" disabled={saving || checkingDupes} className="btn-google flex-1 disabled:opacity-50">
-              {saving ? "Saving..." : checkingDupes ? "Checking..." : isEditing ? "Update" : "Save"}
-            </button>
+            {(() => {
+              const hasBlocking = duplicates.some((m) => m.severity === "duplicate");
+              const needsConfirm = hasBlocking && !duplicateResolution && !allowOverride;
+              return (
+                <button
+                  type="submit"
+                  disabled={saving || checkingDupes || needsConfirm}
+                  className="btn-google flex-1 disabled:opacity-50"
+                  title={needsConfirm ? "Choose 'Update existing' or 'Merge records' above to continue" : undefined}
+                >
+                  {saving
+                    ? "Saving..."
+                    : checkingDupes
+                    ? "Checking..."
+                    : needsConfirm
+                    ? "Choose an option above"
+                    : duplicateResolution === "update"
+                    ? "Update existing"
+                    : isEditing
+                    ? "Update"
+                    : "Save"}
+                </button>
+              );
+            })()}
           </div>
         </form>
       </div>

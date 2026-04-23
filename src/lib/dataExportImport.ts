@@ -359,10 +359,12 @@ export async function executeImport(decisions: ImportDecision[]): Promise<Import
       const name = (d.row.name ?? "").trim();
       // Lookup-first by email — never attempt a duplicate insert.
       if (email) {
-        const { data: existing } = await supabase
+        const { data: existing, error: existingError } = await supabase
           .from("members")
-          .select("id")
+          .select("id, created_at")
           .eq("email", email)
+          .order("created_at", { ascending: true })
+          .limit(1)
           .maybeSingle();
         if (existing?.id) {
           console.warn(`Duplicate prevented for email: ${email} — updating existing record ${existing.id}`);
@@ -373,6 +375,10 @@ export async function executeImport(decisions: ImportDecision[]): Promise<Import
           const { error } = await supabase.from("members").update(patch).eq("id", existing.id);
           if (error) result.failed.push({ row: d.row, error: error.message });
           else result.updated++;
+          continue;
+        }
+        if (existingError && !/0 rows/i.test(existingError.message)) {
+          result.failed.push({ row: d.row, error: existingError.message });
           continue;
         }
       }
@@ -386,6 +392,7 @@ export async function executeImport(decisions: ImportDecision[]): Promise<Import
       });
       if (error) result.failed.push({ row: d.row, error: error.message });
       else result.created++;
+    }
     } else if (d.action === "update" && d.updateMemberId) {
       // Safe merge: NEVER overwrite the existing email or id.
       const patch: Database["public"]["Tables"]["members"]["Update"] = {};

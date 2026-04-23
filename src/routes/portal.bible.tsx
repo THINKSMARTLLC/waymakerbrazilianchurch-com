@@ -47,6 +47,58 @@ const BIBLE_BOOKS: { name: string; chapters: number }[] = [
   { name: "3 John", chapters: 1 }, { name: "Jude", chapters: 1 }, { name: "Revelation", chapters: 22 },
 ];
 
+// Map Portuguese / Spanish book names to English (for bible-api.com)
+const BOOK_ALIASES: Record<string, string> = {
+  // Portuguese
+  "genesis": "genesis", "gênesis": "genesis", "exodo": "exodus", "êxodo": "exodus",
+  "levitico": "leviticus", "levítico": "leviticus", "numeros": "numbers", "números": "numbers",
+  "deuteronomio": "deuteronomy", "deuteronomio ": "deuteronomy", "josue": "joshua", "josué": "joshua",
+  "juizes": "judges", "juízes": "judges", "rute": "ruth",
+  "1 samuel": "1 samuel", "2 samuel": "2 samuel",
+  "1 reis": "1 kings", "2 reis": "2 kings",
+  "1 cronicas": "1 chronicles", "1 crônicas": "1 chronicles",
+  "2 cronicas": "2 chronicles", "2 crônicas": "2 chronicles",
+  "esdras": "ezra", "neemias": "nehemiah", "ester": "esther",
+  "jo": "job", "jó": "job", "salmos": "psalms", "salmo": "psalms",
+  "proverbios": "proverbs", "provérbios": "proverbs",
+  "eclesiastes": "ecclesiastes", "cantares": "song of solomon", "canticos": "song of solomon",
+  "isaias": "isaiah", "isaías": "isaiah", "jeremias": "jeremiah",
+  "lamentacoes": "lamentations", "lamentações": "lamentations",
+  "ezequiel": "ezekiel", "daniel": "daniel", "oseias": "hosea", "oséias": "hosea",
+  "joel": "joel", "amos": "amos", "amós": "amos", "obadias": "obadiah",
+  "jonas": "jonah", "miqueias": "micah", "miquéias": "micah",
+  "naum": "nahum", "habacuque": "habakkuk", "sofonias": "zephaniah",
+  "ageu": "haggai", "zacarias": "zechariah", "malaquias": "malachi",
+  "mateus": "matthew", "marcos": "mark", "lucas": "luke", "joao": "john", "joão": "john",
+  "atos": "acts", "romanos": "romans",
+  "1 corintios": "1 corinthians", "1 coríntios": "1 corinthians",
+  "2 corintios": "2 corinthians", "2 coríntios": "2 corinthians",
+  "galatas": "galatians", "gálatas": "galatians",
+  "efesios": "ephesians", "efésios": "ephesians",
+  "filipenses": "philippians", "colossenses": "colossians",
+  "1 tessalonicenses": "1 thessalonians", "2 tessalonicenses": "2 thessalonians",
+  "1 timoteo": "1 timothy", "1 timóteo": "1 timothy",
+  "2 timoteo": "2 timothy", "2 timóteo": "2 timothy",
+  "tito": "titus", "filemom": "philemon", "filemon": "philemon",
+  "hebreus": "hebrews", "tiago": "james",
+  "1 pedro": "1 peter", "2 pedro": "2 peter",
+  "1 joao": "1 john", "1 joão": "1 john",
+  "2 joao": "2 john", "2 joão": "2 john",
+  "3 joao": "3 john", "3 joão": "3 john",
+  "judas": "jude", "apocalipse": "revelation",
+};
+
+function stripAccents(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function toApiBook(name: string): string {
+  const key = stripAccents(name).toLowerCase().trim();
+  const mapped = BOOK_ALIASES[key] ?? BOOK_ALIASES[stripAccents(name).toLowerCase()] ?? key;
+  // bible-api.com expects "+" as separator inside book name too (e.g. "1+samuel")
+  return mapped.replace(/\s+/g, "+");
+}
+
 type Tab = "today" | "bible" | "notes" | "progress";
 type Translation = "web" | "kjv" | "almeida";
 

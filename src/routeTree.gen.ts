@@ -34,6 +34,7 @@ import { Route as EngagementIndexRouteImport } from './routes/engagement.index'
 import { Route as SettingsChurchRouteImport } from './routes/settings.church'
 import { Route as PortalProfileRouteImport } from './routes/portal.profile'
 import { Route as PortalContributionsRouteImport } from './routes/portal.contributions'
+import { Route as PortalBibleRouteImport } from './routes/portal.bible'
 import { Route as MembersArchiveRouteImport } from './routes/members.archive'
 import { Route as MembersMemberIdRouteImport } from './routes/members.$memberId'
 import { Route as EngagementVisitsRouteImport } from './routes/engagement.visits'
@@ -171,6 +172,11 @@ const PortalContributionsRoute = PortalContributionsRouteImport.update({
   path: '/contributions',
   getParentRoute: () => PortalRoute,
 } as any)
+const PortalBibleRoute = PortalBibleRouteImport.update({
+  id: '/bible',
+  path: '/bible',
+  getParentRoute: () => PortalRoute,
+} as any)
 const MembersArchiveRoute = MembersArchiveRouteImport.update({
   id: '/members/archive',
   path: '/members/archive',
@@ -250,6 +256,7 @@ export interface FileRoutesByFullPath {
   '/engagement/visits': typeof EngagementVisitsRoute
   '/members/$memberId': typeof MembersMemberIdRoute
   '/members/archive': typeof MembersArchiveRoute
+  '/portal/bible': typeof PortalBibleRoute
   '/portal/contributions': typeof PortalContributionsRoute
   '/portal/profile': typeof PortalProfileRoute
   '/settings/church': typeof SettingsChurchRoute
@@ -286,6 +293,7 @@ export interface FileRoutesByTo {
   '/engagement/visits': typeof EngagementVisitsRoute
   '/members/$memberId': typeof MembersMemberIdRoute
   '/members/archive': typeof MembersArchiveRoute
+  '/portal/bible': typeof PortalBibleRoute
   '/portal/contributions': typeof PortalContributionsRoute
   '/portal/profile': typeof PortalProfileRoute
   '/settings/church': typeof SettingsChurchRoute
@@ -324,6 +332,7 @@ export interface FileRoutesById {
   '/engagement/visits': typeof EngagementVisitsRoute
   '/members/$memberId': typeof MembersMemberIdRoute
   '/members/archive': typeof MembersArchiveRoute
+  '/portal/bible': typeof PortalBibleRoute
   '/portal/contributions': typeof PortalContributionsRoute
   '/portal/profile': typeof PortalProfileRoute
   '/settings/church': typeof SettingsChurchRoute
@@ -363,6 +372,7 @@ export interface FileRouteTypes {
     | '/engagement/visits'
     | '/members/$memberId'
     | '/members/archive'
+    | '/portal/bible'
     | '/portal/contributions'
     | '/portal/profile'
     | '/settings/church'
@@ -399,6 +409,7 @@ export interface FileRouteTypes {
     | '/engagement/visits'
     | '/members/$memberId'
     | '/members/archive'
+    | '/portal/bible'
     | '/portal/contributions'
     | '/portal/profile'
     | '/settings/church'
@@ -436,6 +447,7 @@ export interface FileRouteTypes {
     | '/engagement/visits'
     | '/members/$memberId'
     | '/members/archive'
+    | '/portal/bible'
     | '/portal/contributions'
     | '/portal/profile'
     | '/settings/church'
@@ -661,6 +673,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalContributionsRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/portal/bible': {
+      id: '/portal/bible'
+      path: '/bible'
+      fullPath: '/portal/bible'
+      preLoaderRoute: typeof PortalBibleRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/members/archive': {
       id: '/members/archive'
       path: '/members/archive'
@@ -735,12 +754,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface PortalRouteChildren {
+  PortalBibleRoute: typeof PortalBibleRoute
   PortalContributionsRoute: typeof PortalContributionsRoute
   PortalProfileRoute: typeof PortalProfileRoute
   PortalIndexRoute: typeof PortalIndexRoute
 }
 
 const PortalRouteChildren: PortalRouteChildren = {
+  PortalBibleRoute: PortalBibleRoute,
   PortalContributionsRoute: PortalContributionsRoute,
   PortalProfileRoute: PortalProfileRoute,
   PortalIndexRoute: PortalIndexRoute,

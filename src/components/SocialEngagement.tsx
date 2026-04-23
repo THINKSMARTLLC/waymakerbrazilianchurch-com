@@ -119,13 +119,43 @@ export function SocialEngagement({ memberId }: Props) {
     if (memberId) load();
   }, [memberId]);
 
+  const [awaitingReturn, setAwaitingReturn] = useState<PlatformConfig | null>(null);
+  const [confirmReturn, setConfirmReturn] = useState<PlatformConfig | null>(null);
+
   const handleClick = (platform: PlatformConfig) => {
+    // Always open in a new tab — never redirect the current app page
     window.open(platform.url, "_blank", "noopener,noreferrer");
-    // Open the proof modal after a small delay so user has a chance to interact
-    setTimeout(() => {
-      setPending({ platform, visitedAt: Date.now() });
-    }, 800);
+
+    if (platform.key === "google_review") {
+      // Wait for the user to come back to the app (focus/visibility regained)
+      setAwaitingReturn(platform);
+    } else {
+      setTimeout(() => {
+        setPending({ platform, visitedAt: Date.now() });
+      }, 800);
+    }
   };
+
+  // Detect when the user returns to the app after visiting Google Review
+  useEffect(() => {
+    if (!awaitingReturn) return;
+    const onReturn = () => {
+      if (document.visibilityState === "visible") {
+        setConfirmReturn(awaitingReturn);
+        setAwaitingReturn(null);
+      }
+    };
+    const onFocus = () => {
+      setConfirmReturn(awaitingReturn);
+      setAwaitingReturn(null);
+    };
+    document.addEventListener("visibilitychange", onReturn);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", onReturn);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [awaitingReturn]);
 
   return (
     <div className="card-elevated p-5">

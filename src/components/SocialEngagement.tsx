@@ -240,7 +240,10 @@ export function SocialEngagement({ memberId }: Props) {
             setConfirmReturn(null);
             setPending({ platform: p, visitedAt: Date.now() });
           }}
-          onNo={() => setConfirmReturn(null)}
+          onNo={() => {
+            try { localStorage.removeItem("pending_review"); } catch {}
+            setConfirmReturn(null);
+          }}
         />
       )}
 
@@ -251,6 +254,7 @@ export function SocialEngagement({ memberId }: Props) {
           userId={user.id}
           onClose={() => setPending(null)}
           onSuccess={() => {
+            try { localStorage.removeItem("pending_review"); } catch {}
             setPending(null);
             load();
           }}

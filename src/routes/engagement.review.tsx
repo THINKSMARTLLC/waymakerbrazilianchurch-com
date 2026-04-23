@@ -41,6 +41,19 @@ const PLATFORM_LABELS: Record<Platform, string> = {
   google_review: "Google Review",
 };
 
+function openExternal(url: string, context?: string) {
+  const trimmed = (url ?? "").trim();
+  if (!trimmed || !/^https?:\/\//i.test(trimmed)) {
+    const isInstagram = (context ?? "").toLowerCase().includes("instagram");
+    toast.error(isInstagram ? "Unable to preview. Open in Instagram" : "Unable to preview this link.");
+    return;
+  }
+  const win = window.open(trimmed, "_blank", "noopener,noreferrer");
+  if (!win) {
+    toast.error("Pop-up blocked. Allow pop-ups to open the link.");
+  }
+}
+
 function EngagementReviewPage() {
   const { isStaff, loading: roleLoading } = useUserRole();
   const [rows, setRows] = useState<UnifiedRow[]>([]);

@@ -207,22 +207,34 @@ function EngagementReviewPage() {
                   {r.member_email && <p className="text-xs text-muted-foreground">{r.member_email}</p>}
                   <div className="mt-2 flex gap-3 flex-wrap">
                     {r.proof_link && (
-                      <a href={r.proof_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                      <button
+                        type="button"
+                        onClick={() => openExternal(r.proof_link!, r.type_label)}
+                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                      >
                         <ExternalLink className="h-3 w-3" /> Open link
-                      </a>
+                      </button>
                     )}
                     {r.proof_url && (
-                      <a href={r.proof_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                      <button
+                        type="button"
+                        onClick={() => openExternal(r.proof_url!, r.type_label)}
+                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                      >
                         <ImageIcon className="h-3 w-3" /> View proof
-                      </a>
+                      </button>
                     )}
                   </div>
                 </div>
 
                 {r.proof_url && (
-                  <a href={r.proof_url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => openExternal(r.proof_url!, r.type_label)}
+                    className="shrink-0"
+                  >
                     <img src={r.proof_url} alt="proof" className="h-20 w-20 rounded-lg object-cover border border-border" />
-                  </a>
+                  </button>
                 )}
 
                 <div className="flex gap-2 shrink-0 items-center">

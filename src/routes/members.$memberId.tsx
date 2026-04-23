@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, CreditCard, DollarSign, Mail, Phone, Pencil, Trash2, Calendar, MapPin, AlertCircle, Briefcase, Users as UsersIcon, Edit, Cake } from "lucide-react";
+import { ArrowLeft, CreditCard, DollarSign, Mail, Phone, Pencil, Trash2, Calendar, MapPin, AlertCircle, Briefcase, Users as UsersIcon, Edit, Cake, Activity as ActivityIcon } from "lucide-react";
+import { ACTIVITY_LABEL, ACTIVITY_POINTS, ACTIVITY_ICON, formatLocalDate } from "@/lib/engagement";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
@@ -94,6 +95,19 @@ export const Route = createFileRoute("/members/$memberId")({
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Payment = Database["public"]["Tables"]["payments"]["Row"];
+type MemberActivity = Database["public"]["Tables"]["member_activities"]["Row"];
+type SocialEngagement = Database["public"]["Tables"]["social_engagements"]["Row"];
+
+type HistoryItem = {
+  id: string;
+  kind: "activity" | "social" | "payment";
+  type: string;
+  source: string;
+  date: string;
+  status: string;
+  points: number;
+  icon: string;
+};
 
 function MemberProfilePage() {
   const { memberId } = Route.useParams();
@@ -101,6 +115,8 @@ function MemberProfilePage() {
   const { t } = useTranslation();
   const [member, setMember] = useState<Member | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [activities, setActivities] = useState<MemberActivity[]>([]);
+  const [socials, setSocials] = useState<SocialEngagement[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
@@ -108,12 +124,16 @@ function MemberProfilePage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchData = async () => {
-    const [memberRes, paymentsRes] = await Promise.all([
+    const [memberRes, paymentsRes, actsRes, socRes] = await Promise.all([
       supabase.from("members").select("*").eq("id", memberId).single(),
       supabase.from("payments").select("*").eq("member_id", memberId).order("payment_date", { ascending: false }),
+      supabase.from("member_activities").select("*").eq("member_id", memberId).order("activity_date", { ascending: false }),
+      supabase.from("social_engagements").select("*").eq("member_id", memberId).order("created_at", { ascending: false }),
     ]);
     setMember(memberRes.data);
     setPayments(paymentsRes.data || []);
+    setActivities(actsRes.data || []);
+    setSocials(socRes.data || []);
     setLoading(false);
   };
 
@@ -250,12 +270,100 @@ function MemberProfilePage() {
         </div>
       </div>
 
+      {(() => {
+        const items: HistoryItem[] = [
+          ...activities.map((a): HistoryItem => ({
+            id: `a-${a.id}`,
+            kind: "activity",
+            type: ACTIVITY_LABEL[a.activity_type] ?? a.activity_type,
+            source: a.source === "self_checkin" ? "Check-in" : "Manual",
+            date: a.activity_date,
+            status: a.status,
+            points: a.status === "approved" ? (ACTIVITY_POINTS[a.activity_type] ?? 0) : 0,
+            icon: ACTIVITY_ICON[a.activity_type] ?? "✅",
+          })),
+          ...socials.map((s): HistoryItem => ({
+            id: `s-${s.id}`,
+            kind: "social",
+            type: `${s.platform} · ${s.action_type}`,
+            source: "Social",
+            date: s.created_at,
+            status: s.status,
+            points: s.status === "approved" ? (s.points ?? 0) : 0,
+            icon: "🌐",
+          })),
+          ...payments.map((p): HistoryItem => ({
+            id: `p-${p.id}`,
+            kind: "payment",
+            type: `${t("memberProfile.recordPayment")} · ${formatUSD(p.amount)}`,
+            source: PAYMENT_METHOD_LABEL[p.payment_method] ?? p.payment_method,
+            date: p.payment_date,
+            status: p.status,
+            points: 0,
+            icon: "💵",
+          })),
+        ].sort((a, b) => (a.date < b.date ? 1 : -1));
+
+        const statusBadge = (s: string) => {
+          if (s === "approved" || s === "paid") return "bg-success/15 text-success";
+          if (s === "rejected" || s === "past_due") return "bg-destructive/15 text-destructive";
+          return "bg-warning/15 text-warning-foreground";
+        };
+
+        return (
+          <div className="card-elevated overflow-hidden">
+            <div className="p-5 border-b border-border flex items-center gap-2">
+              <ActivityIcon className="h-4 w-4 text-primary" />
+              <h3 className="font-display text-base font-medium text-foreground">Activity History</h3>
+              <span className="ml-auto text-xs text-muted-foreground">{items.length} {items.length === 1 ? "entry" : "entries"}</span>
+            </div>
+            {items.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">No activity recorded yet.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="table-header px-5 py-3 text-left">Type</th>
+                      <th className="table-header px-5 py-3 text-left">Source</th>
+                      <th className="table-header px-5 py-3 text-left">Date</th>
+                      <th className="table-header px-5 py-3 text-left">Status</th>
+                      <th className="table-header px-5 py-3 text-right">Points</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((it) => (
+                      <tr key={it.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                        <td className="px-5 py-3 text-sm text-foreground">
+                          <span className="mr-2">{it.icon}</span>{it.type}
+                        </td>
+                        <td className="px-5 py-3 text-sm text-muted-foreground capitalize">{it.source}</td>
+                        <td className="px-5 py-3 text-sm text-muted-foreground">{formatLocalDate(it.date)}</td>
+                        <td className="px-5 py-3">
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusBadge(it.status)}`}>
+                            {it.status}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 text-right text-sm font-medium text-foreground">
+                          {it.points > 0 ? `+${it.points}` : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       <div className="card-elevated overflow-hidden">
         <div className="p-5 border-b border-border">
           <h3 className="font-display text-base font-medium text-foreground">{t("memberProfile.paymentHistory")}</h3>
         </div>
         {payments.length === 0 ? (
           <div className="py-8 text-center text-sm text-muted-foreground">{t("memberProfile.noPayments")}</div>
+
         ) : (
           <table className="w-full">
             <thead>

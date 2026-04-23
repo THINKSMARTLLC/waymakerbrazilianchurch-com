@@ -626,9 +626,10 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
     setError("");
 
     const form = new FormData(e.currentTarget);
-    const emailRaw = ((form.get("email") as string) || "").trim() || null;
+    // Normalize identity fields: lowercase + trim email, trim name.
+    const emailRaw = ((form.get("email") as string) || "").trim().toLowerCase() || null;
     const phoneRaw = buildE164();
-    const nameRaw = toTitleCase(form.get("name") as string);
+    const nameRaw = toTitleCase((form.get("name") as string).trim());
     const payload = {
       name: nameRaw,
       email: emailRaw,

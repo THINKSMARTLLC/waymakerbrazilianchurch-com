@@ -25,8 +25,17 @@ export function NewSignupsBanner() {
         .eq("action", "new_member_registered")
         .gte("created_at", since)
         .order("created_at", { ascending: false })
-        .limit(10);
-      setRows((data as SignupRow[]) || []);
+        .limit(50);
+      // Group by unique normalized email — one person = one row.
+      const seen = new Set<string>();
+      const unique: SignupRow[] = [];
+      for (const r of (data as SignupRow[]) || []) {
+        const key = (r.user_email ?? r.id).trim().toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        unique.push(r);
+      }
+      setRows(unique.slice(0, 10));
     })();
   }, [isSuperAdmin, loading]);
 

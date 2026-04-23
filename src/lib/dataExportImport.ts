@@ -347,15 +347,36 @@ export interface ImportResult {
 
 export async function executeImport(decisions: ImportDecision[]): Promise<ImportResult> {
   const result: ImportResult = { created: 0, updated: 0, skipped: 0, failed: [] };
+  const norm = (v: string | null | undefined) =>
+    v ? v.trim().toLowerCase() || null : null;
   for (const d of decisions) {
     if (d.action === "skip") {
       result.skipped++;
       continue;
     }
     if (d.action === "create") {
+      const email = norm(d.row.email);
+      const name = (d.row.name ?? "").trim();
+      // If the email already exists, transparently update instead of failing.
+      if (email) {
+        const { data: existing } = await supabase
+          .from("members")
+          .select("id")
+          .eq("email", email)
+          .maybeSingle();
+        if (existing?.id) {
+          console.warn(`Duplicate prevented for email: ${email}`);
+          const patch: Database["public"]["Tables"]["members"]["Update"] = { name, email };
+          if (d.row.phone) patch.phone = d.row.phone;
+          const { error } = await supabase.from("members").update(patch).eq("id", existing.id);
+          if (error) result.failed.push({ row: d.row, error: error.message });
+          else result.updated++;
+          continue;
+        }
+      }
       const { error } = await supabase.from("members").insert({
-        name: d.row.name,
-        email: d.row.email,
+        name,
+        email,
         phone: d.row.phone,
         status: "active",
         payment_type: "cash",
@@ -365,9 +386,9 @@ export async function executeImport(decisions: ImportDecision[]): Promise<Import
       else result.created++;
     } else if (d.action === "update" && d.updateMemberId) {
       const patch: Database["public"]["Tables"]["members"]["Update"] = {};
-      if (d.row.email) patch.email = d.row.email;
+      if (d.row.email) patch.email = norm(d.row.email);
       if (d.row.phone) patch.phone = d.row.phone;
-      if (d.row.name) patch.name = d.row.name;
+      if (d.row.name) patch.name = d.row.name.trim();
       const { error } = await supabase.from("members").update(patch).eq("id", d.updateMemberId);
       if (error) result.failed.push({ row: d.row, error: error.message });
       else result.updated++;

@@ -369,10 +369,15 @@ export async function mergeMembers(opts: {
     .eq("member_id", opts.loserId);
 
   // 3. Apply chosen field values to the winner.
-  if (Object.keys(opts.winnerUpdates).length > 0) {
+  // SAFE MERGE: never overwrite the kept record's email or id. Strip them
+  // from the patch so the original identity is preserved.
+  const safeUpdates = { ...opts.winnerUpdates } as Partial<Member> & Record<string, unknown>;
+  delete safeUpdates.email;
+  delete (safeUpdates as Record<string, unknown>).id;
+  if (Object.keys(safeUpdates).length > 0) {
     const { error: updErr } = await supabase
       .from("members")
-      .update(opts.winnerUpdates as never)
+      .update(safeUpdates as never)
       .eq("id", opts.winnerId);
     if (updErr) return { error: `Failed to update kept record: ${updErr.message}` };
   }

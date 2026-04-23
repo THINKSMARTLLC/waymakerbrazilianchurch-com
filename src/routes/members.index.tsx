@@ -655,29 +655,66 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
 
   const persistMember = async (payload: Record<string, unknown>) => {
     setSaving(true);
-    let { data, error: dbErr } = isEditing
-      ? await supabase.from("members").update(payload as never).eq("id", member!.id).select().single()
-      : await supabase.from("members").insert(payload as never).select().single();
 
-    // If insert collided with the unique-email constraint, transparently
-    // switch to UPDATE on the existing record (one person = one record).
-    const dupEmail = !isEditing && dbErr && /duplicate|unique/i.test(dbErr.message) && payload.email;
-    if (dupEmail) {
-      console.warn(`Duplicate prevented for email: ${payload.email}`);
-      const { data: existing } = await supabase
-        .from("members")
-        .select("id")
-        .eq("email", payload.email as string)
-        .maybeSingle();
-      if (existing?.id) {
-        const upd = await supabase
+    // Build a safe update patch — NEVER overwrite email or id on existing rows.
+    // Merge only mutable identity/profile fields.
+    const stripIdentity = (p: Record<string, unknown>) => {
+      const { email: _e, id: _i, ...rest } = p;
+      void _e; void _i;
+      return rest;
+    };
+
+    let data: Member | null = null;
+    let dbErr: { message: string } | null = null;
+
+    if (isEditing) {
+      // Editing existing: keep original email — don't send email in patch.
+      const patch = stripIdentity(payload);
+      const res = await supabase.from("members").update(patch as never).eq("id", member!.id).select().single();
+      data = res.data as Member | null;
+      dbErr = res.error;
+    } else {
+      // CREATE flow: lookup-first by normalized email so no duplicate attempt
+      // ever reaches the database layer.
+      const emailVal = (payload.email as string | null) || null;
+      if (emailVal) {
+        const { data: existing } = await supabase
           .from("members")
-          .update(payload as never)
-          .eq("id", existing.id)
-          .select()
-          .single();
-        data = upd.data;
-        dbErr = upd.error;
+          .select("id")
+          .eq("email", emailVal)
+          .maybeSingle();
+        if (existing?.id) {
+          console.warn(`Duplicate prevented for email: ${emailVal} — updating existing record ${existing.id}`);
+          const patch = stripIdentity(payload); // never overwrite email/id
+          const upd = await supabase.from("members").update(patch as never).eq("id", existing.id).select().single();
+          data = upd.data as Member | null;
+          dbErr = upd.error;
+        } else {
+          const ins = await supabase.from("members").insert(payload as never).select().single();
+          data = ins.data as Member | null;
+          dbErr = ins.error;
+        }
+      } else {
+        const ins = await supabase.from("members").insert(payload as never).select().single();
+        data = ins.data as Member | null;
+        dbErr = ins.error;
+      }
+
+      // Defensive fallback — if a race still produced a unique violation,
+      // resolve it by updating the existing row instead of surfacing an error.
+      if (dbErr && /duplicate|unique/i.test(dbErr.message) && emailVal) {
+        console.warn(`Duplicate prevented (race) for email: ${emailVal}`);
+        const { data: existing } = await supabase
+          .from("members")
+          .select("id")
+          .eq("email", emailVal)
+          .maybeSingle();
+        if (existing?.id) {
+          const patch = stripIdentity(payload);
+          const upd = await supabase.from("members").update(patch as never).eq("id", existing.id).select().single();
+          data = upd.data as Member | null;
+          dbErr = upd.error;
+        }
       }
     }
 

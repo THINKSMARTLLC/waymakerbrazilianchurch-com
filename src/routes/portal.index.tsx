@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { DollarSign, TrendingUp, Heart, MapPin, CheckCircle2, Wallet, HandCoins, CircleDollarSign, ChevronRight } from "lucide-react";
+import { DollarSign, TrendingUp, Heart, MapPin, CheckCircle2, Wallet, HandCoins, CircleDollarSign, ChevronRight, Plus, Clock, XCircle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { StatCard } from "@/components/StatCard";
 import { JourneyPath } from "@/components/JourneyPath";
 import { CheckInModal } from "@/components/CheckInModal";
 import { SocialEngagement } from "@/components/SocialEngagement";
+import { MemberRegisterActivityModal } from "@/components/MemberRegisterActivityModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatUSD } from "@/lib/format";

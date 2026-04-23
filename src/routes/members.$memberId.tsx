@@ -270,10 +270,95 @@ function MemberProfilePage() {
         </div>
       </div>
 
+      {(() => {
+        const items: HistoryItem[] = [
+          ...activities.map((a): HistoryItem => ({
+            id: `a-${a.id}`,
+            kind: "activity",
+            type: ACTIVITY_LABEL[a.activity_type] ?? a.activity_type,
+            source: a.source === "self_checkin" ? "Check-in" : "Manual",
+            date: a.activity_date,
+            status: a.status,
+            points: a.status === "approved" ? (ACTIVITY_POINTS[a.activity_type] ?? 0) : 0,
+            icon: ACTIVITY_ICON[a.activity_type] ?? "✅",
+          })),
+          ...socials.map((s): HistoryItem => ({
+            id: `s-${s.id}`,
+            kind: "social",
+            type: `${s.platform} · ${s.action_type}`,
+            source: "Social",
+            date: s.created_at,
+            status: s.status,
+            points: s.status === "approved" ? (s.points ?? 0) : 0,
+            icon: "🌐",
+          })),
+          ...payments.map((p): HistoryItem => ({
+            id: `p-${p.id}`,
+            kind: "payment",
+            type: `${t("memberProfile.recordPayment")} · ${formatUSD(p.amount)}`,
+            source: PAYMENT_METHOD_LABEL[p.payment_method] ?? p.payment_method,
+            date: p.payment_date,
+            status: p.status,
+            points: 0,
+            icon: "💵",
+          })),
+        ].sort((a, b) => (a.date < b.date ? 1 : -1));
+
+        const statusBadge = (s: string) => {
+          if (s === "approved" || s === "paid") return "bg-success/15 text-success";
+          if (s === "rejected" || s === "past_due") return "bg-destructive/15 text-destructive";
+          return "bg-warning/15 text-warning-foreground";
+        };
+
+        return (
+          <div className="card-elevated overflow-hidden">
+            <div className="p-5 border-b border-border flex items-center gap-2">
+              <ActivityIcon className="h-4 w-4 text-primary" />
+              <h3 className="font-display text-base font-medium text-foreground">Activity History</h3>
+              <span className="ml-auto text-xs text-muted-foreground">{items.length} {items.length === 1 ? "entry" : "entries"}</span>
+            </div>
+            {items.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">No activity recorded yet.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="table-header px-5 py-3 text-left">Type</th>
+                      <th className="table-header px-5 py-3 text-left">Source</th>
+                      <th className="table-header px-5 py-3 text-left">Date</th>
+                      <th className="table-header px-5 py-3 text-left">Status</th>
+                      <th className="table-header px-5 py-3 text-right">Points</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((it) => (
+                      <tr key={it.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                        <td className="px-5 py-3 text-sm text-foreground">
+                          <span className="mr-2">{it.icon}</span>{it.type}
+                        </td>
+                        <td className="px-5 py-3 text-sm text-muted-foreground capitalize">{it.source}</td>
+                        <td className="px-5 py-3 text-sm text-muted-foreground">{formatLocalDate(it.date)}</td>
+                        <td className="px-5 py-3">
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusBadge(it.status)}`}>
+                            {it.status}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 text-right text-sm font-medium text-foreground">
+                          {it.points > 0 ? `+${it.points}` : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       <div className="card-elevated overflow-hidden">
-        <div className="p-5 border-b border-border">
-          <h3 className="font-display text-base font-medium text-foreground">{t("memberProfile.paymentHistory")}</h3>
-        </div>
+
         {payments.length === 0 ? (
           <div className="py-8 text-center text-sm text-muted-foreground">{t("memberProfile.noPayments")}</div>
         ) : (

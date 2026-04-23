@@ -123,37 +123,51 @@ export function SocialEngagement({ memberId }: Props) {
   const [confirmReturn, setConfirmReturn] = useState<PlatformConfig | null>(null);
 
   const handleClick = (platform: PlatformConfig) => {
-    // Always open in a new tab — never redirect the current app page
-    window.open(platform.url, "_blank", "noopener,noreferrer");
-
     if (platform.key === "google_review") {
-      // Wait for the user to come back to the app (focus/visibility regained)
+      // Persist intent BEFORE opening so we can detect return even after reload
+      try {
+        localStorage.setItem("pending_review", "google");
+      } catch {}
       setAwaitingReturn(platform);
     } else {
       setTimeout(() => {
         setPending({ platform, visitedAt: Date.now() });
       }, 800);
     }
+    // Always open in a new tab — never redirect the current app page
+    window.open(platform.url, "_blank", "noopener,noreferrer");
   };
+
+  // On mount: if a pending review flag exists from a previous session, prompt return
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("pending_review") === "google") {
+        const google = PLATFORMS.find((p) => p.key === "google_review");
+        if (google) setAwaitingReturn(google);
+      }
+    } catch {}
+  }, []);
 
   // Detect when the user returns to the app after visiting Google Review
   useEffect(() => {
     if (!awaitingReturn) return;
-    const onReturn = () => {
-      if (document.visibilityState === "visible") {
+    const trigger = () => {
+      // Only act if the flag is still set (not yet handled)
+      let flag: string | null = null;
+      try { flag = localStorage.getItem("pending_review"); } catch {}
+      if (flag === "google") {
         setConfirmReturn(awaitingReturn);
         setAwaitingReturn(null);
       }
     };
-    const onFocus = () => {
-      setConfirmReturn(awaitingReturn);
-      setAwaitingReturn(null);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") trigger();
     };
-    document.addEventListener("visibilitychange", onReturn);
-    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", trigger);
     return () => {
-      document.removeEventListener("visibilitychange", onReturn);
-      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", trigger);
     };
   }, [awaitingReturn]);
 
@@ -226,7 +240,10 @@ export function SocialEngagement({ memberId }: Props) {
             setConfirmReturn(null);
             setPending({ platform: p, visitedAt: Date.now() });
           }}
-          onNo={() => setConfirmReturn(null)}
+          onNo={() => {
+            try { localStorage.removeItem("pending_review"); } catch {}
+            setConfirmReturn(null);
+          }}
         />
       )}
 
@@ -237,6 +254,7 @@ export function SocialEngagement({ memberId }: Props) {
           userId={user.id}
           onClose={() => setPending(null)}
           onSuccess={() => {
+            try { localStorage.removeItem("pending_review"); } catch {}
             setPending(null);
             load();
           }}
@@ -391,7 +409,7 @@ function ProofModal({
       }
 
       console.info("[SocialEngagement] saved", inserted);
-      toast.success(platform.key === "google_review" ? "Your review is under verification 🙌" : "Your activity is under review");
+      toast.success(platform.key === "google_review" ? "Your review was submitted for verification 🙌" : "Your activity is under review");
       onSuccess();
     } catch (err) {
       console.error("[SocialEngagement] submit error", err);

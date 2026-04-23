@@ -257,6 +257,60 @@ function EngagementDashboard() {
         />
       </div>
 
+      {pendingActivities.length > 0 && (
+        <div className="card-elevated p-5 border-l-4 border-warning">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-warning" />
+              <h3 className="font-display text-base font-medium text-foreground">
+                Atividades Pendentes ({pendingActivities.length})
+              </h3>
+            </div>
+            <p className="text-xs text-muted-foreground">Aprovar adiciona pontos automaticamente.</p>
+          </div>
+          <ul className="space-y-2">
+            {pendingActivities.slice(0, 10).map((a) => {
+              const member = members.find((m) => m.id === a.member_id);
+              return (
+                <li key={a.id} className="flex items-center justify-between gap-3 text-sm border-b border-border pb-2 last:border-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-lg" aria-hidden>{ACTIVITY_ICON[a.activity_type]}</span>
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground truncate">
+                        {member ? toTitleCase(member.name) : "—"} · {ACTIVITY_LABEL[a.activity_type]}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatLocalDate(a.activity_date)}
+                        {a.notes && ` · ${a.notes}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {a.photo_url && (
+                      <a href={a.photo_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                        Foto
+                      </a>
+                    )}
+                    <button
+                      onClick={() => reviewActivity(a.id, "approved")}
+                      className="inline-flex items-center gap-1 rounded-lg bg-success/15 text-success px-2 py-1 text-xs font-medium hover:bg-success/25"
+                    >
+                      <Check className="h-3 w-3" /> Aprovar
+                    </button>
+                    <button
+                      onClick={() => reviewActivity(a.id, "rejected")}
+                      className="inline-flex items-center gap-1 rounded-lg bg-destructive/15 text-destructive px-2 py-1 text-xs font-medium hover:bg-destructive/25"
+                    >
+                      <XCircle className="h-3 w-3" /> Rejeitar
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
       {cardFilter !== "all" && (
         <div className="flex items-center gap-2 text-xs">
           <span className="text-muted-foreground">Filtro ativo:</span>

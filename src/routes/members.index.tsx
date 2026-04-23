@@ -594,6 +594,8 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
   const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
   const [checkingDupes, setCheckingDupes] = useState(false);
   const [allowOverride, setAllowOverride] = useState(false);
+  // Admin's explicit resolution of detected duplicates. Until set, Save is blocked.
+  const [duplicateResolution, setDuplicateResolution] = useState<"update" | "merge" | null>(null);
   const [mergeWith, setMergeWith] = useState<Member | null>(null);
   // Pending submit values used by the merge modal.
   const [pendingPayload, setPendingPayload] = useState<Record<string, unknown> | null>(null);

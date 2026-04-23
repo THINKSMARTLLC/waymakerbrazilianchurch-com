@@ -132,10 +132,6 @@ function EngagementDashboard() {
     return map;
   }, [members, filteredActivities]);
 
-  const pendingCount = useMemo(
-    () => activities.filter((a) => a.status === "pending").length,
-    [activities],
-  );
 
   const totalCheckinsWeek = useMemo(
     () => filteredActivities.filter((a) => (daysSince(a.activity_date) ?? 9999) <= 7).length,

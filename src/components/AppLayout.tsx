@@ -13,12 +13,14 @@ import {
   Heart,
   Sprout,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { logActivity } from "@/lib/activityLog";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { supabase } from "@/integrations/supabase/client";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
 
 export function AppLayout() {
@@ -27,6 +29,45 @@ export function AppLayout() {
   const { user, signOut } = useAuth();
   const { isSuperAdmin } = useUserRole();
   const { t } = useTranslation();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // Pending review count (social + activities) with realtime updates
+  useEffect(() => {
+    let mounted = true;
+
+    const refresh = async () => {
+      const [s, a] = await Promise.all([
+        supabase.from("social_engagements").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("member_activities").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      ]);
+      if (!mounted) return;
+      setPendingCount((s.count ?? 0) + (a.count ?? 0));
+    };
+
+    refresh();
+
+    const onInsert = (payload: { new: { status?: string } }) => {
+      if (payload.new?.status === "pending") {
+        toast("New activity awaiting approval");
+      }
+      refresh();
+    };
+
+    const channel = supabase
+      .channel("pending-review-counts")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "social_engagements" }, onInsert)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "social_engagements" }, refresh)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "social_engagements" }, refresh)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "member_activities" }, onInsert)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "member_activities" }, refresh)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "member_activities" }, refresh)
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const baseNavItems = [
     { label: t("nav.dashboard"), to: "/dashboard" as const, icon: LayoutDashboard },
@@ -81,7 +122,7 @@ export function AppLayout() {
         <nav className="flex-1 space-y-1 px-3 py-4">
           {navItems.map((item) => {
             const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + "/");
-
+            const showBadge = item.to === "/engagement/review" && pendingCount > 0;
 
             return (
               <Link
@@ -91,7 +132,12 @@ export function AppLayout() {
                 onClick={() => setSidebarOpen(false)}
               >
                 <item.icon className="h-5 w-5" />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {showBadge && (
+                  <span className="ml-auto inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-warning px-1.5 py-0.5 text-[10px] font-semibold text-warning-foreground">
+                    {pendingCount > 99 ? "99+" : pendingCount}
+                  </span>
+                )}
               </Link>
             );
           })}

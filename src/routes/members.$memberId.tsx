@@ -95,6 +95,19 @@ export const Route = createFileRoute("/members/$memberId")({
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Payment = Database["public"]["Tables"]["payments"]["Row"];
+type MemberActivity = Database["public"]["Tables"]["member_activities"]["Row"];
+type SocialEngagement = Database["public"]["Tables"]["social_engagements"]["Row"];
+
+type HistoryItem = {
+  id: string;
+  kind: "activity" | "social" | "payment";
+  type: string;
+  source: string;
+  date: string;
+  status: string;
+  points: number;
+  icon: string;
+};
 
 function MemberProfilePage() {
   const { memberId } = Route.useParams();
@@ -102,6 +115,8 @@ function MemberProfilePage() {
   const { t } = useTranslation();
   const [member, setMember] = useState<Member | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [activities, setActivities] = useState<MemberActivity[]>([]);
+  const [socials, setSocials] = useState<SocialEngagement[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
@@ -109,12 +124,16 @@ function MemberProfilePage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchData = async () => {
-    const [memberRes, paymentsRes] = await Promise.all([
+    const [memberRes, paymentsRes, actsRes, socRes] = await Promise.all([
       supabase.from("members").select("*").eq("id", memberId).single(),
       supabase.from("payments").select("*").eq("member_id", memberId).order("payment_date", { ascending: false }),
+      supabase.from("member_activities").select("*").eq("member_id", memberId).order("activity_date", { ascending: false }),
+      supabase.from("social_engagements").select("*").eq("member_id", memberId).order("created_at", { ascending: false }),
     ]);
     setMember(memberRes.data);
     setPayments(paymentsRes.data || []);
+    setActivities(actsRes.data || []);
+    setSocials(socRes.data || []);
     setLoading(false);
   };
 

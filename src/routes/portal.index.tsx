@@ -165,7 +165,7 @@ function MemberDashboard() {
     toast.success("Payment received successfully");
   }, []);
 
-  const points = calculatePoints(activities);
+  const points = calculatePoints(activities.filter((a) => a.status === "approved"));
 
   const handleQuickPay = () => {
     window.open(QUICK_PAYMENT_URL, "_blank", "noopener,noreferrer");
@@ -205,13 +205,22 @@ function MemberDashboard() {
           </p>
         </div>
         {memberId && (
-          <button
-            onClick={() => setShowCheckIn(true)}
-            className="btn-google inline-flex items-center gap-2"
-          >
-            <MapPin className="h-4 w-4" />
-            Check-in na Igreja
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setShowRegister(true)}
+              className="inline-flex items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-muted"
+            >
+              <Plus className="h-4 w-4" />
+              Registrar Atividade
+            </button>
+            <button
+              onClick={() => setShowCheckIn(true)}
+              className="btn-google inline-flex items-center gap-2"
+            >
+              <MapPin className="h-4 w-4" />
+              Check-in na Igreja
+            </button>
+          </div>
         )}
       </div>
 

@@ -250,6 +250,7 @@ export type Database = {
           activity_type: Database["public"]["Enums"]["activity_type"]
           approved_at: string | null
           approved_by: string | null
+          confidence_score: number
           created_at: string
           event_type_id: string | null
           id: string
@@ -261,12 +262,14 @@ export type Database = {
           recorded_by: string | null
           source: Database["public"]["Enums"]["activity_source"]
           status: Database["public"]["Enums"]["activity_status"]
+          validation_type: string
         }
         Insert: {
           activity_date?: string
           activity_type: Database["public"]["Enums"]["activity_type"]
           approved_at?: string | null
           approved_by?: string | null
+          confidence_score?: number
           created_at?: string
           event_type_id?: string | null
           id?: string
@@ -278,12 +281,14 @@ export type Database = {
           recorded_by?: string | null
           source?: Database["public"]["Enums"]["activity_source"]
           status?: Database["public"]["Enums"]["activity_status"]
+          validation_type?: string
         }
         Update: {
           activity_date?: string
           activity_type?: Database["public"]["Enums"]["activity_type"]
           approved_at?: string | null
           approved_by?: string | null
+          confidence_score?: number
           created_at?: string
           event_type_id?: string | null
           id?: string
@@ -295,6 +300,7 @@ export type Database = {
           recorded_by?: string | null
           source?: Database["public"]["Enums"]["activity_source"]
           status?: Database["public"]["Enums"]["activity_status"]
+          validation_type?: string
         }
         Relationships: [
           {

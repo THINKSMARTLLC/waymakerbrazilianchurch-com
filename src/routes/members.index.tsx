@@ -655,9 +655,31 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
 
   const persistMember = async (payload: Record<string, unknown>) => {
     setSaving(true);
-    const { data, error: dbErr } = isEditing
+    let { data, error: dbErr } = isEditing
       ? await supabase.from("members").update(payload as never).eq("id", member!.id).select().single()
       : await supabase.from("members").insert(payload as never).select().single();
+
+    // If insert collided with the unique-email constraint, transparently
+    // switch to UPDATE on the existing record (one person = one record).
+    const dupEmail = !isEditing && dbErr && /duplicate|unique/i.test(dbErr.message) && payload.email;
+    if (dupEmail) {
+      console.warn(`Duplicate prevented for email: ${payload.email}`);
+      const { data: existing } = await supabase
+        .from("members")
+        .select("id")
+        .eq("email", payload.email as string)
+        .maybeSingle();
+      if (existing?.id) {
+        const upd = await supabase
+          .from("members")
+          .update(payload as never)
+          .eq("id", existing.id)
+          .select()
+          .single();
+        data = upd.data;
+        dbErr = upd.error;
+      }
+    }
 
     if (dbErr) {
       setError(dbErr.message);

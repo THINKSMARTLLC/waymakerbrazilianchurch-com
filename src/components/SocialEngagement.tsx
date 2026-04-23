@@ -119,13 +119,43 @@ export function SocialEngagement({ memberId }: Props) {
     if (memberId) load();
   }, [memberId]);
 
+  const [awaitingReturn, setAwaitingReturn] = useState<PlatformConfig | null>(null);
+  const [confirmReturn, setConfirmReturn] = useState<PlatformConfig | null>(null);
+
   const handleClick = (platform: PlatformConfig) => {
+    // Always open in a new tab — never redirect the current app page
     window.open(platform.url, "_blank", "noopener,noreferrer");
-    // Open the proof modal after a small delay so user has a chance to interact
-    setTimeout(() => {
-      setPending({ platform, visitedAt: Date.now() });
-    }, 800);
+
+    if (platform.key === "google_review") {
+      // Wait for the user to come back to the app (focus/visibility regained)
+      setAwaitingReturn(platform);
+    } else {
+      setTimeout(() => {
+        setPending({ platform, visitedAt: Date.now() });
+      }, 800);
+    }
   };
+
+  // Detect when the user returns to the app after visiting Google Review
+  useEffect(() => {
+    if (!awaitingReturn) return;
+    const onReturn = () => {
+      if (document.visibilityState === "visible") {
+        setConfirmReturn(awaitingReturn);
+        setAwaitingReturn(null);
+      }
+    };
+    const onFocus = () => {
+      setConfirmReturn(awaitingReturn);
+      setAwaitingReturn(null);
+    };
+    document.addEventListener("visibilitychange", onReturn);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", onReturn);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [awaitingReturn]);
 
   return (
     <div className="card-elevated p-5">
@@ -188,6 +218,18 @@ export function SocialEngagement({ memberId }: Props) {
         </div>
       )}
 
+      {confirmReturn && (
+        <ReturnConfirmModal
+          platform={confirmReturn}
+          onYes={() => {
+            const p = confirmReturn;
+            setConfirmReturn(null);
+            setPending({ platform: p, visitedAt: Date.now() });
+          }}
+          onNo={() => setConfirmReturn(null)}
+        />
+      )}
+
       {pending && user && (
         <ProofModal
           platform={pending.platform}
@@ -200,6 +242,52 @@ export function SocialEngagement({ memberId }: Props) {
           }}
         />
       )}
+    </div>
+  );
+}
+
+function ReturnConfirmModal({
+  platform,
+  onYes,
+  onNo,
+}: {
+  platform: PlatformConfig;
+  onYes: () => void;
+  onNo: () => void;
+}) {
+  const Icon = platform.icon;
+  const isReview = platform.key === "google_review";
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-2xl bg-card p-6 shadow-xl">
+        <div className="mb-4 flex items-center gap-3">
+          <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-muted ${platform.color}`}>
+            <Icon className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="font-display text-lg font-semibold text-foreground">
+              {isReview ? "Did you complete your review?" : "Did you complete this action?"}
+            </h3>
+            <p className="text-xs text-muted-foreground">{platform.name}</p>
+          </div>
+        </div>
+        <div className="flex gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onNo}
+            className="flex-1 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+          >
+            Not yet
+          </button>
+          <button
+            type="button"
+            onClick={onYes}
+            className="flex-1 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
+          >
+            Yes, I completed
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -303,7 +391,7 @@ function ProofModal({
       }
 
       console.info("[SocialEngagement] saved", inserted);
-      toast.success("Your activity is under review");
+      toast.success(platform.key === "google_review" ? "Your review is under verification 🙌" : "Your activity is under review");
       onSuccess();
     } catch (err) {
       console.error("[SocialEngagement] submit error", err);

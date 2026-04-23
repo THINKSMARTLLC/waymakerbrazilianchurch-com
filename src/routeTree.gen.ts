@@ -22,6 +22,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ImportExportRouteImport } from './routes/import-export'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DonateRouteImport } from './routes/donate'
+import { Route as DiscipleshipRouteImport } from './routes/discipleship'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CreateSubscriptionSessionRouteImport } from './routes/create-subscription-session'
 import { Route as CancelRouteImport } from './routes/cancel'
@@ -107,6 +108,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
 const DonateRoute = DonateRouteImport.update({
   id: '/donate',
   path: '/donate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiscipleshipRoute = DiscipleshipRouteImport.update({
+  id: '/discipleship',
+  path: '/discipleship',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -225,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/cancel': typeof CancelRoute
   '/create-subscription-session': typeof CreateSubscriptionSessionRoute
   '/dashboard': typeof DashboardRoute
+  '/discipleship': typeof DiscipleshipRoute
   '/donate': typeof DonateRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/import-export': typeof ImportExportRoute
@@ -261,6 +268,7 @@ export interface FileRoutesByTo {
   '/cancel': typeof CancelRoute
   '/create-subscription-session': typeof CreateSubscriptionSessionRoute
   '/dashboard': typeof DashboardRoute
+  '/discipleship': typeof DiscipleshipRoute
   '/donate': typeof DonateRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/import-export': typeof ImportExportRoute
@@ -297,6 +305,7 @@ export interface FileRoutesById {
   '/cancel': typeof CancelRoute
   '/create-subscription-session': typeof CreateSubscriptionSessionRoute
   '/dashboard': typeof DashboardRoute
+  '/discipleship': typeof DiscipleshipRoute
   '/donate': typeof DonateRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/import-export': typeof ImportExportRoute
@@ -335,6 +344,7 @@ export interface FileRouteTypes {
     | '/cancel'
     | '/create-subscription-session'
     | '/dashboard'
+    | '/discipleship'
     | '/donate'
     | '/forgot-password'
     | '/import-export'
@@ -371,6 +381,7 @@ export interface FileRouteTypes {
     | '/cancel'
     | '/create-subscription-session'
     | '/dashboard'
+    | '/discipleship'
     | '/donate'
     | '/forgot-password'
     | '/import-export'
@@ -406,6 +417,7 @@ export interface FileRouteTypes {
     | '/cancel'
     | '/create-subscription-session'
     | '/dashboard'
+    | '/discipleship'
     | '/donate'
     | '/forgot-password'
     | '/import-export'
@@ -443,6 +455,7 @@ export interface RootRouteChildren {
   CancelRoute: typeof CancelRoute
   CreateSubscriptionSessionRoute: typeof CreateSubscriptionSessionRoute
   DashboardRoute: typeof DashboardRoute
+  DiscipleshipRoute: typeof DiscipleshipRoute
   DonateRoute: typeof DonateRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ImportExportRoute: typeof ImportExportRoute
@@ -562,6 +575,13 @@ declare module '@tanstack/react-router' {
       path: '/donate'
       fullPath: '/donate'
       preLoaderRoute: typeof DonateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/discipleship': {
+      id: '/discipleship'
+      path: '/discipleship'
+      fullPath: '/discipleship'
+      preLoaderRoute: typeof DiscipleshipRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -735,6 +755,7 @@ const rootRouteChildren: RootRouteChildren = {
   CancelRoute: CancelRoute,
   CreateSubscriptionSessionRoute: CreateSubscriptionSessionRoute,
   DashboardRoute: DashboardRoute,
+  DiscipleshipRoute: DiscipleshipRoute,
   DonateRoute: DonateRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   ImportExportRoute: ImportExportRoute,

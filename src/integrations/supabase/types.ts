@@ -83,6 +83,41 @@ export type Database = {
         }
         Relationships: []
       }
+      discipleship_notes: {
+        Row: {
+          author_id: string | null
+          created_at: string
+          id: string
+          member_id: string
+          message: string
+          visibility: string
+        }
+        Insert: {
+          author_id?: string | null
+          created_at?: string
+          id?: string
+          member_id: string
+          message: string
+          visibility?: string
+        }
+        Update: {
+          author_id?: string | null
+          created_at?: string
+          id?: string
+          member_id?: string
+          message?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discipleship_notes_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -318,14 +353,21 @@ export type Database = {
       }
       members: {
         Row: {
+          accepted_jesus: boolean
           address: string | null
+          assigned_leader_id: string | null
+          attending_regularly: boolean
+          baptized: boolean
+          completed_course: boolean
           contribution_frequency: Database["public"]["Enums"]["contribution_frequency"]
           created_at: string
           date_of_birth: string | null
           department: string | null
+          discipleship_stage: Database["public"]["Enums"]["discipleship_stage"]
           email: string | null
           emergency_contact: string | null
           id: string
+          in_small_group: boolean
           inactivated_at: string | null
           inactivated_by: string | null
           inactivation_reason: string | null
@@ -335,6 +377,8 @@ export type Database = {
           payment_type: Database["public"]["Enums"]["payment_type"]
           phone: string | null
           profile_photo_url: string | null
+          serving_ministry: boolean
+          stage_updated_at: string
           status: Database["public"]["Enums"]["member_status"]
           status_payment: string | null
           stripe_customer_id: string | null
@@ -345,14 +389,21 @@ export type Database = {
           weekly_contribution_usd: number
         }
         Insert: {
+          accepted_jesus?: boolean
           address?: string | null
+          assigned_leader_id?: string | null
+          attending_regularly?: boolean
+          baptized?: boolean
+          completed_course?: boolean
           contribution_frequency?: Database["public"]["Enums"]["contribution_frequency"]
           created_at?: string
           date_of_birth?: string | null
           department?: string | null
+          discipleship_stage?: Database["public"]["Enums"]["discipleship_stage"]
           email?: string | null
           emergency_contact?: string | null
           id?: string
+          in_small_group?: boolean
           inactivated_at?: string | null
           inactivated_by?: string | null
           inactivation_reason?: string | null
@@ -362,6 +413,8 @@ export type Database = {
           payment_type?: Database["public"]["Enums"]["payment_type"]
           phone?: string | null
           profile_photo_url?: string | null
+          serving_ministry?: boolean
+          stage_updated_at?: string
           status?: Database["public"]["Enums"]["member_status"]
           status_payment?: string | null
           stripe_customer_id?: string | null
@@ -372,14 +425,21 @@ export type Database = {
           weekly_contribution_usd?: number
         }
         Update: {
+          accepted_jesus?: boolean
           address?: string | null
+          assigned_leader_id?: string | null
+          attending_regularly?: boolean
+          baptized?: boolean
+          completed_course?: boolean
           contribution_frequency?: Database["public"]["Enums"]["contribution_frequency"]
           created_at?: string
           date_of_birth?: string | null
           department?: string | null
+          discipleship_stage?: Database["public"]["Enums"]["discipleship_stage"]
           email?: string | null
           emergency_contact?: string | null
           id?: string
+          in_small_group?: boolean
           inactivated_at?: string | null
           inactivated_by?: string | null
           inactivation_reason?: string | null
@@ -389,6 +449,8 @@ export type Database = {
           payment_type?: Database["public"]["Enums"]["payment_type"]
           phone?: string | null
           profile_photo_url?: string | null
+          serving_ministry?: boolean
+          stage_updated_at?: string
           status?: Database["public"]["Enums"]["member_status"]
           status_payment?: string | null
           stripe_customer_id?: string | null
@@ -398,7 +460,15 @@ export type Database = {
           user_id?: string | null
           weekly_contribution_usd?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "members_assigned_leader_id_fkey"
+            columns: ["assigned_leader_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_contributions: {
         Row: {
@@ -742,6 +812,13 @@ export type Database = {
         | "special_donation"
         | "event_contribution"
         | "other"
+      discipleship_stage:
+        | "visitor"
+        | "new_believer"
+        | "in_discipleship"
+        | "committed"
+        | "serving"
+        | "leader"
       engagement_status: "pending" | "approved" | "rejected"
       member_status: "active" | "inactive"
       payment_frequency: "weekly" | "monthly"
@@ -921,6 +998,14 @@ export const Constants = {
         "special_donation",
         "event_contribution",
         "other",
+      ],
+      discipleship_stage: [
+        "visitor",
+        "new_believer",
+        "in_discipleship",
+        "committed",
+        "serving",
+        "leader",
       ],
       engagement_status: ["pending", "approved", "rejected"],
       member_status: ["active", "inactive"],

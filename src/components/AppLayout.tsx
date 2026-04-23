@@ -11,6 +11,7 @@ import {
   Activity,
   Settings,
   Heart,
+  Sprout,
 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -30,6 +31,7 @@ export function AppLayout() {
   const baseNavItems = [
     { label: t("nav.dashboard"), to: "/dashboard" as const, icon: LayoutDashboard },
     { label: "Pastoral", to: "/pastoral" as const, icon: Heart },
+    { label: "Discipleship", to: "/discipleship" as const, icon: Sprout },
     { label: t("nav.members"), to: "/members" as const, icon: Users },
     { label: t("nav.engagement"), to: "/engagement" as const, icon: Activity },
     { label: "Engagement Review", to: "/engagement/review" as const, icon: Shield },

@@ -30,6 +30,7 @@ export function AppLayout() {
     { label: t("nav.dashboard"), to: "/dashboard" as const, icon: LayoutDashboard },
     { label: t("nav.members"), to: "/members" as const, icon: Users },
     { label: t("nav.engagement"), to: "/engagement" as const, icon: Activity },
+    { label: "Engagement Review", to: "/engagement/review" as const, icon: Shield },
     { label: t("nav.reports"), to: "/reports" as const, icon: FileBarChart },
   ];
 

@@ -234,19 +234,34 @@ function ProofModal({
 
     setSubmitting(true);
     try {
-      // Fraud control: 1 submission per platform per day
-      const today = new Date();
-      const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+      // Fraud control:
+      // - Google Review: 1 submission per 30 days
+      // - Other platforms: 1 submission per day
+      const isGoogleReview = platform.key === "google_review";
+      let startISO: string;
+      if (isGoogleReview) {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        startISO = d.toISOString();
+      } else {
+        const today = new Date();
+        startISO = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+      }
+
       const { data: existing } = await supabase
         .from("social_engagements")
         .select("id")
         .eq("member_id", memberId)
         .eq("platform", platform.key)
-        .gte("created_at", start)
+        .gte("created_at", startISO)
         .limit(1);
 
       if (existing && existing.length > 0) {
-        toast.error("You've already submitted for this platform today.");
+        toast.error(
+          isGoogleReview
+            ? "You already submitted a review this month"
+            : "You've already submitted for this platform today."
+        );
         setSubmitting(false);
         return;
       }

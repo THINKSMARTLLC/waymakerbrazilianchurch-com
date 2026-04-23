@@ -28,6 +28,7 @@ interface ActivityRow {
   activity_type: ActivityType;
   activity_date: string;
   source: string;
+  status: "pending" | "approved" | "rejected";
 }
 
 interface MemberBillingStatus {

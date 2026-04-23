@@ -41,6 +41,7 @@ function EngagementReviewPage() {
   const { isStaff, loading: roleLoading } = useUserRole();
   const [rows, setRows] = useState<Row[]>([]);
   const [filter, setFilter] = useState<Status | "all">("pending");
+  const [memberFilter, setMemberFilter] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
@@ -49,7 +50,7 @@ function EngagementReviewPage() {
       .from("social_engagements")
       .select("id, member_id, platform, action_type, proof_url, proof_link, points, status, created_at, member:members(name, email)")
       .order("created_at", { ascending: false })
-      .limit(100);
+      .limit(200);
     if (filter !== "all") query = query.eq("status", filter);
     const { data, error } = await query;
     if (error) toast.error(error.message);
@@ -60,6 +61,16 @@ function EngagementReviewPage() {
   useEffect(() => {
     if (isStaff) load();
   }, [isStaff, filter]);
+
+  const filteredRows = memberFilter.trim()
+    ? rows.filter((r) => {
+        const q = memberFilter.toLowerCase();
+        return (
+          (r.member?.name?.toLowerCase().includes(q) ?? false) ||
+          (r.member?.email?.toLowerCase().includes(q) ?? false)
+        );
+      })
+    : rows;
 
   const review = async (id: string, status: Status) => {
     const { data: auth } = await supabase.auth.getUser();

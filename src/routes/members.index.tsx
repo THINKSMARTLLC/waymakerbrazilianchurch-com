@@ -986,9 +986,30 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
             <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors">
               Cancel
             </button>
-            <button type="submit" disabled={saving || checkingDupes} className="btn-google flex-1 disabled:opacity-50">
-              {saving ? "Saving..." : checkingDupes ? "Checking..." : isEditing ? "Update" : "Save"}
-            </button>
+            {(() => {
+              const hasBlocking = duplicates.some((m) => m.severity === "duplicate");
+              const needsConfirm = hasBlocking && !duplicateResolution && !allowOverride;
+              return (
+                <button
+                  type="submit"
+                  disabled={saving || checkingDupes || needsConfirm}
+                  className="btn-google flex-1 disabled:opacity-50"
+                  title={needsConfirm ? "Choose 'Update existing' or 'Merge records' above to continue" : undefined}
+                >
+                  {saving
+                    ? "Saving..."
+                    : checkingDupes
+                    ? "Checking..."
+                    : needsConfirm
+                    ? "Choose an option above"
+                    : duplicateResolution === "update"
+                    ? "Update existing"
+                    : isEditing
+                    ? "Update"
+                    : "Save"}
+                </button>
+              );
+            })()}
           </div>
         </form>
       </div>

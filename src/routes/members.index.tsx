@@ -887,6 +887,12 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
             />
           )}
 
+          {duplicates.some((m) => m.severity === "duplicate") && duplicateResolution === "update" && (
+            <div className="rounded-xl border border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-950/40 px-4 py-3 text-xs text-emerald-900 dark:text-emerald-100">
+              ✓ Confirmed: clicking Save will <strong>update the existing member</strong> instead of creating a new record.
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">Name</label>
             <input name="name" type="text" required value={nameInput} onChange={(e) => setNameInput(e.target.value)} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" placeholder="Full name" />

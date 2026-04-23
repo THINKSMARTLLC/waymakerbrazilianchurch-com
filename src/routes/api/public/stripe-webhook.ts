@@ -10,6 +10,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Stripe-Signature",
 };
 
+const handledEventTypes = new Set(["checkout.session.completed", "invoice.paid"]);
+
+function createOkResponse(body: Record<string, unknown> = { received: true }) {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { "Content-Type": "application/json", ...corsHeaders },
+  });
+}
+
+function logWebhookDebug(message: string, metadata?: Record<string, unknown>) {
+  console.info(`[stripe-webhook] ${message}`, metadata ?? {});
+}
+
 function getStripeClient() {
   const secretKey = process.env.STRIPE_SECRET_KEY;
 
@@ -137,6 +150,12 @@ async function registerMatchedStripePayment(input: {
     payment_id: payment.id,
   });
 
+  logWebhookDebug("Payment saved", {
+    amount: input.amount,
+    memberId: input.memberId,
+    stripePaymentId: input.externalPaymentId,
+  });
+
   await logStripeEvent("stripe_payment_matched", {
     amount: input.amount,
     email: normalizeEmail(input.email),
@@ -197,6 +216,7 @@ async function updateMemberSubscriptionStatus(input: {
 }) {
   const memberUpdate: {
     last_payment_date: string | null;
+    payment_type: "card";
     status?: "active";
     status_payment: "On Time" | "Late" | "Pending";
     stripe_customer_id: string | null;
@@ -204,6 +224,7 @@ async function updateMemberSubscriptionStatus(input: {
     subscription_active: boolean;
   } = {
     last_payment_date: input.statusPayment === "On Time" ? getCurrentNewYorkDate() : null,
+    payment_type: "card",
     status_payment: input.statusPayment,
     stripe_customer_id: input.stripeCustomerId ?? null,
     stripe_subscription_id: input.stripeSubscriptionId ?? null,
@@ -231,11 +252,30 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
           const signature = request.headers.get("stripe-signature");
           const body = await request.text();
 
+          logWebhookDebug("Webhook received", {
+            hasSignature: Boolean(signature),
+            rawBodyLength: body.length,
+          });
+
           if (!webhookSecret || !signature) {
-            return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+            logWebhookDebug("Webhook ignored: missing Stripe secret or signature");
+            return createOkResponse({ received: true, ignored: true });
           }
 
-          const event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
+          let event: Stripe.Event;
+
+          try {
+            event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
+          } catch (error) {
+            logWebhookDebug("Webhook ignored: invalid Stripe signature", {
+              error: error instanceof Error ? error.message : "Unknown signature error",
+            });
+            return createOkResponse({ received: true, ignored: true });
+          }
+
+          if (!handledEventTypes.has(event.type)) {
+            return createOkResponse({ received: true, ignored: true, eventType: event.type });
+          }
 
           if (event.type === "checkout.session.completed") {
             const session = event.data.object;
@@ -250,7 +290,16 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             const paymentDate = getNewYorkDateFromUnix(session.created);
             const member = await findMemberForStripeEmail(email);
 
+            logWebhookDebug(`Email found: ${email ?? "none"}`, {
+              eventType: event.type,
+              stripePaymentId: session.payment_intent?.toString() ?? session.id,
+            });
+
             if (!member) {
+              console.warn("Stripe payment without matching member email", {
+                email,
+                stripePaymentId: session.payment_intent?.toString() ?? session.id,
+              });
               await markUnmatchedStripePayment({
                 amount: (session.amount_total ?? 0) / 100,
                 email,
@@ -261,6 +310,8 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
                 stripeSubscriptionId,
               });
             } else {
+              logWebhookDebug(`Member matched: ${member.id}`, { email, eventType: event.type });
+
               await updateMemberSubscriptionStatus({
                 memberId: member.id,
                 statusPayment: "On Time",
@@ -295,7 +346,16 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             const member = await findMemberForStripeEmail(email);
             const paymentDate = getNewYorkDateFromUnix(invoice.status_transitions.paid_at ?? invoice.created);
 
+            logWebhookDebug(`Email found: ${email ?? "none"}`, {
+              eventType: event.type,
+              stripePaymentId: invoice.id,
+            });
+
             if (!member) {
+              console.warn("Stripe payment without matching member email", {
+                email,
+                stripePaymentId: invoice.id,
+              });
               await markUnmatchedStripePayment({
                 amount: (invoice.amount_paid ?? 0) / 100,
                 email,
@@ -306,6 +366,8 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
                 stripeSubscriptionId,
               });
             } else {
+              logWebhookDebug(`Member matched: ${member.id}`, { email, eventType: event.type });
+
               await updateMemberSubscriptionStatus({
                 memberId: member.id,
                 statusPayment: "On Time",
@@ -327,45 +389,15 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             }
           }
 
-          if (event.type === "invoice.payment_failed") {
-            const invoice = event.data.object;
-            const memberId = invoice.parent?.subscription_details?.metadata?.memberId ?? invoice.lines.data[0]?.metadata?.memberId;
-            if (memberId) {
-              await updateMemberSubscriptionStatus({
-                memberId,
-                statusPayment: "Late",
-                subscriptionActive: true,
-                stripeCustomerId: typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id ?? null,
-                stripeSubscriptionId: typeof invoice.parent?.subscription_details?.subscription === "string"
-                  ? invoice.parent.subscription_details.subscription
-                  : invoice.parent?.subscription_details?.subscription?.id ?? null,
-              });
-            }
-          }
-
-          if (event.type === "customer.subscription.deleted") {
-            const subscription = event.data.object;
-            const memberId = subscription.metadata.memberId;
-            if (memberId) {
-              await updateMemberSubscriptionStatus({
-                memberId,
-                statusPayment: "Pending",
-                subscriptionActive: false,
-                stripeCustomerId: typeof subscription.customer === "string" ? subscription.customer : subscription.customer?.id ?? null,
-                stripeSubscriptionId: subscription.id,
-              });
-            }
-          }
-
-          return new Response(JSON.stringify({ received: true }), {
-            status: 200,
-            headers: { "Content-Type": "application/json", ...corsHeaders },
-          });
+          return createOkResponse();
         } catch (error) {
-          return new Response(
-            JSON.stringify({ error: error instanceof Error ? error.message : "Webhook error" }),
-            { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } },
-          );
+          logWebhookDebug("Webhook processing error", {
+            error: error instanceof Error ? error.message : "Webhook error",
+          });
+          return createOkResponse({
+            received: true,
+            error: error instanceof Error ? error.message : "Webhook error",
+          });
         }
       },
     },

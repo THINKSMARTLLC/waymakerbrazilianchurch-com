@@ -29,6 +29,45 @@ export function AppLayout() {
   const { user, signOut } = useAuth();
   const { isSuperAdmin } = useUserRole();
   const { t } = useTranslation();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // Pending review count (social + activities) with realtime updates
+  useEffect(() => {
+    let mounted = true;
+
+    const refresh = async () => {
+      const [s, a] = await Promise.all([
+        supabase.from("social_engagements").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("member_activities").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      ]);
+      if (!mounted) return;
+      setPendingCount((s.count ?? 0) + (a.count ?? 0));
+    };
+
+    refresh();
+
+    const onInsert = (payload: { new: { status?: string } }) => {
+      if (payload.new?.status === "pending") {
+        toast("New activity awaiting approval");
+      }
+      refresh();
+    };
+
+    const channel = supabase
+      .channel("pending-review-counts")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "social_engagements" }, onInsert)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "social_engagements" }, refresh)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "social_engagements" }, refresh)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "member_activities" }, onInsert)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "member_activities" }, refresh)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "member_activities" }, refresh)
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const baseNavItems = [
     { label: t("nav.dashboard"), to: "/dashboard" as const, icon: LayoutDashboard },

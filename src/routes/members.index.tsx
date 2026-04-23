@@ -618,12 +618,15 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
   const runDuplicateCheck = async (email: string | null, phone: string | null, name: string | null) => {
     if (!email && !phone) {
       setDuplicates([]);
+      setDuplicateResolution(null);
       return [];
     }
     setCheckingDupes(true);
     const found = await findDuplicates({ email, phone, name, excludeMemberId: member?.id });
     setCheckingDupes(false);
     setDuplicates(found);
+    // Any change to detected duplicates clears the prior resolution — admin must reconfirm.
+    setDuplicateResolution(null);
     return found;
   };
 

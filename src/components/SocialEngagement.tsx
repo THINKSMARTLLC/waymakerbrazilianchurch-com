@@ -218,6 +218,18 @@ export function SocialEngagement({ memberId }: Props) {
         </div>
       )}
 
+      {confirmReturn && (
+        <ReturnConfirmModal
+          platform={confirmReturn}
+          onYes={() => {
+            const p = confirmReturn;
+            setConfirmReturn(null);
+            setPending({ platform: p, visitedAt: Date.now() });
+          }}
+          onNo={() => setConfirmReturn(null)}
+        />
+      )}
+
       {pending && user && (
         <ProofModal
           platform={pending.platform}
@@ -230,6 +242,52 @@ export function SocialEngagement({ memberId }: Props) {
           }}
         />
       )}
+    </div>
+  );
+}
+
+function ReturnConfirmModal({
+  platform,
+  onYes,
+  onNo,
+}: {
+  platform: PlatformConfig;
+  onYes: () => void;
+  onNo: () => void;
+}) {
+  const Icon = platform.icon;
+  const isReview = platform.key === "google_review";
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-2xl bg-card p-6 shadow-xl">
+        <div className="mb-4 flex items-center gap-3">
+          <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-muted ${platform.color}`}>
+            <Icon className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="font-display text-lg font-semibold text-foreground">
+              {isReview ? "Did you complete your review?" : "Did you complete this action?"}
+            </h3>
+            <p className="text-xs text-muted-foreground">{platform.name}</p>
+          </div>
+        </div>
+        <div className="flex gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onNo}
+            className="flex-1 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+          >
+            Not yet
+          </button>
+          <button
+            type="button"
+            onClick={onYes}
+            className="flex-1 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
+          >
+            Yes, I completed
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

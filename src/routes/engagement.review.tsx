@@ -96,7 +96,14 @@ function EngagementReviewPage() {
           <h2 className="font-display text-2xl font-semibold text-foreground">Social Engagement Review</h2>
           <p className="text-sm text-muted-foreground">Approve or reject member submissions.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center flex-wrap">
+          <input
+            type="text"
+            value={memberFilter}
+            onChange={(e) => setMemberFilter(e.target.value)}
+            placeholder="Filter by member name or email..."
+            className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm w-64"
+          />
           {(["pending", "approved", "rejected", "all"] as const).map((f) => (
             <button
               key={f}
@@ -114,11 +121,11 @@ function EngagementReviewPage() {
       <div className="card-elevated p-5">
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading...</p>
-        ) : rows.length === 0 ? (
+        ) : filteredRows.length === 0 ? (
           <p className="text-sm text-muted-foreground">No submissions.</p>
         ) : (
           <ul className="divide-y divide-border">
-            {rows.map((r) => (
+            {filteredRows.map((r) => (
               <li key={r.id} className="py-4 flex items-start gap-4 flex-wrap">
                 <div className="flex-1 min-w-[220px]">
                   <p className="text-sm font-medium text-foreground">

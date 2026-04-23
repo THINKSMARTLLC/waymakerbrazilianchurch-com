@@ -118,6 +118,7 @@ function EngagementDashboard() {
       map.set(m.id, { last: null, count7: 0, count30: 0, total: 0, points: 0 });
     }
     for (const a of filteredActivities) {
+      if (a.status !== "approved") continue; // only approved counts toward engagement & points
       const entry = map.get(a.member_id);
       if (!entry) continue;
       entry.total += 1;
@@ -129,6 +130,11 @@ function EngagementDashboard() {
     }
     return map;
   }, [members, filteredActivities]);
+
+  const pendingCount = useMemo(
+    () => activities.filter((a) => a.status === "pending").length,
+    [activities],
+  );
 
   const totalCheckinsWeek = useMemo(
     () => filteredActivities.filter((a) => (daysSince(a.activity_date) ?? 9999) <= 7).length,

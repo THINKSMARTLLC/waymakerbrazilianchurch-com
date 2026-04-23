@@ -343,29 +343,41 @@ function MemberDashboard() {
 
       {memberId && (
         <div className="card-elevated p-5">
-          <h3 className="font-display text-base font-medium text-foreground mb-4">Atividades Recentes</h3>
+          <h3 className="font-display text-base font-medium text-foreground mb-4">Minhas Atividades</h3>
           {activities.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Nenhuma atividade registrada ainda. Faça seu primeiro check-in!
+              Nenhuma atividade registrada ainda. Faça seu primeiro check-in ou registre uma atividade!
             </p>
           ) : (
             <ul className="space-y-2">
-              {activities.slice(0, 8).map((a) => (
-                <li key={a.id} className="flex items-center justify-between text-sm border-b border-border pb-2 last:border-0">
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg" aria-hidden>{ACTIVITY_ICON[a.activity_type]}</span>
-                    <div>
-                      <p className="font-medium text-foreground">{ACTIVITY_LABEL[a.activity_type]}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {a.source === "self_checkin" ? "Self check-in" : "Registrado pela liderança"}
-                      </p>
+              {activities.slice(0, 8).map((a) => {
+                const status = a.status ?? "approved";
+                const badge =
+                  status === "approved"
+                    ? { label: "Aprovada", cls: "bg-success/15 text-success", Icon: CheckCircle2 }
+                    : status === "rejected"
+                    ? { label: "Rejeitada", cls: "bg-destructive/15 text-destructive", Icon: XCircle }
+                    : { label: "Pendente", cls: "bg-warning/15 text-warning-foreground", Icon: Clock };
+                const BadgeIcon = badge.Icon;
+                return (
+                  <li key={a.id} className="flex items-center justify-between text-sm border-b border-border pb-2 last:border-0 gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-lg" aria-hidden>{ACTIVITY_ICON[a.activity_type]}</span>
+                      <div className="min-w-0">
+                        <p className="font-medium text-foreground truncate">{ACTIVITY_LABEL[a.activity_type]}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatLocalDateOnly(a.activity_date)} ·{" "}
+                          {a.source === "self_checkin" ? "Auto-registrada" : "Registrada pela liderança"}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    {formatLocalDateOnly(a.activity_date)}
-                  </span>
-                </li>
-              ))}
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium shrink-0 ${badge.cls}`}>
+                      <BadgeIcon className="h-3 w-3" />
+                      {badge.label}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
@@ -377,6 +389,17 @@ function MemberDashboard() {
           memberName={memberName}
           onClose={() => setShowCheckIn(false)}
           onSuccess={() => memberId && loadActivities(memberId)}
+        />
+      )}
+
+      {showRegister && memberId && (
+        <MemberRegisterActivityModal
+          memberId={memberId}
+          onClose={() => setShowRegister(false)}
+          onSaved={() => {
+            setShowRegister(false);
+            loadActivities(memberId);
+          }}
         />
       )}
     </div>

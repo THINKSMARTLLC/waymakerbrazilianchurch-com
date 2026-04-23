@@ -283,20 +283,30 @@ function ProofModal({
         proofUrl = pub.publicUrl;
       }
 
-      const { error } = await supabase.from("social_engagements").insert({
-        member_id: memberId,
-        platform: platform.key,
-        action_type: actionType,
-        proof_url: proofUrl,
-        proof_link: proofLink.trim() || null,
-        points: platform.points,
-        status: "pending",
-      });
-      if (error) throw error;
+      const { data: inserted, error } = await supabase
+        .from("social_engagements")
+        .insert({
+          member_id: memberId,
+          platform: platform.key,
+          action_type: actionType,
+          proof_url: proofUrl,
+          proof_link: proofLink.trim() || null,
+          points: platform.points,
+          status: "pending",
+        })
+        .select("id, created_at")
+        .single();
 
+      if (error) {
+        console.error("[SocialEngagement] insert failed", error);
+        throw error;
+      }
+
+      console.info("[SocialEngagement] saved", inserted);
       toast.success("Your activity is under review");
       onSuccess();
     } catch (err) {
+      console.error("[SocialEngagement] submit error", err);
       toast.error(err instanceof Error ? err.message : "Failed to submit");
       setSubmitting(false);
     }

@@ -10,6 +10,7 @@ import {
   Database,
   Activity,
   Settings,
+  Heart,
 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";

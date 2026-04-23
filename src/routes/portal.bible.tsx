@@ -263,15 +263,29 @@ function BibleReader({ memberId }: { memberId: string | null }) {
     (async () => {
       setLoading(true);
       try {
-        const ref = `${book} ${chapter}`;
-        const res = await fetch(`https://bible-api.com/${encodeURIComponent(ref)}?translation=${translation}`);
-        if (!res.ok) throw new Error("fetch failed");
-        const json = await res.json();
-        if (!cancelled) setVerses(json.verses || []);
+        const apiBook = toApiBook(book);
+        const url = `https://bible-api.com/${apiBook}+${chapter}?translation=${translation}`;
+        console.log("[bible-api] GET", url);
+        let res = await fetch(url);
+        let json: any = res.ok ? await res.json() : null;
+        console.log("[bible-api] response", res.status, json);
+
+        // Fallback: try without translation param (default WEB)
+        if (!res.ok || !json?.verses?.length) {
+          const fallbackUrl = `https://bible-api.com/${apiBook}+${chapter}`;
+          console.log("[bible-api] fallback GET", fallbackUrl);
+          res = await fetch(fallbackUrl);
+          json = res.ok ? await res.json() : null;
+        }
+
+        if (!res.ok || !json?.verses?.length) {
+          throw new Error("No verses returned");
+        }
+        if (!cancelled) setVerses(json.verses);
       } catch (e) {
-        console.error(e);
+        console.error("[bible-api] error", e);
         if (!cancelled) {
-          toast.error("Não foi possível carregar o capítulo");
+          toast.error("Unable to load Bible. Please try again.");
           setVerses([]);
         }
       } finally {

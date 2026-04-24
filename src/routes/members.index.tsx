@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check, AlertTriangle, Archive, Download, Upload, Cake } from "lucide-react";
+import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check, AlertTriangle, Archive, Download, Upload, Cake, MessageCircle } from "lucide-react";
+import { WhatsAppMessageModal, type WhatsAppMember } from "@/components/WhatsAppMessageModal";
 import { getBirthdayInfo, type BirthdayWindow } from "@/lib/birthday";
 import { exportMembersCSV, exportMembersXLSX } from "@/lib/dataExportImport";
 import { ImportPreviewModal } from "@/components/ImportPreviewModal";
@@ -81,6 +82,7 @@ function MembersPage() {
   const [activeDupGroup, setActiveDupGroup] = useState<DuplicateGroup | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [whatsappTarget, setWhatsappTarget] = useState<WhatsAppMember | null>(null);
   const { isSuperAdmin } = useUserRole();
 
   const handleExport = async (format: "csv" | "xlsx") => {
@@ -413,6 +415,24 @@ function MembersPage() {
                                   </span>
                                 ) : null;
                               })()}
+                              {member.phone && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setWhatsappTarget({
+                                      name: member.name,
+                                      phone: member.phone,
+                                      due_date: member.last_payment_date,
+                                    });
+                                  }}
+                                  className="inline-flex items-center justify-center rounded-full p-1 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
+                                  title="Enviar mensagem via WhatsApp"
+                                  aria-label="Enviar mensagem via WhatsApp"
+                                >
+                                  <MessageCircle className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                             </span>
                             {dupGroup && (
                               <button
@@ -551,6 +571,11 @@ function MembersPage() {
         />
       )}
       <ImportPreviewModal open={showImport} onClose={() => setShowImport(false)} onImported={fetchMembers} />
+      <WhatsAppMessageModal
+        open={!!whatsappTarget}
+        onOpenChange={(open) => { if (!open) setWhatsappTarget(null); }}
+        member={whatsappTarget}
+      />
     </div>
   );
 }

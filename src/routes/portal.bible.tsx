@@ -430,9 +430,13 @@ function MyReflection({ memberId, devotionalId }: { memberId: string | null; dev
   const [keywordInput, setKeywordInput] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [mode, setMode] = useState<"view" | "edit">("view");
+  const [lastEditedAt, setLastEditedAt] = useState<string | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noteIdRef = useRef<string | null>(null);
   const skipNextSave = useRef(true);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -440,11 +444,16 @@ function MyReflection({ memberId, devotionalId }: { memberId: string | null; dev
     (async () => {
       const { data } = await supabase
         .from("devotional_notes")
-        .select("id, learned_text, keywords, god_spoke_text")
+        .select("id, learned_text, keywords, god_spoke_text, updated_at")
         .eq("member_id", memberId)
         .eq("devotional_id", devotionalId)
         .maybeSingle();
       if (cancelled) return;
+      const hasContent =
+        !!data &&
+        ((data.learned_text && data.learned_text.trim().length > 0) ||
+          (data.god_spoke_text && data.god_spoke_text.trim().length > 0) ||
+          (Array.isArray(data.keywords) && data.keywords.length > 0));
       if (data) {
         noteIdRef.current = data.id;
         setNote({
@@ -452,9 +461,12 @@ function MyReflection({ memberId, devotionalId }: { memberId: string | null; dev
           keywords: data.keywords ?? [],
           god_spoke_text: data.god_spoke_text ?? "",
         });
+        setLastEditedAt((data as { updated_at?: string }).updated_at ?? null);
       }
       skipNextSave.current = true;
       setLoaded(true);
+      // Default to view mode if there's existing content; else edit so the user can start
+      setMode(hasContent ? "view" : "edit");
     })();
     return () => { cancelled = true; };
   }, [memberId, devotionalId]);

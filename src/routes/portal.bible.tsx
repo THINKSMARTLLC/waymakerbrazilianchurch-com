@@ -850,16 +850,9 @@ function BibleReader({
         if (!cancelled) setLoading(false);
       }
 
-      // Track reading
-      if (memberId) {
-        const today = todayNYC();
-        const { error } = await supabase.from("bible_readings").insert({
-          member_id: memberId, book, chapter, read_date: today,
-        });
-        if (!error) {
-          // First time today for this chapter → +3pts toast (silent if duplicate)
-        }
-      }
+      // Reading is NOT auto-tracked anymore. The user must explicitly click
+      // "Mark as Completed" on the chapter to register progress.
+
     })();
     return () => { cancelled = true; };
   }, [book, chapter, translation, memberId]);

@@ -40,6 +40,7 @@ import { Route as MembersMemberIdRouteImport } from './routes/members.$memberId'
 import { Route as EngagementVisitsRouteImport } from './routes/engagement.visits'
 import { Route as EngagementReviewRouteImport } from './routes/engagement.review'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
+import { Route as ApiBibleRouteImport } from './routes/api/bible'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
@@ -202,6 +203,11 @@ const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   path: '/email/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiBibleRoute = ApiBibleRouteImport.update({
+  id: '/api/bible',
+  path: '/api/bible',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   id: '/lovable/email/suppression',
   path: '/lovable/email/suppression',
@@ -251,6 +257,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/success': typeof SuccessRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/api/bible': typeof ApiBibleRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/engagement/review': typeof EngagementReviewRoute
   '/engagement/visits': typeof EngagementVisitsRoute
@@ -288,6 +295,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/success': typeof SuccessRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/api/bible': typeof ApiBibleRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/engagement/review': typeof EngagementReviewRoute
   '/engagement/visits': typeof EngagementVisitsRoute
@@ -327,6 +335,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/success': typeof SuccessRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/api/bible': typeof ApiBibleRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/engagement/review': typeof EngagementReviewRoute
   '/engagement/visits': typeof EngagementVisitsRoute
@@ -367,6 +376,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/success'
     | '/unsubscribe'
+    | '/api/bible'
     | '/email/unsubscribe'
     | '/engagement/review'
     | '/engagement/visits'
@@ -404,6 +414,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/success'
     | '/unsubscribe'
+    | '/api/bible'
     | '/email/unsubscribe'
     | '/engagement/review'
     | '/engagement/visits'
@@ -442,6 +453,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/success'
     | '/unsubscribe'
+    | '/api/bible'
     | '/email/unsubscribe'
     | '/engagement/review'
     | '/engagement/visits'
@@ -481,6 +493,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   SuccessRoute: typeof SuccessRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
+  ApiBibleRoute: typeof ApiBibleRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EngagementReviewRoute: typeof EngagementReviewRoute
   EngagementVisitsRoute: typeof EngagementVisitsRoute
@@ -715,6 +728,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmailUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/bible': {
+      id: '/api/bible'
+      path: '/api/bible'
+      fullPath: '/api/bible'
+      preLoaderRoute: typeof ApiBibleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/suppression': {
       id: '/lovable/email/suppression'
       path: '/lovable/email/suppression'
@@ -790,6 +810,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   SuccessRoute: SuccessRoute,
   UnsubscribeRoute: UnsubscribeRoute,
+  ApiBibleRoute: ApiBibleRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EngagementReviewRoute: EngagementReviewRoute,
   EngagementVisitsRoute: EngagementVisitsRoute,

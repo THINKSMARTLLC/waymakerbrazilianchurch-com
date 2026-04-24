@@ -934,6 +934,76 @@ function BibleReader({
     });
   };
 
+  // Check if current chapter has been manually marked as completed
+  useEffect(() => {
+    if (!memberId) { setChapterCompleted(false); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("bible_readings")
+        .select("id")
+        .eq("member_id", memberId)
+        .eq("book", book)
+        .eq("chapter", chapter)
+        .limit(1);
+      if (!cancelled) setChapterCompleted(!!data && data.length > 0);
+    })();
+    return () => { cancelled = true; };
+  }, [memberId, book, chapter]);
+
+  // Total distinct chapters completed (for plan progress bar)
+  useEffect(() => {
+    if (!memberId) { setCompletedCount(0); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("bible_readings")
+        .select("book, chapter")
+        .eq("member_id", memberId);
+      if (cancelled) return;
+      const uniq = new Set((data || []).map((r) => `${r.book}-${r.chapter}`));
+      setCompletedCount(uniq.size);
+    })();
+    return () => { cancelled = true; };
+  }, [memberId, chapterCompleted]);
+
+  const markChapterCompleted = async () => {
+    if (!memberId || chapterCompleted) return;
+    setMarking(true);
+    const today = todayNYC();
+    const { error } = await supabase.from("bible_readings").insert({
+      member_id: memberId, book, chapter, read_date: today,
+    });
+    setMarking(false);
+    if (error && !error.message.includes("duplicate")) {
+      toast.error("Erro ao marcar capítulo");
+      return;
+    }
+    setChapterCompleted(true);
+    toast.success(`${book} ${chapter} marcado como concluído`);
+  };
+
+  const unmarkChapterCompleted = async () => {
+    if (!memberId || !chapterCompleted) return;
+    setMarking(true);
+    const { error } = await supabase
+      .from("bible_readings")
+      .delete()
+      .eq("member_id", memberId)
+      .eq("book", book)
+      .eq("chapter", chapter);
+    setMarking(false);
+    if (error) {
+      toast.error("Erro ao desmarcar capítulo");
+      return;
+    }
+    setChapterCompleted(false);
+    toast.success(`${book} ${chapter} desmarcado`);
+  };
+
+  const planTotal = planTargetChapters(plan);
+  const planPercent = planTotal > 0 ? Math.min(100, Math.round((completedCount / planTotal) * 100)) : 0;
+
   return (
     <div className="space-y-4">
       <div className="card-elevated p-4 space-y-3">

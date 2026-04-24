@@ -9,7 +9,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentMember } from "@/hooks/useCurrentMember";
 import { getOrGenerateTodayDevotional } from "@/lib/devotional.functions";
-import { todayNYC } from "@/lib/datetime";
+import { todayNYC, formatDate, formatLocalDateOnly } from "@/lib/datetime";
 
 export const Route = createFileRoute("/portal/bible")({
   head: () => ({

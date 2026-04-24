@@ -234,7 +234,7 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
   const [resumeSection, setResumeSection] = useState<LastPosition["section"] | null>(null);
   const [showResume, setShowResume] = useState(false);
 
-  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   useEffect(() => {
     let cancelled = false;

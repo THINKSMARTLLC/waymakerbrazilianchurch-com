@@ -269,16 +269,20 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
   // Runs without toggling the main loader.
   useEffect(() => {
     if (!memberId || !dev) return;
+    const isFallback = dev.id.startsWith("fallback-");
     let cancelled = false;
     (async () => {
       const today = todayNYC();
+      const compPromise = isFallback
+        ? Promise.resolve({ data: null })
+        : supabase
+            .from("devotional_completions")
+            .select("id")
+            .eq("member_id", memberId)
+            .eq("devotional_id", dev.id)
+            .maybeSingle();
       const [compRes, readingsRes, notesRes] = await Promise.all([
-        supabase
-          .from("devotional_completions")
-          .select("id")
-          .eq("member_id", memberId)
-          .eq("devotional_id", dev.id)
-          .maybeSingle(),
+        compPromise,
         supabase.from("bible_readings").select("id").eq("member_id", memberId).eq("read_date", today).limit(1),
         supabase
           .from("bible_notes")

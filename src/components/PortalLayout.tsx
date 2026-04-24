@@ -18,7 +18,7 @@ export function PortalLayout() {
 
   const navItems = [
     { label: t("nav.dashboard"), to: "/portal" as const, icon: LayoutDashboard },
-    { label: "Bíblia", to: "/portal/bible" as const, icon: BookOpen },
+    { label: t("nav.bible"), to: "/portal/bible" as const, icon: BookOpen },
     { label: t("nav.contributions"), to: "/portal/contributions" as const, icon: History },
     { label: t("nav.profile"), to: "/portal/profile" as const, icon: User },
   ];

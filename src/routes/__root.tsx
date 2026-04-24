@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts, useLocation } from
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { AppLayout } from "@/components/AppLayout";
+import { LanguageProvider } from "@/hooks/useLanguage";
 import "@/i18n";
 
 
@@ -66,7 +67,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   return (
     <AuthProvider>
-      <AuthGate />
+      <LanguageProvider>
+        <AuthGate />
+      </LanguageProvider>
     </AuthProvider>
   );
 }

@@ -1,4 +1,3 @@
-import { useTranslation } from "react-i18next";
 import { Globe, Check } from "lucide-react";
 import {
   DropdownMenu,
@@ -7,11 +6,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SUPPORTED_LANGS } from "@/i18n";
+import { useLanguage, type SupportedLang } from "@/hooks/useLanguage";
 
 export function LanguageSelector() {
-  const { i18n } = useTranslation();
-  const currentBase = (i18n.language || "en").split("-")[0];
-  const current = SUPPORTED_LANGS.find((l) => l.code === currentBase) ?? SUPPORTED_LANGS[0];
+  const { language, setLanguage } = useLanguage();
+  const current = SUPPORTED_LANGS.find((l) => l.code === language) ?? SUPPORTED_LANGS[0];
 
   return (
     <DropdownMenu>
@@ -30,12 +29,12 @@ export function LanguageSelector() {
         {SUPPORTED_LANGS.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
-            onClick={() => void i18n.changeLanguage(lang.code)}
+            onClick={() => void setLanguage(lang.code as SupportedLang)}
             className="flex items-center gap-2 cursor-pointer"
           >
             <span className="text-base">{lang.flag}</span>
             <span className="flex-1">{lang.label}</span>
-            {currentBase === lang.code && <Check className="h-3.5 w-3.5 text-primary" />}
+            {language === lang.code && <Check className="h-3.5 w-3.5 text-primary" />}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

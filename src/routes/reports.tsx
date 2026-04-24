@@ -459,6 +459,7 @@ function ReportsPage() {
             className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="all">All Statuses</option>
+            <option value="paid">Paid (Active)</option>
             <option value="on_time">On Time</option>
             <option value="late">Late</option>
             <option value="no_payment">No Payment Yet</option>

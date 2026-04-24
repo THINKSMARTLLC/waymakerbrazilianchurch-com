@@ -168,7 +168,7 @@ export const resyncStripeData = createServerFn({ method: "POST" })
                   reference_month: null,
                   status: "paid",
                   stripe_subscription_id: subId,
-                })
+                }])
                 .select("id")
                 .single();
               if (!insErr && ins) {

@@ -25,13 +25,10 @@ function normEmail(e?: string | null) {
   return e ? e.trim().toLowerCase() : null;
 }
 
-type FreqValue = "weekly" | "monthly" | "one_time" | "flexible";
+type FreqValue = "weekly" | "monthly";
 
 function intervalToFrequency(interval?: string | null): FreqValue {
-  if (interval === "week") return "weekly";
-  if (interval === "month") return "monthly";
-  if (interval === "year") return "monthly";
-  if (interval === "day") return "weekly";
+  if (interval === "month" || interval === "year") return "monthly";
   return "weekly";
 }
 

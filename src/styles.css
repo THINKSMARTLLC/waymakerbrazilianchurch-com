@@ -153,8 +153,8 @@
   }
 
   .sidebar-link-active {
-    background-color: var(--color-accent);
-    color: var(--color-primary);
+    background-color: var(--color-sidebar-accent);
+    color: var(--color-sidebar-primary);
     font-weight: 600;
   }
 
@@ -173,12 +173,12 @@
     padding: 0.625rem 1.5rem;
     font-weight: 500;
     font-size: 0.875rem;
-    box-shadow: 0 1px 3px oklch(0.55 0.19 260 / 0.3);
+    box-shadow: 0 1px 3px oklch(0.85 0.17 90 / 0.35);
     transition: all 0.15s ease;
   }
 
   .btn-google:hover {
-    box-shadow: 0 2px 8px oklch(0.55 0.19 260 / 0.4);
+    box-shadow: 0 2px 8px oklch(0.85 0.17 90 / 0.5);
     filter: brightness(1.05);
   }
 

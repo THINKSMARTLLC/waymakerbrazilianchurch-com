@@ -433,7 +433,6 @@ function MyReflection({ memberId, devotionalId }: { memberId: string | null; dev
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [lastEditedAt, setLastEditedAt] = useState<string | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noteIdRef = useRef<string | null>(null);
   const skipNextSave = useRef(true);
   const containerRef = useRef<HTMLDivElement | null>(null);

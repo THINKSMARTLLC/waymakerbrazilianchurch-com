@@ -364,6 +364,9 @@ function MemberProfilePage() {
                       <tr key={it.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                         <td className="px-5 py-3 text-sm text-foreground">
                           <span className="mr-2">{it.icon}</span>{it.type}
+                          {it.detail && (
+                            <p className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap pl-6">{it.detail}</p>
+                          )}
                         </td>
                         <td className="px-5 py-3 text-sm text-muted-foreground capitalize">{it.source}</td>
                         <td className="px-5 py-3 text-sm text-muted-foreground">{formatLocalDate(it.date)}</td>

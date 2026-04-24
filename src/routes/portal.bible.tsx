@@ -535,8 +535,10 @@ function MyReflection({ memberId, devotionalId }: { memberId: string | null; dev
       }
       skipNextSave.current = true;
       setLoaded(true);
-      // Default to view mode if there's existing content; else edit so the user can start
-      setMode(hasContent ? "view" : "edit");
+      // Always start in edit mode so reflection fields are visible on every device.
+      // Users can collapse to a read-only view via the "Concluir" button.
+      void hasContent;
+      setMode("edit");
     })();
     return () => { cancelled = true; };
   }, [memberId, devotionalId]);

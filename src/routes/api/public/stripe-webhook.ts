@@ -411,9 +411,18 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             });
 
             if (!member) {
-              console.warn("Stripe payment without matching member email", {
+              console.error("[stripe-webhook] Member not found", {
+                eventType: event.type,
                 email,
-                stripePaymentId: invoice.id,
+                memberIdMetadata,
+                stripeCustomerId,
+                stripeInvoiceId: invoice.id,
+              });
+              await logStripeEvent("stripe_member_not_found", {
+                event_type: event.type,
+                email: normalizeEmail(email),
+                metadata_member_id: memberIdMetadata,
+                stripe_customer_id: stripeCustomerId,
               });
               await markUnmatchedStripePayment({
                 amount: (invoice.amount_paid ?? 0) / 100,

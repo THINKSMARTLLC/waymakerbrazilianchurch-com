@@ -327,7 +327,8 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
               ? session.subscription
               : session.subscription?.id ?? null;
             const paymentDate = getNewYorkDateFromUnix(session.created);
-            const member = await findMemberForStripeEmail(email);
+            const memberIdMetadata = session.metadata?.member_id ?? null;
+            const member = await resolveMember({ memberIdMetadata, email, stripeCustomerId });
 
             logWebhookDebug(`Email found: ${email ?? "none"}`, {
               eventType: event.type,
@@ -382,7 +383,8 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
               customerEmail: invoice.customer_email,
               customerId: stripeCustomerId,
             });
-            const member = await findMemberForStripeEmail(email);
+            const memberIdMetadata = invoice.metadata?.member_id ?? null;
+            const member = await resolveMember({ memberIdMetadata, email, stripeCustomerId });
             const paymentDate = getNewYorkDateFromUnix(invoice.status_transitions.paid_at ?? invoice.created);
 
             logWebhookDebug(`Email found: ${email ?? "none"}`, {
@@ -426,6 +428,99 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
                 stripeSubscriptionId,
               });
             }
+          }
+
+          if (event.type === "invoice.payment_failed") {
+            const invoice = event.data.object;
+            const stripeCustomerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id ?? null;
+            const stripeSubscriptionId = typeof invoice.parent?.subscription_details?.subscription === "string"
+              ? invoice.parent.subscription_details.subscription
+              : invoice.parent?.subscription_details?.subscription?.id ?? null;
+            const email = await resolveCustomerEmail(stripe, {
+              customerEmail: invoice.customer_email,
+              customerId: stripeCustomerId,
+            });
+            const memberIdMetadata = invoice.metadata?.member_id ?? null;
+            const member = await resolveMember({ memberIdMetadata, email, stripeCustomerId });
+
+            logWebhookDebug(`Invoice payment failed`, {
+              eventType: event.type,
+              email,
+              memberId: member?.id ?? null,
+              stripeInvoiceId: invoice.id,
+            });
+
+            if (member) {
+              await updateMemberSubscriptionStatus({
+                memberId: member.id,
+                statusPayment: "Late",
+                subscriptionActive: false,
+                stripeCustomerId,
+                stripeSubscriptionId,
+              });
+            }
+
+            await logStripeEvent("stripe_payment_failed", {
+              amount: (invoice.amount_due ?? 0) / 100,
+              email: normalizeEmail(email),
+              event_type: event.type,
+              member_id: member?.id ?? null,
+              stripe_customer_id: stripeCustomerId,
+              stripe_invoice_id: invoice.id,
+              stripe_subscription_id: stripeSubscriptionId,
+            });
+          }
+
+          if (
+            event.type === "customer.subscription.created" ||
+            event.type === "customer.subscription.updated" ||
+            event.type === "customer.subscription.deleted"
+          ) {
+            const subscription = event.data.object;
+            const stripeCustomerId = typeof subscription.customer === "string"
+              ? subscription.customer
+              : subscription.customer?.id ?? null;
+            const stripeSubscriptionId = subscription.id;
+            const email = await resolveCustomerEmail(stripe, { customerId: stripeCustomerId });
+            const memberIdMetadata = subscription.metadata?.member_id ?? null;
+            const member = await resolveMember({ memberIdMetadata, email, stripeCustomerId });
+
+            const isDeleted = event.type === "customer.subscription.deleted";
+            const isActive =
+              !isDeleted && (subscription.status === "active" || subscription.status === "trialing");
+
+            logWebhookDebug(`Subscription ${event.type}`, {
+              eventType: event.type,
+              email,
+              memberId: member?.id ?? null,
+              status: subscription.status,
+              stripeSubscriptionId,
+            });
+
+            if (member) {
+              const statusPayment: "On Time" | "Late" | "Pending" = isActive
+                ? "On Time"
+                : subscription.status === "past_due" || subscription.status === "unpaid"
+                  ? "Late"
+                  : "Pending";
+
+              await updateMemberSubscriptionStatus({
+                memberId: member.id,
+                statusPayment,
+                subscriptionActive: isActive,
+                stripeCustomerId,
+                stripeSubscriptionId: isDeleted ? null : stripeSubscriptionId,
+              });
+            }
+
+            await logStripeEvent(`stripe_${event.type.replace(/\./g, "_")}`, {
+              email: normalizeEmail(email),
+              event_type: event.type,
+              member_id: member?.id ?? null,
+              status: subscription.status,
+              stripe_customer_id: stripeCustomerId,
+              stripe_subscription_id: stripeSubscriptionId,
+            });
           }
 
           return createOkResponse();

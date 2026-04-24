@@ -22,6 +22,7 @@ import {
   Plus,
 } from "lucide-react";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
+import wayMakerIcon from "@/assets/waymaker-icon.png";
 import heroImage from "@/assets/waymaker-hero.jpg";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -133,7 +134,7 @@ function LandingPage() {
       <header className="absolute inset-x-0 top-0 z-30">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 md:px-10">
           <a href="#top" className="flex items-center gap-3">
-            <img src={wayMakerLogo} alt="Way Maker Church" className="h-10 w-10 object-contain" />
+            <img src={wayMakerIcon} alt="Way Maker Church" className="h-10 w-10 object-contain" />
             <span className="font-display text-base font-semibold tracking-tight text-white drop-shadow-sm">
               Way Maker Church
             </span>

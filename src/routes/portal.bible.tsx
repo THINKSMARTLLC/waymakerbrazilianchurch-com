@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   BookOpen, Sparkles, NotebookPen, Search, Flame, Check, Loader2,
-  ChevronLeft, ChevronRight, Lock, Share2, BookMarked,
+  ChevronLeft, ChevronRight, Lock, Share2, BookMarked, Pencil, Trash2, ArrowLeft,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentMember } from "@/hooks/useCurrentMember";

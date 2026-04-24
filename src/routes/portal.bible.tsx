@@ -725,8 +725,8 @@ function BibleReader({
   target?: { book: string; chapter: number; verse: number | null } | null;
   onTargetConsumed?: () => void;
 }) {
-  const [book, setBook] = useState<string>("John");
-  const [chapter, setChapter] = useState<number>(3);
+  const [book, setBook] = useState<string>("Genesis");
+  const [chapter, setChapter] = useState<number>(1);
   const [translation, setTranslation] = useState<Translation>("almeida");
   const [verses, setVerses] = useState<BibleVerse[]>([]);
   const [loading, setLoading] = useState(false);

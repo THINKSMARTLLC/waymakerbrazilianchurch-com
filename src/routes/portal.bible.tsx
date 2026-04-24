@@ -1358,7 +1358,7 @@ function MyNotes({ memberId }: { memberId: string | null }) {
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-muted-foreground hidden sm:inline">
                       {n.share_with_pastor ? <Share2 className="inline h-3 w-3 mr-1" /> : <Lock className="inline h-3 w-3 mr-1" />}
-                      {new Date(n.updated_at).toLocaleDateString()}
+                      {n.share_with_pastor ? "Compartilhada" : "Privada"}
                     </span>
                     <button
                       type="button"

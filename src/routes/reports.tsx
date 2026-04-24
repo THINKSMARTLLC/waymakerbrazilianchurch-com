@@ -172,7 +172,10 @@ function ReportsPage() {
         if (normalized !== methodFilter) return false;
       }
       if (statusFilter !== "all" && p.members) {
-        if ((statusByMember.get(p.members.id) ?? "no_payment") !== statusFilter) return false;
+        const s = statusByMember.get(p.members.id) ?? "no_payment";
+        if (statusFilter === "paid") {
+          if (s !== "on_time" && s !== "active") return false;
+        } else if (s !== statusFilter) return false;
       }
       return true;
     });

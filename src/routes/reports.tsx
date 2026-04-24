@@ -67,7 +67,8 @@ function ReportsPage() {
   const [memberIdFilter, setMemberIdFilter] = useState<string>("all");
   const [nameFilter, setNameFilter] = useState("");
   const [methodFilter, setMethodFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<MemberPaymentStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<MemberPaymentStatus | "all" | "paid">("all");
+  const [showAllMembers, setShowAllMembers] = useState(false);
   const [groupBy, setGroupBy] = useState<"transactions" | "member">("member");
 
   // Latest payment dates per member (status — uses ALL payments, not just filtered range)
@@ -171,7 +172,10 @@ function ReportsPage() {
         if (normalized !== methodFilter) return false;
       }
       if (statusFilter !== "all" && p.members) {
-        if ((statusByMember.get(p.members.id) ?? "no_payment") !== statusFilter) return false;
+        const s = statusByMember.get(p.members.id) ?? "no_payment";
+        if (statusFilter === "paid") {
+          if (s !== "on_time" && s !== "active") return false;
+        } else if (s !== statusFilter) return false;
       }
       return true;
     });
@@ -183,7 +187,11 @@ function ReportsPage() {
       if (memberIdFilter !== "all" && m.id !== memberIdFilter) return false;
       if (nameFilter && !m.name.toLowerCase().includes(nameFilter.toLowerCase())) return false;
       const status = statusByMember.get(m.id) ?? "no_payment";
-      if (statusFilter !== "all" && status !== statusFilter) return false;
+      if (statusFilter !== "all") {
+        if (statusFilter === "paid") {
+          if (status !== "on_time" && status !== "active") return false;
+        } else if (status !== statusFilter) return false;
+      }
       // Method filter: member must have at least one payment of this method (in range)
       if (methodFilter !== "all") {
         const has = payments.some((p) => {
@@ -256,8 +264,18 @@ function ReportsPage() {
     });
   }, [filteredPayments, filteredMembers, statusByMember]);
 
-  const handleStatusCardClick = (status: MemberPaymentStatus) => {
+  const handleStatusCardClick = (status: MemberPaymentStatus | "paid") => {
     setStatusFilter((cur) => (cur === status ? "all" : status));
+    setShowAllMembers(false);
+    setGroupBy("member");
+  };
+
+  const handleTotalMembersClick = () => {
+    setShowAllMembers((v) => !v);
+    setStatusFilter("all");
+    setMemberIdFilter("all");
+    setNameFilter("");
+    setMethodFilter("all");
     setGroupBy("member");
   };
 
@@ -265,13 +283,15 @@ function ReportsPage() {
     memberIdFilter !== "all" ||
     nameFilter.trim() !== "" ||
     methodFilter !== "all" ||
-    statusFilter !== "all";
+    statusFilter !== "all" ||
+    showAllMembers;
 
   const clearFilters = () => {
     setMemberIdFilter("all");
     setNameFilter("");
     setMethodFilter("all");
     setStatusFilter("all");
+    setShowAllMembers(false);
   };
 
   return (
@@ -336,14 +356,20 @@ function ReportsPage() {
 
       {/* Metric cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-        <div className="stat-card">
+        <button
+          onClick={handleTotalMembersClick}
+          className={`stat-card text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${showAllMembers ? "ring-2 ring-primary" : ""}`}
+        >
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Users className="h-4 w-4" />Total Members</div>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">{totalMembers}</p>
-        </div>
-        <div className="stat-card">
+        </button>
+        <button
+          onClick={() => handleStatusCardClick("paid")}
+          className={`stat-card text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${statusFilter === "paid" ? "ring-2 ring-emerald-500" : ""}`}
+        >
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Users className="h-4 w-4" />Paid Members</div>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">{distinctPaidMembers}</p>
-        </div>
+        </button>
         <div className="stat-card">
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Receipt className="h-4 w-4" />Total Payments</div>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">{totalPayments}</p>
@@ -429,10 +455,11 @@ function ReportsPage() {
           <label className="block text-xs font-medium text-muted-foreground mb-1">Member Status</label>
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as MemberPaymentStatus | "all")}
+            onChange={(e) => setStatusFilter(e.target.value as MemberPaymentStatus | "all" | "paid")}
             className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="all">All Statuses</option>
+            <option value="paid">Paid (Active)</option>
             <option value="on_time">On Time</option>
             <option value="late">Late</option>
             <option value="no_payment">No Payment Yet</option>
@@ -474,7 +501,7 @@ function ReportsPage() {
           </div>
           {groupBy === "member" ? (
             memberRows.length === 0 ? (
-              <div className="py-8 text-center text-sm text-muted-foreground">No members match the filters.</div>
+              <div className="py-8 text-center text-sm text-muted-foreground">No members found in this category</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">

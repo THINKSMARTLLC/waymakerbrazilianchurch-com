@@ -140,7 +140,7 @@ function LandingPage() {
           </a>
           <Link
             to="/login"
-            className="hidden rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-md transition hover:bg-white/20 md:inline-block"
+            className="inline-block rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md transition hover:bg-white/20 md:px-4 md:py-2 md:text-sm"
           >
             Área do membro
           </Link>

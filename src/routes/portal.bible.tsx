@@ -414,6 +414,17 @@ function BibleReader({
     return () => { cancelled = true; };
   }, [book, chapter, translation, memberId]);
 
+  // Scroll to + highlight target verse once verses are loaded
+  useEffect(() => {
+    if (loading || verses.length === 0 || highlightVerse == null) return;
+    const el = verseRefs.current.get(highlightVerse);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    const t = setTimeout(() => setHighlightVerse(null), 3500);
+    return () => clearTimeout(t);
+  }, [loading, verses, highlightVerse]);
+
   // Load notes for this chapter
   useEffect(() => {
     if (!memberId) return;
@@ -510,12 +521,23 @@ function BibleReader({
               const note = notesMap.get(v.verse);
               const hasNote = !!note;
               const isOpen = openVerse === v.verse;
+              const isHighlighted = highlightVerse === v.verse;
               return (
-                <div key={v.verse}>
+                <div
+                  key={v.verse}
+                  ref={(el) => {
+                    if (el) verseRefs.current.set(v.verse, el);
+                    else verseRefs.current.delete(v.verse);
+                  }}
+                >
                   <button
                     onClick={() => setOpenVerse(isOpen ? null : v.verse)}
                     className={`w-full text-left rounded-md p-2 transition-colors ${
-                      hasNote ? "bg-amber-50 dark:bg-amber-950/20 border-l-2 border-amber-400" : "hover:bg-muted"
+                      isHighlighted
+                        ? "bg-primary/15 ring-2 ring-primary/60 animate-pulse"
+                        : hasNote
+                          ? "bg-amber-50 dark:bg-amber-950/20 border-l-2 border-amber-400"
+                          : "hover:bg-muted"
                     }`}
                   >
                     <span className="font-semibold text-primary text-sm mr-2">{v.verse}.</span>

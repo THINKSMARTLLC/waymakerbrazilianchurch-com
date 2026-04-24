@@ -464,6 +464,16 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
             {marking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
             {completed ? "Concluído (+10 pts)" : "Marcar como Concluído"}
           </button>
+          {completed && (
+            <button
+              onClick={unmarkCompleted}
+              disabled={marking || !memberId}
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              {marking ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="text-base leading-none">↺</span>}
+              Desmarcar
+            </button>
+          )}
         </div>
       </article>
     </div>

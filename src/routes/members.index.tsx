@@ -38,7 +38,7 @@ export const Route = createFileRoute("/members/")({
   }),
   head: () => ({
     meta: [
-      { title: "Members — WAY MAKER FLOW" },
+      { title: "Members — Way Maker Church" },
       { name: "description", content: "Manage church members and weekly contributions" },
     ],
   }),

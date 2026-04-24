@@ -14,7 +14,7 @@ import type { Database } from "@/integrations/supabase/types";
 export const Route = createFileRoute("/reports")({
   head: () => ({
     meta: [
-      { title: "Relatórios — WAY MAKER FLOW" },
+      { title: "Relatórios — Way Maker Church" },
       { name: "description", content: "Relatórios financeiros e doações" },
     ],
   }),

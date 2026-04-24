@@ -197,7 +197,7 @@ export async function exportFullBackup(): Promise<{
   zip.file("user_profiles.csv", toCSV(profilesRes.data ?? []));
 
   const manifest = {
-    app: "WAY MAKER FLOW",
+    app: "Way Maker Church",
     generated_at: new Date().toISOString(),
     version: 1,
     counts,

@@ -8,7 +8,7 @@ import { formatLocalDateOnly } from "@/lib/datetime";
 
 export const Route = createFileRoute("/engagement/visits")({
   head: () => ({
-    meta: [{ title: "Visitas — WAY MAKER FLOW" }],
+    meta: [{ title: "Visitas — Way Maker Church" }],
   }),
   component: VisitsPage,
 });

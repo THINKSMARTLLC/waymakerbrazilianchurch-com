@@ -86,7 +86,7 @@ function EmergencyBlock({ raw }: { raw: string | null }) {
 export const Route = createFileRoute("/members/$memberId")({
   head: () => ({
     meta: [
-      { title: "Member Profile — WAY MAKER FLOW" },
+      { title: "Member Profile — Way Maker Church" },
       { name: "description", content: "View profile and payment history" },
     ],
   }),

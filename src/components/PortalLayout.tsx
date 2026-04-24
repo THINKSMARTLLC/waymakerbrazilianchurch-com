@@ -47,7 +47,7 @@ export function PortalLayout() {
             <img src={wayMakerLogo} alt="Way Maker logo" className="h-9 w-9 object-contain" />
           </div>
           <span className="font-display text-lg font-semibold text-foreground tracking-tight">
-            WAY MAKER FLOW
+            Way Maker Church
           </span>
           <button className="ml-auto md:hidden text-muted-foreground" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5" />

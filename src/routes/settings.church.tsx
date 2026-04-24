@@ -7,7 +7,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 
 export const Route = createFileRoute("/settings/church")({
   head: () => ({
-    meta: [{ title: "Configurações da Igreja — WAY MAKER FLOW" }],
+    meta: [{ title: "Configurações da Igreja — Way Maker Church" }],
   }),
   component: ChurchSettingsPage,
 });

@@ -12,8 +12,8 @@ import wayMakerLogo from "@/assets/waymaker-logo.png";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Login — WAY MAKER FLOW" },
-      { name: "description", content: "Sign in to WAY MAKER FLOW" },
+      { title: "Login — Way Maker Church" },
+      { name: "description", content: "Sign in to Way Maker Church" },
     ],
   }),
   component: LoginPage,
@@ -66,13 +66,13 @@ function LoginPage() {
             ) : (
               <img
                 src={wayMakerLogo}
-                alt="WAY MAKER FLOW logo"
+                alt="Way Maker Church logo"
                 className="max-h-20 w-auto object-contain"
                 onError={() => setLogoError(true)}
               />
             )}
           </div>
-          <h1 className="font-display text-2xl font-semibold text-foreground">WAY MAKER FLOW</h1>
+          <h1 className="font-display text-2xl font-semibold text-foreground">Way Maker Church</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t("auth.tagline")}</p>
         </div>
 

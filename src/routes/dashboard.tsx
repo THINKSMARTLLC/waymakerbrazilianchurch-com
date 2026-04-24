@@ -15,7 +15,7 @@ import { getWeeklyExpectedTarget } from "@/lib/settings";
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — WAY MAKER FLOW" },
+      { title: "Dashboard — Way Maker Church" },
       { name: "description", content: "Church financial management dashboard" },
     ],
   }),

@@ -26,7 +26,7 @@ interface UserRow {
 }
 
 export const Route = createFileRoute("/admin")({
-  head: () => ({ meta: [{ title: "Admin — WAY MAKER FLOW" }] }),
+  head: () => ({ meta: [{ title: "Admin — Way Maker Church" }] }),
   component: AdminPage,
 });
 

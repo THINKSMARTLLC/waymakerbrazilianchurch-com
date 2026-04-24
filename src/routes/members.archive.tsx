@@ -15,7 +15,7 @@ import {
 export const Route = createFileRoute("/members/archive")({
   head: () => ({
     meta: [
-      { title: "Inactive Members — WAY MAKER FLOW" },
+      { title: "Inactive Members — Way Maker Church" },
       { name: "description", content: "Archived members: reactivate or delete permanently" },
     ],
   }),

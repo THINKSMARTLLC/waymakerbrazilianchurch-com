@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
 
 export const Route = createFileRoute("/reset-password")({
-  head: () => ({ meta: [{ title: "Nova Senha — WAY MAKER FLOW" }] }),
+  head: () => ({ meta: [{ title: "Nova Senha — Way Maker Church" }] }),
   component: ResetPasswordPage,
 });
 
@@ -63,13 +63,13 @@ function ResetPasswordPage() {
           <div className="mx-auto mb-4 flex items-center justify-center">
             <img
               src={wayMakerLogo}
-              alt="WAY MAKER FLOW logo"
+              alt="Way Maker Church logo"
               className="max-h-20 w-auto object-contain"
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
             />
           </div>
           <h1 className="font-display text-2xl font-semibold">Nova Senha</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Defina uma nova senha para a sua conta WAY MAKER FLOW</p>
+          <p className="mt-1 text-sm text-muted-foreground">Defina uma nova senha para a sua conta Way Maker Church</p>
         </div>
         <form onSubmit={handleSubmit} className="card-elevated p-6 space-y-4">
           {!ready && (

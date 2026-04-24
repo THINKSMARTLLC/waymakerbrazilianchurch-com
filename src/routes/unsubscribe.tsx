@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/unsubscribe")({
-  head: () => ({ meta: [{ title: "Cancelar inscrição — WAY MAKER FLOW" }] }),
+  head: () => ({ meta: [{ title: "Cancelar inscrição — Way Maker Church" }] }),
   component: UnsubscribePage,
 });
 
@@ -72,7 +72,7 @@ function UnsubscribePage() {
         {state.kind === "ready" && (
           <>
             <p className="text-muted-foreground mb-6">
-              Confirma que deseja parar de receber emails do WAY MAKER FLOW?
+              Confirma que deseja parar de receber emails do Way Maker Church?
             </p>
             <button onClick={confirm} className="btn-google w-full">
               Confirmar cancelamento

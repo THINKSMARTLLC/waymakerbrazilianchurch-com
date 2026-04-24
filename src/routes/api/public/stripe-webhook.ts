@@ -312,7 +312,16 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             return createOkResponse({ received: true, ignored: true });
           }
 
+          const eventObject = event.data.object as { metadata?: Record<string, string> | null; customer_email?: string | null };
+          logWebhookDebug(`Event received: ${event.type}`, {
+            eventId: event.id,
+            eventType: event.type,
+            customer_email: eventObject?.customer_email ?? null,
+            metadata_member_id: eventObject?.metadata?.member_id ?? null,
+          });
+
           if (!handledEventTypes.has(event.type)) {
+            logWebhookDebug(`Event type not handled: ${event.type}`);
             return createOkResponse({ received: true, ignored: true, eventType: event.type });
           }
 
@@ -336,9 +345,18 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             });
 
             if (!member) {
-              console.warn("Stripe payment without matching member email", {
+              console.error("[stripe-webhook] Member not found", {
+                eventType: event.type,
                 email,
+                memberIdMetadata,
+                stripeCustomerId,
                 stripePaymentId: session.payment_intent?.toString() ?? session.id,
+              });
+              await logStripeEvent("stripe_member_not_found", {
+                event_type: event.type,
+                email: normalizeEmail(email),
+                metadata_member_id: memberIdMetadata,
+                stripe_customer_id: stripeCustomerId,
               });
               await markUnmatchedStripePayment({
                 amount: (session.amount_total ?? 0) / 100,
@@ -393,9 +411,18 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             });
 
             if (!member) {
-              console.warn("Stripe payment without matching member email", {
+              console.error("[stripe-webhook] Member not found", {
+                eventType: event.type,
                 email,
-                stripePaymentId: invoice.id,
+                memberIdMetadata,
+                stripeCustomerId,
+                stripeInvoiceId: invoice.id,
+              });
+              await logStripeEvent("stripe_member_not_found", {
+                event_type: event.type,
+                email: normalizeEmail(email),
+                metadata_member_id: memberIdMetadata,
+                stripe_customer_id: stripeCustomerId,
               });
               await markUnmatchedStripePayment({
                 amount: (invoice.amount_paid ?? 0) / 100,

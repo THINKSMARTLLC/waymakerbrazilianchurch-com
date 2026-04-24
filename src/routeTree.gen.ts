@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as SuccessRouteImport } from './routes/success'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as ResyncStripeRouteImport } from './routes/resync-stripe'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as PortalRouteImport } from './routes/portal'
@@ -60,6 +61,11 @@ const SuccessRoute = SuccessRouteImport.update({
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResyncStripeRoute = ResyncStripeRouteImport.update({
+  id: '/resync-stripe',
+  path: '/resync-stripe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -254,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/portal': typeof PortalRouteWithChildren
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/resync-stripe': typeof ResyncStripeRoute
   '/signup': typeof SignupRoute
   '/success': typeof SuccessRoute
   '/unsubscribe': typeof UnsubscribeRoute
@@ -292,6 +299,7 @@ export interface FileRoutesByTo {
   '/pending': typeof PendingRoute
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/resync-stripe': typeof ResyncStripeRoute
   '/signup': typeof SignupRoute
   '/success': typeof SuccessRoute
   '/unsubscribe': typeof UnsubscribeRoute
@@ -332,6 +340,7 @@ export interface FileRoutesById {
   '/portal': typeof PortalRouteWithChildren
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/resync-stripe': typeof ResyncStripeRoute
   '/signup': typeof SignupRoute
   '/success': typeof SuccessRoute
   '/unsubscribe': typeof UnsubscribeRoute
@@ -373,6 +382,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/reports'
     | '/reset-password'
+    | '/resync-stripe'
     | '/signup'
     | '/success'
     | '/unsubscribe'
@@ -411,6 +421,7 @@ export interface FileRouteTypes {
     | '/pending'
     | '/reports'
     | '/reset-password'
+    | '/resync-stripe'
     | '/signup'
     | '/success'
     | '/unsubscribe'
@@ -450,6 +461,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/reports'
     | '/reset-password'
+    | '/resync-stripe'
     | '/signup'
     | '/success'
     | '/unsubscribe'
@@ -490,6 +502,7 @@ export interface RootRouteChildren {
   PortalRoute: typeof PortalRouteWithChildren
   ReportsRoute: typeof ReportsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ResyncStripeRoute: typeof ResyncStripeRoute
   SignupRoute: typeof SignupRoute
   SuccessRoute: typeof SuccessRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
@@ -530,6 +543,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/resync-stripe': {
+      id: '/resync-stripe'
+      path: '/resync-stripe'
+      fullPath: '/resync-stripe'
+      preLoaderRoute: typeof ResyncStripeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -807,6 +827,7 @@ const rootRouteChildren: RootRouteChildren = {
   PortalRoute: PortalRouteWithChildren,
   ReportsRoute: ReportsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ResyncStripeRoute: ResyncStripeRoute,
   SignupRoute: SignupRoute,
   SuccessRoute: SuccessRoute,
   UnsubscribeRoute: UnsubscribeRoute,

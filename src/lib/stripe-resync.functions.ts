@@ -216,16 +216,18 @@ export const resyncStripeData = createServerFn({ method: "POST" })
         statusPayment = ageDays <= daysWindow ? "On Time" : "Late";
       }
 
-      const update: Record<string, unknown> = {
-        status_payment: statusPayment,
-        last_payment_date: lastDate,
-        subscription_active: !!info?.active,
-        stripe_customer_id: info?.customerId ?? null,
-        stripe_subscription_id: info?.subId ?? null,
-        contribution_frequency: info?.frequency ?? "weekly",
-        payment_type: "card",
-      };
-      await supabaseAdmin.from("members").update(update).eq("id", memberId);
+      await supabaseAdmin
+        .from("members")
+        .update({
+          status_payment: statusPayment,
+          last_payment_date: lastDate,
+          subscription_active: !!info?.active,
+          stripe_customer_id: info?.customerId ?? null,
+          stripe_subscription_id: info?.subId ?? null,
+          contribution_frequency: info?.frequency ?? "weekly",
+          payment_type: "card",
+        })
+        .eq("id", memberId);
       stats.membersUpdated += 1;
     }
 

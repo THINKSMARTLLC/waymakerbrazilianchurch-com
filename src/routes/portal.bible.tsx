@@ -92,6 +92,25 @@ function stripAccents(s: string): string {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
+// Parse a reference like "Mateus 11:28", "John 3:16-17", "1 João 4:7"
+// Returns the canonical English book name (matching BIBLE_BOOKS) plus chapter/verse.
+function parseBibleReference(ref: string): { book: string; chapter: number; verse: number | null } | null {
+  if (!ref) return null;
+  const cleaned = ref.trim().replace(/\s+/g, " ");
+  // Match optional leading number, book words, then "chapter:verse" or just "chapter"
+  const m = cleaned.match(/^((?:[1-3]\s+)?[A-Za-zÀ-ÿ.\s]+?)\s+(\d+)(?::(\d+))?/);
+  if (!m) return null;
+  const rawBook = m[1].trim().replace(/\.$/, "");
+  const chapter = parseInt(m[2], 10);
+  const verse = m[3] ? parseInt(m[3], 10) : null;
+  const key = stripAccents(rawBook).toLowerCase();
+  const englishLower = BOOK_ALIASES[key] ?? key;
+  // Find canonical book in BIBLE_BOOKS (case-insensitive)
+  const canonical = BIBLE_BOOKS.find((b) => b.name.toLowerCase() === englishLower);
+  if (!canonical) return null;
+  return { book: canonical.name, chapter, verse };
+}
+
 function toApiBook(name: string): string {
   const key = stripAccents(name).toLowerCase().trim();
   const mapped = BOOK_ALIASES[key] ?? BOOK_ALIASES[stripAccents(name).toLowerCase()] ?? key;
@@ -120,8 +139,19 @@ function BiblePage() {
   const { i18n } = useTranslation();
   const member = useCurrentMember();
   const [tab, setTab] = useState<Tab>("today");
+  const [target, setTarget] = useState<{ book: string; chapter: number; verse: number | null } | null>(null);
 
   const lang = (i18n.language?.split("-")[0] || "pt") as "pt" | "en" | "es";
+
+  const openInBible = (ref: string) => {
+    const parsed = parseBibleReference(ref);
+    if (!parsed) {
+      toast.error("Não foi possível abrir esta referência.");
+      return;
+    }
+    setTarget(parsed);
+    setTab("bible");
+  };
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -141,8 +171,8 @@ function BiblePage() {
         <TabBtn active={tab === "progress"} onClick={() => setTab("progress")} icon={<Flame className="h-4 w-4" />} label="Progresso" />
       </div>
 
-      {tab === "today" && <TodayDevotional memberId={member?.id ?? null} lang={lang} />}
-      {tab === "bible" && <BibleReader memberId={member?.id ?? null} />}
+      {tab === "today" && <TodayDevotional memberId={member?.id ?? null} lang={lang} onReadVerse={openInBible} />}
+      {tab === "bible" && <BibleReader memberId={member?.id ?? null} target={target} onTargetConsumed={() => setTarget(null)} />}
       {tab === "notes" && <MyNotes memberId={member?.id ?? null} />}
       {tab === "progress" && <Progress memberId={member?.id ?? null} />}
     </div>
@@ -163,7 +193,7 @@ function TabBtn({ active, onClick, icon, label }: { active: boolean; onClick: ()
 }
 
 // ============== TODAY'S DEVOTIONAL ==============
-function TodayDevotional({ memberId, lang }: { memberId: string | null; lang: "pt" | "en" | "es" }) {
+function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | null; lang: "pt" | "en" | "es"; onReadVerse: (ref: string) => void }) {
   const [dev, setDev] = useState<Devotional | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -263,13 +293,13 @@ function TodayDevotional({ memberId, lang }: { memberId: string | null; lang: "p
         <Section title="Oração" body={dev.prayer} />
 
         <div className="flex flex-wrap gap-3 pt-2 border-t border-border">
-          <a
-            href={`https://www.bible.com/bible/search/search?q=${encodeURIComponent(dev.bible_reference)}`}
-            target="_blank" rel="noreferrer"
+          <button
+            type="button"
+            onClick={() => onReadVerse(dev.bible_reference)}
             className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
           >
             <BookOpen className="h-4 w-4" /> Ler Versículo
-          </a>
+          </button>
           <button
             onClick={markCompleted}
             disabled={completed || marking || !memberId}
@@ -298,7 +328,15 @@ function Section({ title, body }: { title: string; body: string }) {
 }
 
 // ============== BIBLE READER ==============
-function BibleReader({ memberId }: { memberId: string | null }) {
+function BibleReader({
+  memberId,
+  target,
+  onTargetConsumed,
+}: {
+  memberId: string | null;
+  target?: { book: string; chapter: number; verse: number | null } | null;
+  onTargetConsumed?: () => void;
+}) {
   const [book, setBook] = useState<string>("John");
   const [chapter, setChapter] = useState<number>(3);
   const [translation, setTranslation] = useState<Translation>("almeida");
@@ -306,6 +344,17 @@ function BibleReader({ memberId }: { memberId: string | null }) {
   const [loading, setLoading] = useState(false);
   const [notesMap, setNotesMap] = useState<Map<number, BibleNote>>(new Map());
   const [openVerse, setOpenVerse] = useState<number | null>(null);
+  const [highlightVerse, setHighlightVerse] = useState<number | null>(null);
+  const verseRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
+  // Apply incoming target (from devotional "Read Verse")
+  useEffect(() => {
+    if (!target) return;
+    setBook(target.book);
+    setChapter(target.chapter);
+    setHighlightVerse(target.verse);
+    onTargetConsumed?.();
+  }, [target, onTargetConsumed]);
 
   const currentBook = BIBLE_BOOKS.find((b) => b.name === book) ?? BIBLE_BOOKS[42];
 
@@ -364,6 +413,17 @@ function BibleReader({ memberId }: { memberId: string | null }) {
     })();
     return () => { cancelled = true; };
   }, [book, chapter, translation, memberId]);
+
+  // Scroll to + highlight target verse once verses are loaded
+  useEffect(() => {
+    if (loading || verses.length === 0 || highlightVerse == null) return;
+    const el = verseRefs.current.get(highlightVerse);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    const t = setTimeout(() => setHighlightVerse(null), 3500);
+    return () => clearTimeout(t);
+  }, [loading, verses, highlightVerse]);
 
   // Load notes for this chapter
   useEffect(() => {
@@ -461,12 +521,23 @@ function BibleReader({ memberId }: { memberId: string | null }) {
               const note = notesMap.get(v.verse);
               const hasNote = !!note;
               const isOpen = openVerse === v.verse;
+              const isHighlighted = highlightVerse === v.verse;
               return (
-                <div key={v.verse}>
+                <div
+                  key={v.verse}
+                  ref={(el) => {
+                    if (el) verseRefs.current.set(v.verse, el);
+                    else verseRefs.current.delete(v.verse);
+                  }}
+                >
                   <button
                     onClick={() => setOpenVerse(isOpen ? null : v.verse)}
                     className={`w-full text-left rounded-md p-2 transition-colors ${
-                      hasNote ? "bg-amber-50 dark:bg-amber-950/20 border-l-2 border-amber-400" : "hover:bg-muted"
+                      isHighlighted
+                        ? "bg-primary/15 ring-2 ring-primary/60 animate-pulse"
+                        : hasNote
+                          ? "bg-amber-50 dark:bg-amber-950/20 border-l-2 border-amber-400"
+                          : "hover:bg-muted"
                     }`}
                   >
                     <span className="font-semibold text-primary text-sm mr-2">{v.verse}.</span>

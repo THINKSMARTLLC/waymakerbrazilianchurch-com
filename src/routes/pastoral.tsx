@@ -211,6 +211,9 @@ function PastoralDashboard() {
   const selected = selectedId ? healthList.find((h) => h.member.id === selectedId) ?? null : null;
   const selectedActivities = selected ? activities.filter((a) => a.member_id === selected.member.id).slice(0, 30) : [];
   const selectedEngagements = selected ? engagements.filter((e) => e.member_id === selected.member.id).slice(0, 30) : [];
+  const selectedNotes = selected ? pastoralNotes.filter((n) => n.member_id === selected.member.id) : [];
+
+  const memberName = (id: string) => members.find((m) => m.id === id)?.name ?? "Unknown member";
 
   return (
     <div className="space-y-6">

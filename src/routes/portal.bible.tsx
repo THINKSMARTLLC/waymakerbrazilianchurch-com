@@ -566,78 +566,158 @@ function MyReflection({ memberId, devotionalId }: { memberId: string | null; dev
 
   if (!memberId) return null;
 
+  const hasContent =
+    note.learned_text.trim().length > 0 ||
+    note.god_spoke_text.trim().length > 0 ||
+    note.keywords.length > 0;
+
+  const lastEditedLabel = lastEditedAt
+    ? new Date(lastEditedAt).toLocaleString(undefined, {
+        day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+      })
+    : null;
+
   return (
-    <div className="pt-4 border-t border-border space-y-4">
-      <div className="flex items-center justify-between">
+    <div ref={containerRef} className="pt-4 border-t border-border space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
           <NotebookPen className="h-4 w-4 text-primary" />
           Minha Reflexão
         </h4>
-        <span className="text-xs text-muted-foreground min-h-[1rem]">
-          {status === "saving" && "Salvando..."}
-          {status === "saved" && <span className="text-emerald-600 dark:text-emerald-400">Salvo ✔</span>}
-          {status === "error" && <span className="text-destructive">Erro ao salvar</span>}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground min-h-[1rem]">
+            {status === "saving" && "Salvando..."}
+            {status === "saved" && <span className="text-emerald-600 dark:text-emerald-400">Salvo ✔</span>}
+            {status === "error" && <span className="text-destructive">Erro ao salvar</span>}
+            {status === "idle" && lastEditedLabel && (
+              <span>Última edição: {lastEditedLabel}</span>
+            )}
+          </span>
+          {mode === "view" && hasContent && (
+            <button
+              type="button"
+              onClick={() => setMode("edit")}
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Editar
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">O que aprendi hoje</label>
-        <textarea
-          value={note.learned_text}
-          onChange={(e) => setNote((p) => ({ ...p, learned_text: e.target.value }))}
-          rows={3}
-          placeholder="Escreva o que Deus te ensinou hoje..."
-          className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
-        />
-      </div>
+      {mode === "view" && hasContent ? (
+        <div className="space-y-4">
+          {note.learned_text.trim() && (
+            <div className="space-y-1.5">
+              <div className="text-xs font-medium text-muted-foreground">O que aprendi hoje</div>
+              <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed rounded-md bg-muted/40 px-3 py-2">
+                {note.learned_text}
+              </p>
+            </div>
+          )}
 
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">Palavras-chave</label>
-        {note.keywords.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {note.keywords.map((k) => (
-              <span
-                key={k}
-                className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-1 text-xs font-medium"
-              >
-                {k}
-                <button
-                  type="button"
-                  onClick={() => removeKeyword(k)}
-                  className="hover:text-destructive"
-                  aria-label={`Remover ${k}`}
-                >
-                  ×
-                </button>
-              </span>
-            ))}
+          {note.keywords.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="text-xs font-medium text-muted-foreground">Palavras-chave</div>
+              <div className="flex flex-wrap gap-1.5">
+                {note.keywords.map((k) => (
+                  <span
+                    key={k}
+                    className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2.5 py-1 text-xs font-medium"
+                  >
+                    {k}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {note.god_spoke_text.trim() && (
+            <div className="space-y-1.5">
+              <div className="text-xs font-medium text-muted-foreground">Deus falou comigo</div>
+              <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed rounded-md bg-muted/40 px-3 py-2">
+                {note.god_spoke_text}
+              </p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">O que aprendi hoje</label>
+            <textarea
+              value={note.learned_text}
+              onChange={(e) => setNote((p) => ({ ...p, learned_text: e.target.value }))}
+              onFocus={() => setMode("edit")}
+              rows={3}
+              placeholder="Escreva o que Deus te ensinou hoje..."
+              className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+            />
           </div>
-        )}
-        <input
-          value={keywordInput}
-          onChange={(e) => setKeywordInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === ",") {
-              e.preventDefault();
-              addKeyword();
-            }
-          }}
-          onBlur={addKeyword}
-          placeholder="Digite e pressione Enter (ex: fé, esperança)"
-          className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        />
-      </div>
 
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">Deus falou comigo</label>
-        <textarea
-          value={note.god_spoke_text}
-          onChange={(e) => setNote((p) => ({ ...p, god_spoke_text: e.target.value }))}
-          rows={3}
-          placeholder="Como Deus falou ao seu coração hoje?"
-          className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
-        />
-      </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Palavras-chave</label>
+            {note.keywords.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {note.keywords.map((k) => (
+                  <span
+                    key={k}
+                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-1 text-xs font-medium"
+                  >
+                    {k}
+                    <button
+                      type="button"
+                      onClick={() => removeKeyword(k)}
+                      className="hover:text-destructive"
+                      aria-label={`Remover ${k}`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <input
+              value={keywordInput}
+              onChange={(e) => setKeywordInput(e.target.value)}
+              onFocus={() => setMode("edit")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === ",") {
+                  e.preventDefault();
+                  addKeyword();
+                }
+              }}
+              onBlur={addKeyword}
+              placeholder="Digite e pressione Enter (ex: fé, esperança)"
+              className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Deus falou comigo</label>
+            <textarea
+              value={note.god_spoke_text}
+              onChange={(e) => setNote((p) => ({ ...p, god_spoke_text: e.target.value }))}
+              onFocus={() => setMode("edit")}
+              rows={3}
+              placeholder="Como Deus falou ao seu coração hoje?"
+              className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+            />
+          </div>
+
+          {hasContent && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setMode("view")}
+                className="text-xs font-medium text-muted-foreground hover:text-foreground"
+              >
+                Concluir
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

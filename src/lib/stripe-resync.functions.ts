@@ -155,7 +155,7 @@ export const resyncStripeData = createServerFn({ method: "POST" })
             } else {
               const { data: ins, error: insErr } = await supabaseAdmin
                 .from("payments")
-                .insert({
+                .insert([{
                   amount,
                   base_amount: amount,
                   contribution_type: "pastor_salary",

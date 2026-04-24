@@ -3,7 +3,7 @@ import { Clock, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/pending")({
-  head: () => ({ meta: [{ title: "Aguardando Aprovação — WAY MAKER FLOW" }] }),
+  head: () => ({ meta: [{ title: "Aguardando Aprovação — Way Maker Church" }] }),
   component: PendingPage,
 });
 

@@ -10,8 +10,8 @@ import wayMakerLogo from "@/assets/waymaker-logo.png";
 export const Route = createFileRoute("/signup")({
   head: () => ({
     meta: [
-      { title: "Criar Conta — WAY MAKER FLOW" },
-      { name: "description", content: "Crie sua conta no WAY MAKER FLOW" },
+      { title: "Criar Conta — Way Maker Church" },
+      { name: "description", content: "Crie sua conta no Way Maker Church" },
     ],
   }),
   component: SignupPage,
@@ -155,13 +155,13 @@ function SignupPage() {
             ) : (
               <img
                 src={wayMakerLogo}
-                alt="WAY MAKER FLOW logo"
+                alt="Way Maker Church logo"
                 className="max-h-20 w-auto object-contain"
                 onError={() => setLogoError(true)}
               />
             )}
           </div>
-          <h1 className="font-display text-2xl font-semibold text-foreground">WAY MAKER FLOW</h1>
+          <h1 className="font-display text-2xl font-semibold text-foreground">Way Maker Church</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Criar conta — comece a gerenciar sua igreja em minutos
           </p>

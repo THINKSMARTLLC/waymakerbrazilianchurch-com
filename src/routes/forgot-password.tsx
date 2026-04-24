@@ -6,7 +6,7 @@ import wayMakerLogo from "@/assets/waymaker-logo.png";
 
 export const Route = createFileRoute("/forgot-password")({
   head: () => ({
-    meta: [{ title: "Recuperar Senha — WAY MAKER FLOW" }],
+    meta: [{ title: "Recuperar Senha — Way Maker Church" }],
   }),
   component: ForgotPasswordPage,
 });
@@ -36,14 +36,14 @@ function ForgotPasswordPage() {
           <div className="mx-auto mb-4 flex items-center justify-center">
             <img
               src={wayMakerLogo}
-              alt="WAY MAKER FLOW logo"
+              alt="Way Maker Church logo"
               className="max-h-20 w-auto object-contain"
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
             />
           </div>
           <h1 className="font-display text-2xl font-semibold text-foreground">Recuperar Senha</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Enviaremos um link para redefinir sua senha do WAY MAKER FLOW
+            Enviaremos um link para redefinir sua senha do Way Maker Church
           </p>
         </div>
 

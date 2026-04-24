@@ -23,7 +23,7 @@ import { toTitleCase } from "@/lib/format";
 export const Route = createFileRoute("/engagement/")({
   head: () => ({
     meta: [
-      { title: "Engajamento — WAY MAKER FLOW" },
+      { title: "Engajamento — Way Maker Church" },
       { name: "description", content: "Acompanhe o engajamento dos membros" },
     ],
   }),

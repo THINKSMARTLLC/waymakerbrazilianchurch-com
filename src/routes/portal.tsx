@@ -8,7 +8,7 @@ import { AlertTriangle, LogOut } from "lucide-react";
 export const Route = createFileRoute("/portal")({
   head: () => ({
     meta: [
-      { title: "Portal do Membro — WAY MAKER FLOW" },
+      { title: "Portal do Membro — Way Maker Church" },
       { name: "description", content: "Seu portal pessoal de contribuições" },
     ],
   }),

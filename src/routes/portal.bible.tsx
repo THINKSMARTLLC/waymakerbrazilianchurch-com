@@ -14,7 +14,7 @@ import { todayNYC } from "@/lib/datetime";
 export const Route = createFileRoute("/portal/bible")({
   head: () => ({
     meta: [
-      { title: "Bíblia & Devocional — WAY MAKER FLOW" },
+      { title: "Bíblia & Devocional — Way Maker Church" },
       { name: "description", content: "Sua jornada diária com a Palavra: devocional, leitura e anotações." },
     ],
   }),

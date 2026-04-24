@@ -29,7 +29,7 @@ interface UnifiedRow {
 }
 
 export const Route = createFileRoute("/engagement/review")({
-  head: () => ({ meta: [{ title: "Engagement Review — WAY MAKER FLOW" }] }),
+  head: () => ({ meta: [{ title: "Engagement Review — Way Maker Church" }] }),
   component: EngagementReviewPage,
 });
 

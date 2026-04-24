@@ -17,7 +17,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/discipleship")({
   head: () => ({
     meta: [
-      { title: "Discipleship — WAY MAKER FLOW" },
+      { title: "Discipleship — Way Maker Church" },
       { name: "description", content: "Track spiritual growth and discipleship journey" },
     ],
   }),

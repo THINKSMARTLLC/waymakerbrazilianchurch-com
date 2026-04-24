@@ -3,7 +3,7 @@ import {
 } from "@react-email/components";
 import type { TemplateEntry } from "./registry";
 
-const SITE_NAME = "WAY MAKER FLOW";
+const SITE_NAME = "Way Maker Church";
 
 interface WelcomeAccessProps {
   fullName?: string;

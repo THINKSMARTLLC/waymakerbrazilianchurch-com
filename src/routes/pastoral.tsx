@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 export const Route = createFileRoute("/pastoral")({
   head: () => ({
     meta: [
-      { title: "Pastoral Dashboard — WAY MAKER FLOW" },
+      { title: "Pastoral Dashboard — Way Maker Church" },
       { name: "description", content: "Insights and alerts on member engagement" },
     ],
   }),

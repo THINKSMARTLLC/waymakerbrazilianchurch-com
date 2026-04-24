@@ -82,6 +82,7 @@ function MembersPage() {
   const [activeDupGroup, setActiveDupGroup] = useState<DuplicateGroup | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [whatsappTarget, setWhatsappTarget] = useState<WhatsAppMember | null>(null);
   const { isSuperAdmin } = useUserRole();
 
   const handleExport = async (format: "csv" | "xlsx") => {

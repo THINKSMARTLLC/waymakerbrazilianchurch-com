@@ -748,10 +748,19 @@ function LandingPage() {
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Fale conosco no WhatsApp"
-          className="flex h-12 w-12 items-center justify-center transition hover:scale-110 sm:h-14 sm:w-14 lg:h-16 lg:w-16"
-          style={{ animation: "wmc-pulse 2.4s ease-in-out infinite", filter: "drop-shadow(0 6px 12px rgba(0,0,0,0.25))", borderRadius: "9999px" }}
+          className="flex h-12 w-12 items-center justify-center rounded-full transition hover:scale-110 sm:h-14 sm:w-14 lg:h-16 lg:w-16"
+          style={{ animation: "wmc-pulse 2.4s ease-in-out infinite", filter: "drop-shadow(0 6px 12px rgba(0,0,0,0.25))" }}
         >
-          <img src={whatsappIcon} alt="" className="h-full w-full" />
+          <svg viewBox="0 0 32 32" className="h-full w-full" aria-hidden="true">
+            <path
+              fill="#25D366"
+              d="M16 .5C7.44.5.5 7.44.5 16c0 2.82.74 5.47 2.04 7.77L.5 31.5l7.94-2.02A15.46 15.46 0 0 0 16 31.5C24.56 31.5 31.5 24.56 31.5 16S24.56.5 16 .5z"
+            />
+            <path
+              fill="#FFFFFF"
+              d="M23.47 19.62c-.32-.16-1.88-.93-2.17-1.04-.29-.11-.5-.16-.71.16-.21.32-.82 1.04-1 1.25-.18.21-.37.24-.69.08-.32-.16-1.34-.49-2.55-1.57-.94-.84-1.58-1.88-1.76-2.2-.18-.32-.02-.49.14-.65.14-.14.32-.37.48-.55.16-.18.21-.32.32-.53.11-.21.05-.4-.03-.55-.08-.16-.71-1.71-.97-2.34-.26-.62-.52-.54-.71-.55-.18-.01-.4-.01-.61-.01-.21 0-.55.08-.84.4-.29.32-1.1 1.07-1.1 2.62 0 1.55 1.13 3.04 1.29 3.25.16.21 2.22 3.39 5.38 4.75.75.32 1.34.51 1.8.66.76.24 1.45.21 2 .13.61-.09 1.88-.77 2.14-1.51.26-.74.26-1.37.18-1.51-.07-.13-.29-.21-.61-.37z"
+            />
+          </svg>
         </a>
       </div>
       <style>{`

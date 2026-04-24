@@ -187,7 +187,11 @@ function ReportsPage() {
       if (memberIdFilter !== "all" && m.id !== memberIdFilter) return false;
       if (nameFilter && !m.name.toLowerCase().includes(nameFilter.toLowerCase())) return false;
       const status = statusByMember.get(m.id) ?? "no_payment";
-      if (statusFilter !== "all" && status !== statusFilter) return false;
+      if (statusFilter !== "all") {
+        if (statusFilter === "paid") {
+          if (status !== "on_time" && status !== "active") return false;
+        } else if (status !== statusFilter) return false;
+      }
       // Method filter: member must have at least one payment of this method (in range)
       if (methodFilter !== "all") {
         const has = payments.some((p) => {

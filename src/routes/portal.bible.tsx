@@ -975,50 +975,101 @@ function MyNotes({ memberId }: { memberId: string | null }) {
 
 // ============== PROGRESS ==============
 function Progress({ memberId }: { memberId: string | null }) {
-  const [stats, setStats] = useState({ streak: 0, devotionals: 0, chapters: 0, notes: 0 });
+  const [stats, setStats] = useState({
+    streak: 0,
+    devotionals: 0,
+    chapters: 0,
+    notes: 0,
+    reflections: 0,
+    points: 0,
+  });
+  const [todayActions, setTodayActions] = useState({
+    completed: false,
+    reflectedToday: false,
+    notesToday: 0,
+    readToday: false,
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!memberId) { setLoading(false); return; }
     let cancelled = false;
     (async () => {
-      const [{ count: dCount }, { count: nCount }, { data: readings }] = await Promise.all([
+      const today = todayNYC();
+      const [
+        { count: dCount },
+        { count: nCount },
+        { data: readings },
+        { data: reflections },
+        { data: ch },
+        { data: completedTodayRows },
+      ] = await Promise.all([
         supabase.from("devotional_completions").select("id", { count: "exact", head: true }).eq("member_id", memberId),
         supabase.from("bible_notes").select("id", { count: "exact", head: true }).eq("member_id", memberId),
         supabase.from("bible_readings").select("read_date").eq("member_id", memberId).order("read_date", { ascending: false }),
+        supabase
+          .from("devotional_notes")
+          .select("id, learned_text, keywords, god_spoke_text, updated_at")
+          .eq("member_id", memberId)
+          .order("updated_at", { ascending: false }),
+        supabase.from("bible_readings").select("book, chapter").eq("member_id", memberId),
+        supabase.from("devotional_completions").select("id").eq("member_id", memberId).eq("completed_date", today).limit(1),
       ]);
       if (cancelled) return;
 
-      const uniqueDates = Array.from(new Set((readings || []).map((r) => r.read_date as string))).sort().reverse();
-      // Compute streak
+      // Filter reflections that have actual content
+      const filledReflections = (reflections || []).filter((r) => {
+        const hasText = (r.learned_text?.trim().length ?? 0) > 0 || (r.god_spoke_text?.trim().length ?? 0) > 0;
+        const hasKeywords = Array.isArray(r.keywords) && r.keywords.length > 0;
+        return hasText || hasKeywords;
+      });
+
+      // Streak: combine reading days + reflection days + completion days
+      const reflectionDates = filledReflections.map((r) => (r.updated_at as string).slice(0, 10));
+      const readingDates = (readings || []).map((r) => r.read_date as string);
+      const allActiveDates = Array.from(new Set([...readingDates, ...reflectionDates])).sort().reverse();
+
       let streak = 0;
-      const today = todayNYC();
       const yest = (() => {
         const d = new Date(today + "T12:00:00");
         d.setDate(d.getDate() - 1);
         return d.toISOString().slice(0, 10);
       })();
-      let cursor = uniqueDates[0] === today ? today : (uniqueDates[0] === yest ? yest : null);
+      let cursor = allActiveDates[0] === today ? today : (allActiveDates[0] === yest ? yest : null);
       if (cursor) {
-        const set = new Set(uniqueDates);
+        const set = new Set(allActiveDates);
         const start = new Date(cursor + "T12:00:00");
-        for (let i = 0; i < uniqueDates.length + 365; i++) {
+        for (let i = 0; i < allActiveDates.length + 365; i++) {
           const key = start.toISOString().slice(0, 10);
           if (set.has(key)) { streak++; start.setDate(start.getDate() - 1); }
           else break;
         }
       }
 
-      const chapters = new Set((readings || []).map((r) => r.read_date)).size; // unique reading days
-      // Better: count unique book+chapter from a fresh query
-      const { data: ch } = await supabase
-        .from("bible_readings")
-        .select("book, chapter")
-        .eq("member_id", memberId);
       const uniqChapters = new Set((ch || []).map((r) => `${r.book}-${r.chapter}`)).size;
 
+      // Today actions
+      const reflectedToday = filledReflections.some((r) => (r.updated_at as string).slice(0, 10) === today);
+      const completedToday = (completedTodayRows?.length ?? 0) > 0;
+
+      // Points: +10 per devotional completion, +7 per reflection, +5 per note
+      const points = (dCount || 0) * 10 + filledReflections.length * 7 + (nCount || 0) * 5;
+
       if (!cancelled) {
-        setStats({ streak, devotionals: dCount || 0, chapters: uniqChapters || chapters, notes: nCount || 0 });
+        setStats({
+          streak,
+          devotionals: dCount || 0,
+          chapters: uniqChapters,
+          notes: nCount || 0,
+          reflections: filledReflections.length,
+          points,
+        });
+        setTodayActions({
+          completed: completedToday,
+          reflectedToday,
+          notesToday: 0, // computed below if needed
+          readToday: readingDates.includes(today),
+        });
         setLoading(false);
       }
     })();
@@ -1030,19 +1081,53 @@ function Progress({ memberId }: { memberId: string | null }) {
   const cards = [
     { label: "Sequência (dias)", value: stats.streak, icon: Flame, color: "text-orange-500" },
     { label: "Devocionais", value: stats.devotionals, icon: Sparkles, color: "text-primary" },
+    { label: "Reflexões", value: stats.reflections, icon: NotebookPen, color: "text-violet-600" },
     { label: "Capítulos lidos", value: stats.chapters, icon: BookOpen, color: "text-emerald-600" },
-    { label: "Notas", value: stats.notes, icon: NotebookPen, color: "text-amber-600" },
+    { label: "Notas", value: stats.notes, icon: BookMarked, color: "text-amber-600" },
+    { label: "Pontos totais", value: stats.points, icon: Sparkles, color: "text-primary" },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {cards.map((c) => (
-        <div key={c.label} className="card-elevated p-4">
-          <c.icon className={`h-5 w-5 ${c.color}`} />
-          <div className="mt-2 text-2xl font-display font-semibold text-foreground">{c.value}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">{c.label}</div>
-        </div>
-      ))}
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {cards.map((c) => (
+          <div key={c.label} className="card-elevated p-4">
+            <c.icon className={`h-5 w-5 ${c.color}`} />
+            <div className="mt-2 text-2xl font-display font-semibold text-foreground">{c.value}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">{c.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="card-elevated p-4">
+        <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">Hoje</h4>
+        <ul className="space-y-2 text-sm">
+          <li className="flex items-center gap-2">
+            {todayActions.completed
+              ? <Check className="h-4 w-4 text-emerald-600" />
+              : <span className="h-4 w-4 rounded-full border border-border inline-block" />}
+            <span className={todayActions.completed ? "text-foreground" : "text-muted-foreground"}>
+              {todayActions.completed ? "Devocional concluído (+10 pts)" : "Devocional pendente"}
+            </span>
+          </li>
+          <li className="flex items-center gap-2">
+            {todayActions.reflectedToday
+              ? <Check className="h-4 w-4 text-emerald-600" />
+              : <span className="h-4 w-4 rounded-full border border-border inline-block" />}
+            <span className={todayActions.reflectedToday ? "text-foreground" : "text-muted-foreground"}>
+              {todayActions.reflectedToday ? "Você escreveu uma reflexão hoje (+7 pts)" : "Sem reflexão hoje"}
+            </span>
+          </li>
+          <li className="flex items-center gap-2">
+            {todayActions.readToday
+              ? <Check className="h-4 w-4 text-emerald-600" />
+              : <span className="h-4 w-4 rounded-full border border-border inline-block" />}
+            <span className={todayActions.readToday ? "text-foreground" : "text-muted-foreground"}>
+              {todayActions.readToday ? "Leitura bíblica registrada" : "Sem leitura hoje"}
+            </span>
+          </li>
+        </ul>
+      </div>
     </div>
   );
 }

@@ -312,33 +312,58 @@ function BibleReader({ memberId }: { memberId: string | null }) {
   // Load chapter
   useEffect(() => {
     let cancelled = false;
+
+    async function tryFetch(url: string): Promise<any | null> {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) {
+          console.warn("[bible-api] non-ok", res.status, url);
+          return null;
+        }
+        const json = await res.json();
+        if (!json?.verses?.length) return null;
+        return json;
+      } catch (err) {
+        console.warn("[bible-api] fetch threw", err);
+        return null;
+      }
+    }
+
+    async function fetchWithRetry(): Promise<any | null> {
+      const apiBook = toApiBook(book);
+      const primary = `https://bible-api.com/${apiBook}+${chapter}?translation=${translation}`;
+      const fallback = `https://bible-api.com/${apiBook}+${chapter}`;
+      // 3 attempts with exponential backoff: 0ms, 500ms, 1500ms (+ jitter)
+      const delays = [0, 500, 1500];
+      for (let attempt = 0; attempt < delays.length; attempt++) {
+        if (cancelled) return null;
+        if (delays[attempt] > 0) {
+          const jitter = Math.floor(Math.random() * 200);
+          await new Promise((r) => setTimeout(r, delays[attempt] + jitter));
+          if (cancelled) return null;
+        }
+        console.log(`[bible-api] attempt ${attempt + 1} GET`, primary);
+        const json = await tryFetch(primary);
+        if (json) return json;
+
+        if (cancelled) return null;
+        console.log(`[bible-api] attempt ${attempt + 1} fallback GET`, fallback);
+        const fb = await tryFetch(fallback);
+        if (fb) return fb;
+      }
+      return null;
+    }
+
     (async () => {
       setLoading(true);
       try {
-        const apiBook = toApiBook(book);
-        const url = `https://bible-api.com/${apiBook}+${chapter}?translation=${translation}`;
-        console.log("[bible-api] GET", url);
-        let res = await fetch(url);
-        let json: any = res.ok ? await res.json() : null;
-        console.log("[bible-api] response", res.status, json);
-
-        // Fallback: try without translation param (default WEB)
-        if (!res.ok || !json?.verses?.length) {
-          const fallbackUrl = `https://bible-api.com/${apiBook}+${chapter}`;
-          console.log("[bible-api] fallback GET", fallbackUrl);
-          res = await fetch(fallbackUrl);
-          json = res.ok ? await res.json() : null;
-        }
-
-        if (!res.ok || !json?.verses?.length) {
-          throw new Error("No verses returned");
-        }
-        if (!cancelled) setVerses(json.verses);
-      } catch (e) {
-        console.error("[bible-api] error", e);
-        if (!cancelled) {
+        const json = await fetchWithRetry();
+        if (cancelled) return;
+        if (!json) {
           toast.error("Unable to load Bible. Please try again.");
           setVerses([]);
+        } else {
+          setVerses(json.verses);
         }
       } finally {
         if (!cancelled) setLoading(false);

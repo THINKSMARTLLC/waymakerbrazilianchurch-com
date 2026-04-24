@@ -10,7 +10,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Stripe-Signature",
 };
 
-const handledEventTypes = new Set(["checkout.session.completed", "invoice.paid"]);
+const handledEventTypes = new Set([
+  "checkout.session.completed",
+  "invoice.paid",
+  "invoice.payment_failed",
+  "customer.subscription.created",
+  "customer.subscription.updated",
+  "customer.subscription.deleted",
+]);
 
 function createOkResponse(body: Record<string, unknown> = { received: true }) {
   return new Response(JSON.stringify(body), {

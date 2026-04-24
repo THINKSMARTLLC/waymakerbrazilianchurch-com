@@ -1232,37 +1232,63 @@ function Progress({ memberId, onNavigate }: { memberId: string | null; onNavigat
 
   if (loading) return <div className="flex justify-center p-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
 
-  const cards = [
-    { label: "Sequência (dias)", value: stats.streak, icon: Flame, color: "text-orange-500" },
-    { label: "Devocionais", value: stats.devotionals, icon: Sparkles, color: "text-primary" },
-    { label: "Reflexões", value: stats.reflections, icon: NotebookPen, color: "text-violet-600" },
-    { label: "Capítulos lidos", value: stats.chapters, icon: BookOpen, color: "text-emerald-600" },
-    { label: "Notas", value: stats.notes, icon: BookMarked, color: "text-amber-600" },
+  const cards: Array<{
+    label: string;
+    value: number;
+    icon: typeof Flame;
+    color: string;
+    target?: Tab;
+  }> = [
+    { label: "Sequência (dias)", value: stats.streak, icon: Flame, color: "text-orange-500", target: "today" },
+    { label: "Devocionais", value: stats.devotionals, icon: Sparkles, color: "text-primary", target: "today" },
+    { label: "Reflexões", value: stats.reflections, icon: NotebookPen, color: "text-violet-600", target: "today" },
+    { label: "Capítulos lidos", value: stats.chapters, icon: BookOpen, color: "text-emerald-600", target: "bible" },
+    { label: "Notas", value: stats.notes, icon: BookMarked, color: "text-amber-600", target: "notes" },
     { label: "Pontos totais", value: stats.points, icon: Sparkles, color: "text-primary" },
   ];
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {cards.map((c) => (
-          <div key={c.label} className="card-elevated p-4">
-            <c.icon className={`h-5 w-5 ${c.color}`} />
-            <div className="mt-2 text-2xl font-display font-semibold text-foreground">{c.value}</div>
-            <div className="text-xs text-muted-foreground mt-0.5">{c.label}</div>
-          </div>
-        ))}
+        {cards.map((c) => {
+          const clickable = !!c.target;
+          const Wrapper: React.ElementType = clickable ? "button" : "div";
+          return (
+            <Wrapper
+              key={c.label}
+              {...(clickable
+                ? {
+                    type: "button",
+                    onClick: () => onNavigate(c.target as Tab),
+                    "aria-label": `Ver detalhes de ${c.label}`,
+                  }
+                : {})}
+              className={`card-elevated p-4 text-left ${clickable ? "cursor-pointer hover:bg-muted/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" : ""}`}
+            >
+              <c.icon className={`h-5 w-5 ${c.color}`} />
+              <div className="mt-2 text-2xl font-display font-semibold text-foreground">{c.value}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{c.label}</div>
+            </Wrapper>
+          );
+        })}
       </div>
 
       <div className="card-elevated p-4">
         <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">Hoje</h4>
         <ul className="space-y-2 text-sm">
-          <li className="flex items-center gap-2">
-            {todayActions.completed
-              ? <Check className="h-4 w-4 text-emerald-600" />
-              : <span className="h-4 w-4 rounded-full border border-border inline-block" />}
-            <span className={todayActions.completed ? "text-foreground" : "text-muted-foreground"}>
-              {todayActions.completed ? "Devocional concluído (+10 pts)" : "Devocional pendente"}
-            </span>
+          <li>
+            <button
+              type="button"
+              onClick={() => onNavigate("today")}
+              className="w-full flex items-center gap-2 text-left rounded-md -mx-1 px-1 py-0.5 hover:bg-muted/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+            >
+              {todayActions.completed
+                ? <Check className="h-4 w-4 text-emerald-600" />
+                : <span className="h-4 w-4 rounded-full border border-border inline-block" />}
+              <span className={todayActions.completed ? "text-foreground" : "text-muted-foreground"}>
+                {todayActions.completed ? "Devocional concluído (+10 pts)" : "Devocional pendente"}
+              </span>
+            </button>
           </li>
           <li className="flex items-center gap-2">
             {todayActions.reflectedToday

@@ -330,28 +330,10 @@ function BibleReader({ memberId }: { memberId: string | null }) {
     }
 
     async function fetchWithRetry(): Promise<any | null> {
-      const apiBook = toApiBook(book);
-      const primary = `https://bible-api.com/${apiBook}+${chapter}?translation=${translation}`;
-      const fallback = `https://bible-api.com/${apiBook}+${chapter}`;
-      // 3 attempts with exponential backoff: 0ms, 500ms, 1500ms (+ jitter)
-      const delays = [0, 500, 1500];
-      for (let attempt = 0; attempt < delays.length; attempt++) {
-        if (cancelled) return null;
-        if (delays[attempt] > 0) {
-          const jitter = Math.floor(Math.random() * 200);
-          await new Promise((r) => setTimeout(r, delays[attempt] + jitter));
-          if (cancelled) return null;
-        }
-        console.log(`[bible-api] attempt ${attempt + 1} GET`, primary);
-        const json = await tryFetch(primary);
-        if (json) return json;
-
-        if (cancelled) return null;
-        console.log(`[bible-api] attempt ${attempt + 1} fallback GET`, fallback);
-        const fb = await tryFetch(fallback);
-        if (fb) return fb;
-      }
-      return null;
+      const url = `/api/bible?book=${encodeURIComponent(book)}&chapter=${encodeURIComponent(String(chapter))}&translation=${encodeURIComponent(translation)}`;
+      console.log("[bible] proxy GET", url);
+      const json = await tryFetch(url);
+      return json;
     }
 
     (async () => {

@@ -119,7 +119,7 @@ function toApiBook(name: string): string {
 }
 
 type Tab = "today" | "bible" | "notes" | "progress";
-type Translation = "web" | "kjv" | "almeida";
+type Translation = "web" | "kjv" | "almeida" | "rvr";
 
 interface Devotional {
   id: string;
@@ -204,7 +204,7 @@ function BiblePage() {
       {tab === "today" && <TodayDevotional memberId={member?.id ?? null} lang={lang} onReadVerse={openInBible} />}
       {tab === "bible" && <BibleReader memberId={member?.id ?? null} target={target} onTargetConsumed={() => setTarget(null)} />}
       {tab === "notes" && <MyNotes memberId={member?.id ?? null} />}
-      {tab === "progress" && <Progress memberId={member?.id ?? null} />}
+      {tab === "progress" && <Progress memberId={member?.id ?? null} onNavigate={setTab} />}
     </div>
   );
 }
@@ -235,62 +235,71 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
   const [showResume, setShowResume] = useState(false);
 
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const reqIdRef = useRef(0);
 
+  // Load the devotional itself (depends only on language).
+  // Keeping member-related side queries in a separate effect avoids the
+  // full-screen loader flashing when memberId resolves after the devotional.
   useEffect(() => {
+    const myReq = ++reqIdRef.current;
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setError(null);
       try {
         const { devotional, error: e } = await getOrGenerateTodayDevotional({ data: { language: lang } });
-        if (cancelled) return;
+        if (cancelled || myReq !== reqIdRef.current) return;
         if (e) setError(e);
         setDev(devotional ?? null);
-
-        if (devotional && memberId) {
-          const { data: comp } = await supabase
-            .from("devotional_completions")
-            .select("id")
-            .eq("member_id", memberId)
-            .eq("devotional_id", devotional.id)
-            .maybeSingle();
-          if (!cancelled) setCompleted(!!comp);
-        }
-
-        if (memberId) {
-          const today = todayNYC();
-          const [readingsRes, notesRes] = await Promise.all([
-            supabase.from("bible_readings").select("id").eq("member_id", memberId).eq("read_date", today).limit(1),
-            supabase
-              .from("bible_notes")
-              .select("id, updated_at")
-              .eq("member_id", memberId)
-              .gte("updated_at", `${today}T00:00:00`)
-              .order("updated_at", { ascending: false }),
-          ]);
-          if (cancelled) return;
-          setReadToday(!!readingsRes.data && readingsRes.data.length > 0);
-          setNotesToday(notesRes.data?.length ?? 0);
-
-          // Determine resume state
-          const last = loadLastPosition();
-          const startedSomething =
-            (last?.section && last?.tab === "today") ||
-            (notesRes.data?.length ?? 0) > 0 ||
-            !!readingsRes.data?.length;
-          if (startedSomething && !cancelled) {
-            setResumeSection(last?.section ?? "devotional");
-            setShowResume(true);
-          }
-        }
       } catch (err) {
         console.error(err);
-        if (!cancelled) setError("Não foi possível carregar o devocional");
+        if (!cancelled && myReq === reqIdRef.current) setError("Não foi possível carregar o devocional");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled && myReq === reqIdRef.current) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [lang, memberId]);
+  }, [lang]);
+
+  // Load member-specific completion / read / notes state.
+  // Runs without toggling the main loader.
+  useEffect(() => {
+    if (!memberId || !dev) return;
+    let cancelled = false;
+    (async () => {
+      const today = todayNYC();
+      const [compRes, readingsRes, notesRes] = await Promise.all([
+        supabase
+          .from("devotional_completions")
+          .select("id")
+          .eq("member_id", memberId)
+          .eq("devotional_id", dev.id)
+          .maybeSingle(),
+        supabase.from("bible_readings").select("id").eq("member_id", memberId).eq("read_date", today).limit(1),
+        supabase
+          .from("bible_notes")
+          .select("id, updated_at")
+          .eq("member_id", memberId)
+          .gte("updated_at", `${today}T00:00:00`)
+          .order("updated_at", { ascending: false }),
+      ]);
+      if (cancelled) return;
+      setCompleted(!!compRes.data);
+      setReadToday(!!readingsRes.data && readingsRes.data.length > 0);
+      setNotesToday(notesRes.data?.length ?? 0);
+
+      const last = loadLastPosition();
+      const startedSomething =
+        (last?.section && last?.tab === "today") ||
+        (notesRes.data?.length ?? 0) > 0 ||
+        !!readingsRes.data?.length;
+      if (startedSomething) {
+        setResumeSection(last?.section ?? "devotional");
+        setShowResume(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [memberId, dev]);
 
   const scrollToSection = (section: NonNullable<LastPosition["section"]>) => {
     const el = sectionRefs.current[section];
@@ -716,8 +725,8 @@ function BibleReader({
   target?: { book: string; chapter: number; verse: number | null } | null;
   onTargetConsumed?: () => void;
 }) {
-  const [book, setBook] = useState<string>("John");
-  const [chapter, setChapter] = useState<number>(3);
+  const [book, setBook] = useState<string>("Genesis");
+  const [chapter, setChapter] = useState<number>(1);
   const [translation, setTranslation] = useState<Translation>("almeida");
   const [verses, setVerses] = useState<BibleVerse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -865,6 +874,7 @@ function BibleReader({
               className="mt-1 w-full h-9 rounded-md border border-input bg-background px-2 text-sm"
             >
               <option value="almeida">Almeida (PT)</option>
+              <option value="rvr">Reina-Valera (ES)</option>
               <option value="web">World English (EN)</option>
               <option value="kjv">King James (EN)</option>
             </select>
@@ -1021,6 +1031,7 @@ function MyNotes({ memberId }: { memberId: string | null }) {
   const [notes, setNotes] = useState<BibleNote[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!memberId) { setLoading(false); return; }
@@ -1049,6 +1060,14 @@ function MyNotes({ memberId }: { memberId: string | null }) {
     );
   }, [notes, query]);
 
+  const handleSaved = (updated: BibleNote) => {
+    setNotes((prev) => {
+      const next = prev.map((n) => (n.id === updated.id ? updated : n));
+      // re-sort by updated_at desc
+      return [...next].sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1));
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="relative">
@@ -1069,18 +1088,39 @@ function MyNotes({ memberId }: { memberId: string | null }) {
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((n) => (
-            <div key={n.id} className="card-elevated p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold text-primary">{n.book} {n.chapter}:{n.verse}</span>
-                <span className="text-xs text-muted-foreground">
-                  {n.share_with_pastor ? <Share2 className="inline h-3 w-3 mr-1" /> : <Lock className="inline h-3 w-3 mr-1" />}
-                  {new Date(n.updated_at).toLocaleDateString()}
-                </span>
+          {filtered.map((n) => {
+            const isEditing = editingId === n.id;
+            return (
+              <div key={n.id} className="card-elevated p-4">
+                <button
+                  type="button"
+                  onClick={() => setEditingId(isEditing ? null : n.id)}
+                  className="w-full text-left"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-semibold text-primary">{n.book} {n.chapter}:{n.verse}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {n.share_with_pastor ? <Share2 className="inline h-3 w-3 mr-1" /> : <Lock className="inline h-3 w-3 mr-1" />}
+                      {new Date(n.updated_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {!isEditing && (
+                    <p className="text-sm text-foreground whitespace-pre-wrap">{n.note_text}</p>
+                  )}
+                </button>
+                {isEditing && memberId && (
+                  <NoteEditor
+                    memberId={memberId}
+                    book={n.book}
+                    chapter={n.chapter}
+                    verse={n.verse}
+                    existing={n}
+                    onSaved={handleSaved}
+                  />
+                )}
               </div>
-              <p className="text-sm text-foreground whitespace-pre-wrap">{n.note_text}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -1088,7 +1128,7 @@ function MyNotes({ memberId }: { memberId: string | null }) {
 }
 
 // ============== PROGRESS ==============
-function Progress({ memberId }: { memberId: string | null }) {
+function Progress({ memberId, onNavigate }: { memberId: string | null; onNavigate: (tab: Tab) => void }) {
   const [stats, setStats] = useState({
     streak: 0,
     devotionals: 0,
@@ -1192,37 +1232,63 @@ function Progress({ memberId }: { memberId: string | null }) {
 
   if (loading) return <div className="flex justify-center p-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
 
-  const cards = [
-    { label: "Sequência (dias)", value: stats.streak, icon: Flame, color: "text-orange-500" },
-    { label: "Devocionais", value: stats.devotionals, icon: Sparkles, color: "text-primary" },
-    { label: "Reflexões", value: stats.reflections, icon: NotebookPen, color: "text-violet-600" },
-    { label: "Capítulos lidos", value: stats.chapters, icon: BookOpen, color: "text-emerald-600" },
-    { label: "Notas", value: stats.notes, icon: BookMarked, color: "text-amber-600" },
+  const cards: Array<{
+    label: string;
+    value: number;
+    icon: typeof Flame;
+    color: string;
+    target?: Tab;
+  }> = [
+    { label: "Sequência (dias)", value: stats.streak, icon: Flame, color: "text-orange-500", target: "today" },
+    { label: "Devocionais", value: stats.devotionals, icon: Sparkles, color: "text-primary", target: "today" },
+    { label: "Reflexões", value: stats.reflections, icon: NotebookPen, color: "text-violet-600", target: "today" },
+    { label: "Capítulos lidos", value: stats.chapters, icon: BookOpen, color: "text-emerald-600", target: "bible" },
+    { label: "Notas", value: stats.notes, icon: BookMarked, color: "text-amber-600", target: "notes" },
     { label: "Pontos totais", value: stats.points, icon: Sparkles, color: "text-primary" },
   ];
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {cards.map((c) => (
-          <div key={c.label} className="card-elevated p-4">
-            <c.icon className={`h-5 w-5 ${c.color}`} />
-            <div className="mt-2 text-2xl font-display font-semibold text-foreground">{c.value}</div>
-            <div className="text-xs text-muted-foreground mt-0.5">{c.label}</div>
-          </div>
-        ))}
+        {cards.map((c) => {
+          const clickable = !!c.target;
+          const Wrapper: React.ElementType = clickable ? "button" : "div";
+          return (
+            <Wrapper
+              key={c.label}
+              {...(clickable
+                ? {
+                    type: "button",
+                    onClick: () => onNavigate(c.target as Tab),
+                    "aria-label": `Ver detalhes de ${c.label}`,
+                  }
+                : {})}
+              className={`card-elevated p-4 text-left ${clickable ? "cursor-pointer hover:bg-muted/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" : ""}`}
+            >
+              <c.icon className={`h-5 w-5 ${c.color}`} />
+              <div className="mt-2 text-2xl font-display font-semibold text-foreground">{c.value}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{c.label}</div>
+            </Wrapper>
+          );
+        })}
       </div>
 
       <div className="card-elevated p-4">
         <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">Hoje</h4>
         <ul className="space-y-2 text-sm">
-          <li className="flex items-center gap-2">
-            {todayActions.completed
-              ? <Check className="h-4 w-4 text-emerald-600" />
-              : <span className="h-4 w-4 rounded-full border border-border inline-block" />}
-            <span className={todayActions.completed ? "text-foreground" : "text-muted-foreground"}>
-              {todayActions.completed ? "Devocional concluído (+10 pts)" : "Devocional pendente"}
-            </span>
+          <li>
+            <button
+              type="button"
+              onClick={() => onNavigate("today")}
+              className="w-full flex items-center gap-2 text-left rounded-md -mx-1 px-1 py-0.5 hover:bg-muted/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+            >
+              {todayActions.completed
+                ? <Check className="h-4 w-4 text-emerald-600" />
+                : <span className="h-4 w-4 rounded-full border border-border inline-block" />}
+              <span className={todayActions.completed ? "text-foreground" : "text-muted-foreground"}>
+                {todayActions.completed ? "Devocional concluído (+10 pts)" : "Devocional pendente"}
+              </span>
+            </button>
           </li>
           <li className="flex items-center gap-2">
             {todayActions.reflectedToday

@@ -235,62 +235,71 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
   const [showResume, setShowResume] = useState(false);
 
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const reqIdRef = useRef(0);
 
+  // Load the devotional itself (depends only on language).
+  // Keeping member-related side queries in a separate effect avoids the
+  // full-screen loader flashing when memberId resolves after the devotional.
   useEffect(() => {
+    const myReq = ++reqIdRef.current;
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setError(null);
       try {
         const { devotional, error: e } = await getOrGenerateTodayDevotional({ data: { language: lang } });
-        if (cancelled) return;
+        if (cancelled || myReq !== reqIdRef.current) return;
         if (e) setError(e);
         setDev(devotional ?? null);
-
-        if (devotional && memberId) {
-          const { data: comp } = await supabase
-            .from("devotional_completions")
-            .select("id")
-            .eq("member_id", memberId)
-            .eq("devotional_id", devotional.id)
-            .maybeSingle();
-          if (!cancelled) setCompleted(!!comp);
-        }
-
-        if (memberId) {
-          const today = todayNYC();
-          const [readingsRes, notesRes] = await Promise.all([
-            supabase.from("bible_readings").select("id").eq("member_id", memberId).eq("read_date", today).limit(1),
-            supabase
-              .from("bible_notes")
-              .select("id, updated_at")
-              .eq("member_id", memberId)
-              .gte("updated_at", `${today}T00:00:00`)
-              .order("updated_at", { ascending: false }),
-          ]);
-          if (cancelled) return;
-          setReadToday(!!readingsRes.data && readingsRes.data.length > 0);
-          setNotesToday(notesRes.data?.length ?? 0);
-
-          // Determine resume state
-          const last = loadLastPosition();
-          const startedSomething =
-            (last?.section && last?.tab === "today") ||
-            (notesRes.data?.length ?? 0) > 0 ||
-            !!readingsRes.data?.length;
-          if (startedSomething && !cancelled) {
-            setResumeSection(last?.section ?? "devotional");
-            setShowResume(true);
-          }
-        }
       } catch (err) {
         console.error(err);
-        if (!cancelled) setError("Não foi possível carregar o devocional");
+        if (!cancelled && myReq === reqIdRef.current) setError("Não foi possível carregar o devocional");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled && myReq === reqIdRef.current) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [lang, memberId]);
+  }, [lang]);
+
+  // Load member-specific completion / read / notes state.
+  // Runs without toggling the main loader.
+  useEffect(() => {
+    if (!memberId || !dev) return;
+    let cancelled = false;
+    (async () => {
+      const today = todayNYC();
+      const [compRes, readingsRes, notesRes] = await Promise.all([
+        supabase
+          .from("devotional_completions")
+          .select("id")
+          .eq("member_id", memberId)
+          .eq("devotional_id", dev.id)
+          .maybeSingle(),
+        supabase.from("bible_readings").select("id").eq("member_id", memberId).eq("read_date", today).limit(1),
+        supabase
+          .from("bible_notes")
+          .select("id, updated_at")
+          .eq("member_id", memberId)
+          .gte("updated_at", `${today}T00:00:00`)
+          .order("updated_at", { ascending: false }),
+      ]);
+      if (cancelled) return;
+      setCompleted(!!compRes.data);
+      setReadToday(!!readingsRes.data && readingsRes.data.length > 0);
+      setNotesToday(notesRes.data?.length ?? 0);
+
+      const last = loadLastPosition();
+      const startedSomething =
+        (last?.section && last?.tab === "today") ||
+        (notesRes.data?.length ?? 0) > 0 ||
+        !!readingsRes.data?.length;
+      if (startedSomething) {
+        setResumeSection(last?.section ?? "devotional");
+        setShowResume(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [memberId, dev]);
 
   const scrollToSection = (section: NonNullable<LastPosition["section"]>) => {
     const el = sectionRefs.current[section];

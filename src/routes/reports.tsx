@@ -79,6 +79,7 @@ function ReportsPage() {
   const [editing, setEditing] = useState<Payment | null>(null);
   const { isSuperAdmin } = useUserRole();
   const [exportingPayments, setExportingPayments] = useState(false);
+  const [resyncing, setResyncing] = useState(false);
 
   const handleExportPayments = async (format: "csv" | "xlsx") => {
     setExportingPayments(true);
@@ -87,6 +88,36 @@ function ReportsPage() {
       else await exportPaymentsXLSX();
     } finally {
       setExportingPayments(false);
+    }
+  };
+
+  const handleResyncStripe = async () => {
+    if (resyncing) return;
+    setResyncing(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const res = await fetch("/resync-stripe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(`Resync failed: ${json?.error ?? "Unknown error"}`);
+      } else {
+        const s = json.stats ?? {};
+        alert(
+          `Stripe resync complete.\n\nCustomers scanned: ${s.customersScanned ?? 0}\nMembers updated: ${s.membersUpdated ?? 0}\nPayments inserted: ${s.paymentsInserted ?? 0}\nPayments skipped (already synced): ${s.paymentsSkipped ?? 0}\nUnmatched Stripe customers: ${s.membersUnmatched ?? 0}`,
+        );
+        await refresh();
+      }
+    } catch (err) {
+      alert(`Resync error: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setResyncing(false);
     }
   };
 
@@ -334,7 +365,16 @@ function ReportsPage() {
           </div>
         )}
         {isSuperAdmin && (
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={handleResyncStripe}
+              disabled={resyncing}
+              className="inline-flex items-center gap-2 rounded-xl border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              title="Re-fetch all Stripe customers, subscriptions and invoices and rebuild member payment status"
+            >
+              <CreditCard className="h-4 w-4" />
+              {resyncing ? "Resyncing…" : "Resync Stripe Data"}
+            </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button

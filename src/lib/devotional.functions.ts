@@ -99,14 +99,12 @@ All in ${langName}.`;
       if (!response.ok) {
         const txt = await response.text();
         console.error("AI gateway error", response.status, txt);
-        if (response.status === 429) return { devotional: null, error: "Rate limit exceeded" };
-        if (response.status === 402) return { devotional: null, error: "AI credits exhausted" };
-        return { devotional: null, error: "Failed to generate devotional" };
+        return { devotional: getFallbackDevotional(date, lang) };
       }
 
       const ai = await response.json();
       const toolCall = ai?.choices?.[0]?.message?.tool_calls?.[0];
-      if (!toolCall) return { devotional: null, error: "No content generated" };
+      if (!toolCall) return { devotional: getFallbackDevotional(date, lang) };
 
       const args = JSON.parse(toolCall.function.arguments);
 
@@ -149,12 +147,13 @@ All in ${langName}.`;
           .eq("devotional_date", date)
           .eq("language", lang)
           .maybeSingle();
-        return { devotional: retry };
+        return { devotional: retry ?? getFallbackDevotional(date, lang) };
       }
 
       return { devotional: inserted };
     } catch (e) {
       console.error("generate devotional failed", e);
-      return { devotional: null, error: "Generation failed" };
+      return { devotional: getFallbackDevotional(date, lang) };
     }
   });
+

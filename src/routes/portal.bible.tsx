@@ -1357,3 +1357,247 @@ function Progress({ memberId, onNavigate }: { memberId: string | null; onNavigat
     </div>
   );
 }
+
+// ============== PROGRESS HISTORY (per-metric dataset) ==============
+type HistoryView = "streak" | "devotionals" | "reflections" | "chapters" | "notes";
+
+const HISTORY_TITLES: Record<HistoryView, string> = {
+  streak: "Dias de sequência",
+  devotionals: "Histórico de devocionais",
+  reflections: "Minhas reflexões",
+  chapters: "Capítulos lidos",
+  notes: "Todas as notas",
+};
+
+function ProgressHistory({
+  view, memberId, onBack,
+}: { view: HistoryView; memberId: string | null; onBack: () => void }) {
+  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<any[]>([]);
+  const [openDevotionalId, setOpenDevotionalId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!memberId) { setLoading(false); return; }
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        if (view === "devotionals" || view === "streak") {
+          const { data } = await supabase
+            .from("devotional_completions")
+            .select("id, completed_date, devotional_id, devotionals(id, title, bible_reference, devotional_date)")
+            .eq("member_id", memberId)
+            .order("completed_date", { ascending: false });
+          if (!cancelled) setItems(data || []);
+        } else if (view === "reflections") {
+          const { data } = await supabase
+            .from("devotional_notes")
+            .select("id, learned_text, keywords, god_spoke_text, updated_at, devotional_id, devotionals(id, title, bible_reference, devotional_date)")
+            .eq("member_id", memberId)
+            .order("updated_at", { ascending: false });
+          const filtered = (data || []).filter((r: any) => {
+            const t = (r.learned_text?.trim().length ?? 0) > 0 || (r.god_spoke_text?.trim().length ?? 0) > 0;
+            const k = Array.isArray(r.keywords) && r.keywords.length > 0;
+            return t || k;
+          });
+          if (!cancelled) setItems(filtered);
+        } else if (view === "chapters") {
+          const { data } = await supabase
+            .from("bible_readings")
+            .select("id, book, chapter, read_date")
+            .eq("member_id", memberId)
+            .order("read_date", { ascending: false });
+          if (!cancelled) setItems(data || []);
+        } else if (view === "notes") {
+          const { data } = await supabase
+            .from("bible_notes")
+            .select("*")
+            .eq("member_id", memberId)
+            .order("updated_at", { ascending: false });
+          if (!cancelled) setItems(data || []);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [view, memberId]);
+
+  if (openDevotionalId) {
+    return (
+      <PastDevotionalViewer
+        devotionalId={openDevotionalId}
+        onBack={() => setOpenDevotionalId(null)}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+        >
+          <ArrowLeft className="h-4 w-4" /> Voltar
+        </button>
+        <h3 className="text-base font-semibold text-foreground">{HISTORY_TITLES[view]}</h3>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center p-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+      ) : items.length === 0 ? (
+        <div className="card-elevated p-8 text-center text-sm text-muted-foreground">
+          Nenhum registro encontrado.
+        </div>
+      ) : view === "streak" || view === "devotionals" ? (
+        <div className="space-y-2">
+          {items.map((c: any) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => c.devotionals?.id && setOpenDevotionalId(c.devotionals.id)}
+              className="card-elevated w-full text-left p-4 hover:bg-muted/40 transition-colors"
+              disabled={!c.devotionals?.id}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">
+                    {c.devotionals?.title || "Devocional"}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {c.devotionals?.bible_reference || ""}
+                  </div>
+                </div>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  {new Date(c.completed_date + "T12:00:00").toLocaleDateString()}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : view === "reflections" ? (
+        <div className="space-y-2">
+          {items.map((r: any) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => r.devotionals?.id && setOpenDevotionalId(r.devotionals.id)}
+              className="card-elevated w-full text-left p-4 hover:bg-muted/40 transition-colors"
+              disabled={!r.devotionals?.id}
+            >
+              <div className="flex items-center justify-between gap-3 mb-1">
+                <div className="text-sm font-semibold text-foreground">
+                  {r.devotionals?.title || "Reflexão"}
+                </div>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  {new Date(r.updated_at).toLocaleDateString()}
+                </span>
+              </div>
+              {r.learned_text && (
+                <p className="text-xs text-foreground/80 line-clamp-2 whitespace-pre-wrap">{r.learned_text}</p>
+              )}
+              {r.god_spoke_text && (
+                <p className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-wrap mt-1">{r.god_spoke_text}</p>
+              )}
+              {Array.isArray(r.keywords) && r.keywords.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {r.keywords.map((k: string) => (
+                    <span key={k} className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-medium">{k}</span>
+                  ))}
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      ) : view === "chapters" ? (
+        <div className="space-y-2">
+          {items.map((r: any) => (
+            <div key={r.id} className="card-elevated p-3 flex items-center justify-between">
+              <div className="text-sm font-medium text-foreground">{r.book} {r.chapter}</div>
+              <span className="text-xs text-muted-foreground">
+                {new Date(r.read_date + "T12:00:00").toLocaleDateString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {items.map((n: any) => (
+            <div key={n.id} className="card-elevated p-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm font-semibold text-primary">{n.book} {n.chapter}:{n.verse}</span>
+                <span className="text-xs text-muted-foreground">{new Date(n.updated_at).toLocaleDateString()}</span>
+              </div>
+              <p className="text-sm text-foreground whitespace-pre-wrap">{n.note_text}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============== PAST DEVOTIONAL VIEWER ==============
+function PastDevotionalViewer({ devotionalId, onBack }: { devotionalId: string; onBack: () => void }) {
+  const [dev, setDev] = useState<Devotional | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("devotionals")
+        .select("id, devotional_date, title, bible_reference, verse_text, reflection, application, prayer")
+        .eq("id", devotionalId)
+        .maybeSingle();
+      if (!cancelled) {
+        setDev((data as Devotional) || null);
+        setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [devotionalId]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+        >
+          <ArrowLeft className="h-4 w-4" /> Voltar
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="card-elevated p-8 flex items-center justify-center text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando devocional...
+        </div>
+      ) : !dev ? (
+        <div className="card-elevated p-6 text-sm text-muted-foreground">Devocional não encontrado.</div>
+      ) : (
+        <article className="card-elevated p-6 md:p-8 space-y-5">
+          <div>
+            <div className="text-xs font-medium text-primary uppercase tracking-wider">
+              📅 {new Date(dev.devotional_date + "T12:00:00").toLocaleDateString()}
+            </div>
+            <h3 className="font-display text-2xl md:text-3xl font-semibold text-foreground mt-1 leading-tight">{dev.title}</h3>
+            <p className="text-sm text-muted-foreground mt-1">{dev.bible_reference}</p>
+          </div>
+          {dev.verse_text && (
+            <blockquote className="border-l-4 border-primary pl-4 py-2 text-foreground italic leading-relaxed">
+              "{dev.verse_text}"
+            </blockquote>
+          )}
+          <Section title="Reflexão" body={dev.reflection} />
+          <Section title="Aplicação" body={dev.application} />
+          <Section title="Oração" body={dev.prayer} />
+        </article>
+      )}
+    </div>
+  );
+}

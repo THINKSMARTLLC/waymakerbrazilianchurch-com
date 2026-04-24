@@ -346,6 +346,27 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
     setMarking(false);
   };
 
+  const unmarkCompleted = async () => {
+    if (!memberId || !dev || !completed) return;
+    setMarking(true);
+    const isFallback = dev.id.startsWith("fallback-");
+    if (!isFallback) {
+      const { error: e } = await supabase
+        .from("devotional_completions")
+        .delete()
+        .eq("member_id", memberId)
+        .eq("devotional_id", dev.id);
+      if (e) {
+        toast.error("Erro ao desmarcar");
+        setMarking(false);
+        return;
+      }
+    }
+    setCompleted(false);
+    toast.success("Devocional desmarcado");
+    setMarking(false);
+  };
+
   if (loading) {
     return <div className="card-elevated p-8 flex items-center justify-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" /> Preparando seu devocional...</div>;
   }

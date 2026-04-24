@@ -231,6 +231,19 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
   const [marking, setMarking] = useState(false);
   const [readToday, setReadToday] = useState<boolean | null>(null);
 
+function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | null; lang: "pt" | "en" | "es"; onReadVerse: (ref: string) => void }) {
+  const [dev, setDev] = useState<Devotional | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [completed, setCompleted] = useState(false);
+  const [marking, setMarking] = useState(false);
+  const [readToday, setReadToday] = useState<boolean | null>(null);
+  const [notesToday, setNotesToday] = useState(0);
+  const [resumeSection, setResumeSection] = useState<LastPosition["section"] | null>(null);
+  const [showResume, setShowResume] = useState(false);
+
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -253,13 +266,29 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
 
         if (memberId) {
           const today = todayNYC();
-          const { data: r } = await supabase
-            .from("bible_readings")
-            .select("id")
-            .eq("member_id", memberId)
-            .eq("read_date", today)
-            .limit(1);
-          if (!cancelled) setReadToday(!!r && r.length > 0);
+          const [readingsRes, notesRes] = await Promise.all([
+            supabase.from("bible_readings").select("id").eq("member_id", memberId).eq("read_date", today).limit(1),
+            supabase
+              .from("bible_notes")
+              .select("id, updated_at")
+              .eq("member_id", memberId)
+              .gte("updated_at", `${today}T00:00:00`)
+              .order("updated_at", { ascending: false }),
+          ]);
+          if (cancelled) return;
+          setReadToday(!!readingsRes.data && readingsRes.data.length > 0);
+          setNotesToday(notesRes.data?.length ?? 0);
+
+          // Determine resume state
+          const last = loadLastPosition();
+          const startedSomething =
+            (last?.section && last?.tab === "today") ||
+            (notesRes.data?.length ?? 0) > 0 ||
+            !!readingsRes.data?.length;
+          if (startedSomething && !cancelled) {
+            setResumeSection(last?.section ?? "devotional");
+            setShowResume(true);
+          }
         }
       } catch (err) {
         console.error(err);
@@ -270,6 +299,20 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
     })();
     return () => { cancelled = true; };
   }, [lang, memberId]);
+
+  const scrollToSection = (section: NonNullable<LastPosition["section"]>) => {
+    const el = sectionRefs.current[section];
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleResume = () => {
+    if (resumeSection) scrollToSection(resumeSection);
+    setShowResume(false);
+  };
+
+  const trackSection = (section: NonNullable<LastPosition["section"]>) => {
+    saveLastPosition({ tab: "today", section });
+  };
 
   const markCompleted = async () => {
     if (!memberId || !dev || completed) return;
@@ -286,6 +329,7 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
       return;
     }
     setCompleted(true);
+    saveLastPosition({ tab: "today", section: "prayer" });
     toast.success("Devocional concluído! +10 pts ✨");
     setMarking(false);
   };
@@ -299,6 +343,19 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
 
   return (
     <div className="space-y-4">
+      {showResume && !completed && (
+        <button
+          type="button"
+          onClick={handleResume}
+          className="w-full text-left rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm text-foreground hover:bg-primary/10 transition-colors"
+        >
+          <span className="font-medium text-primary">↩ Continue de onde parou</span>
+          <span className="text-muted-foreground ml-2">
+            {notesToday > 0 ? `${notesToday} nota(s) hoje` : "Retomar devocional"}
+          </span>
+        </button>
+      )}
+
       {readToday === false && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 p-3 text-sm text-amber-900 dark:text-amber-200">
           📖 Você ainda não leu hoje. Que tal abrir a Bíblia agora?
@@ -306,26 +363,36 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
       )}
 
       <article className="card-elevated p-6 md:p-8 space-y-5">
-        <div>
+        <div ref={(el) => { sectionRefs.current.devotional = el; }}>
           <div className="text-xs font-medium text-primary uppercase tracking-wider">📅 Devocional de Hoje</div>
           <h3 className="font-display text-2xl md:text-3xl font-semibold text-foreground mt-1 leading-tight">{dev.title}</h3>
           <p className="text-sm text-muted-foreground mt-1">{dev.bible_reference}</p>
         </div>
 
         {dev.verse_text && (
-          <blockquote className="border-l-4 border-primary pl-4 py-2 text-foreground italic leading-relaxed">
+          <blockquote
+            ref={(el) => { sectionRefs.current.verse = el; }}
+            onMouseEnter={() => trackSection("verse")}
+            className="border-l-4 border-primary pl-4 py-2 text-foreground italic leading-relaxed"
+          >
             "{dev.verse_text}"
           </blockquote>
         )}
 
-        <Section title="Reflexão" body={dev.reflection} />
-        <Section title="Aplicação" body={dev.application} />
-        <Section title="Oração" body={dev.prayer} />
+        <div ref={(el) => { sectionRefs.current.reflection = el; }} onMouseEnter={() => trackSection("reflection")}>
+          <Section title="Reflexão" body={dev.reflection} />
+        </div>
+        <div ref={(el) => { sectionRefs.current.application = el; }} onMouseEnter={() => trackSection("application")}>
+          <Section title="Aplicação" body={dev.application} />
+        </div>
+        <div ref={(el) => { sectionRefs.current.prayer = el; }} onMouseEnter={() => trackSection("prayer")}>
+          <Section title="Oração" body={dev.prayer} />
+        </div>
 
         <div className="flex flex-wrap gap-3 pt-2 border-t border-border">
           <button
             type="button"
-            onClick={() => onReadVerse(dev.bible_reference)}
+            onClick={() => { trackSection("verse"); onReadVerse(dev.bible_reference); }}
             className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
           >
             <BookOpen className="h-4 w-4" /> Ler Versículo

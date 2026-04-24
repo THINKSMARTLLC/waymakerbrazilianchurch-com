@@ -356,14 +356,20 @@ function ReportsPage() {
 
       {/* Metric cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-        <div className="stat-card">
+        <button
+          onClick={handleTotalMembersClick}
+          className={`stat-card text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${showAllMembers ? "ring-2 ring-primary" : ""}`}
+        >
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Users className="h-4 w-4" />Total Members</div>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">{totalMembers}</p>
-        </div>
-        <div className="stat-card">
+        </button>
+        <button
+          onClick={() => handleStatusCardClick("paid")}
+          className={`stat-card text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${statusFilter === "paid" ? "ring-2 ring-emerald-500" : ""}`}
+        >
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Users className="h-4 w-4" />Paid Members</div>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">{distinctPaidMembers}</p>
-        </div>
+        </button>
         <div className="stat-card">
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Receipt className="h-4 w-4" />Total Payments</div>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">{totalPayments}</p>

@@ -139,8 +139,19 @@ function BiblePage() {
   const { i18n } = useTranslation();
   const member = useCurrentMember();
   const [tab, setTab] = useState<Tab>("today");
+  const [target, setTarget] = useState<{ book: string; chapter: number; verse: number | null } | null>(null);
 
   const lang = (i18n.language?.split("-")[0] || "pt") as "pt" | "en" | "es";
+
+  const openInBible = (ref: string) => {
+    const parsed = parseBibleReference(ref);
+    if (!parsed) {
+      toast.error("Não foi possível abrir esta referência.");
+      return;
+    }
+    setTarget(parsed);
+    setTab("bible");
+  };
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -160,8 +171,8 @@ function BiblePage() {
         <TabBtn active={tab === "progress"} onClick={() => setTab("progress")} icon={<Flame className="h-4 w-4" />} label="Progresso" />
       </div>
 
-      {tab === "today" && <TodayDevotional memberId={member?.id ?? null} lang={lang} />}
-      {tab === "bible" && <BibleReader memberId={member?.id ?? null} />}
+      {tab === "today" && <TodayDevotional memberId={member?.id ?? null} lang={lang} onReadVerse={openInBible} />}
+      {tab === "bible" && <BibleReader memberId={member?.id ?? null} target={target} onTargetConsumed={() => setTarget(null)} />}
       {tab === "notes" && <MyNotes memberId={member?.id ?? null} />}
       {tab === "progress" && <Progress memberId={member?.id ?? null} />}
     </div>

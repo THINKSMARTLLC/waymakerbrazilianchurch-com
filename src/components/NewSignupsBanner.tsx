@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { UserPlus, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -7,7 +8,7 @@ interface SignupRow {
   id: string;
   user_email: string | null;
   created_at: string;
-  metadata: { full_name?: string; phone?: string } | null;
+  metadata: { full_name?: string; phone?: string; member_id?: string } | null;
 }
 
 export function NewSignupsBanner() {
@@ -55,12 +56,30 @@ export function NewSignupsBanner() {
             <ul className="mt-2 space-y-1">
               {rows.slice(0, 5).map((r) => {
                 const name = r.metadata?.full_name || r.user_email || "Unknown";
-                return (
-                  <li key={r.id} className="text-xs text-muted-foreground">
+                const memberId = r.metadata?.member_id;
+                const inner = (
+                  <>
                     <span className="font-medium text-foreground">{name}</span>
                     {r.user_email && r.user_email !== name ? ` · ${r.user_email}` : ""}
                     {" · "}
                     {new Date(r.created_at).toLocaleString("en-US")}
+                  </>
+                );
+                return (
+                  <li key={r.id} className="text-xs text-muted-foreground">
+                    {memberId ? (
+                      <Link
+                        to="/members/$memberId"
+                        params={{ memberId }}
+                        className="hover:underline cursor-pointer"
+                      >
+                        {inner}
+                      </Link>
+                    ) : (
+                      <Link to="/members" className="hover:underline cursor-pointer">
+                        {inner}
+                      </Link>
+                    )}
                   </li>
                 );
               })}

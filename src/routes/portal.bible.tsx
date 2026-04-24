@@ -193,7 +193,7 @@ function TabBtn({ active, onClick, icon, label }: { active: boolean; onClick: ()
 }
 
 // ============== TODAY'S DEVOTIONAL ==============
-function TodayDevotional({ memberId, lang }: { memberId: string | null; lang: "pt" | "en" | "es" }) {
+function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | null; lang: "pt" | "en" | "es"; onReadVerse: (ref: string) => void }) {
   const [dev, setDev] = useState<Devotional | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -293,13 +293,13 @@ function TodayDevotional({ memberId, lang }: { memberId: string | null; lang: "p
         <Section title="Oração" body={dev.prayer} />
 
         <div className="flex flex-wrap gap-3 pt-2 border-t border-border">
-          <a
-            href={`https://www.bible.com/bible/search/search?q=${encodeURIComponent(dev.bible_reference)}`}
-            target="_blank" rel="noreferrer"
+          <button
+            type="button"
+            onClick={() => onReadVerse(dev.bible_reference)}
             className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
           >
             <BookOpen className="h-4 w-4" /> Ler Versículo
-          </a>
+          </button>
           <button
             onClick={markCompleted}
             disabled={completed || marking || !memberId}
@@ -328,7 +328,15 @@ function Section({ title, body }: { title: string; body: string }) {
 }
 
 // ============== BIBLE READER ==============
-function BibleReader({ memberId }: { memberId: string | null }) {
+function BibleReader({
+  memberId,
+  target,
+  onTargetConsumed,
+}: {
+  memberId: string | null;
+  target?: { book: string; chapter: number; verse: number | null } | null;
+  onTargetConsumed?: () => void;
+}) {
   const [book, setBook] = useState<string>("John");
   const [chapter, setChapter] = useState<number>(3);
   const [translation, setTranslation] = useState<Translation>("almeida");
@@ -336,6 +344,17 @@ function BibleReader({ memberId }: { memberId: string | null }) {
   const [loading, setLoading] = useState(false);
   const [notesMap, setNotesMap] = useState<Map<number, BibleNote>>(new Map());
   const [openVerse, setOpenVerse] = useState<number | null>(null);
+  const [highlightVerse, setHighlightVerse] = useState<number | null>(null);
+  const verseRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
+  // Apply incoming target (from devotional "Read Verse")
+  useEffect(() => {
+    if (!target) return;
+    setBook(target.book);
+    setChapter(target.chapter);
+    setHighlightVerse(target.verse);
+    onTargetConsumed?.();
+  }, [target, onTargetConsumed]);
 
   const currentBook = BIBLE_BOOKS.find((b) => b.name === book) ?? BIBLE_BOOKS[42];
 

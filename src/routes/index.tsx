@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
 import heroImage from "@/assets/waymaker-hero.jpg";
-import whatsappIcon from "@/assets/whatsapp-icon.png";
+
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export const Route = createFileRoute("/")({

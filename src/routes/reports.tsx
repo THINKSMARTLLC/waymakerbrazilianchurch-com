@@ -264,8 +264,18 @@ function ReportsPage() {
     });
   }, [filteredPayments, filteredMembers, statusByMember]);
 
-  const handleStatusCardClick = (status: MemberPaymentStatus) => {
+  const handleStatusCardClick = (status: MemberPaymentStatus | "paid") => {
     setStatusFilter((cur) => (cur === status ? "all" : status));
+    setShowAllMembers(false);
+    setGroupBy("member");
+  };
+
+  const handleTotalMembersClick = () => {
+    setShowAllMembers((v) => !v);
+    setStatusFilter("all");
+    setMemberIdFilter("all");
+    setNameFilter("");
+    setMethodFilter("all");
     setGroupBy("member");
   };
 
@@ -273,13 +283,15 @@ function ReportsPage() {
     memberIdFilter !== "all" ||
     nameFilter.trim() !== "" ||
     methodFilter !== "all" ||
-    statusFilter !== "all";
+    statusFilter !== "all" ||
+    showAllMembers;
 
   const clearFilters = () => {
     setMemberIdFilter("all");
     setNameFilter("");
     setMethodFilter("all");
     setStatusFilter("all");
+    setShowAllMembers(false);
   };
 
   return (

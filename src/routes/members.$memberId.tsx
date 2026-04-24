@@ -319,6 +319,17 @@ function MemberProfilePage() {
             points: 0,
             icon: "💵",
           })),
+          ...pastoralNotes.map((n): HistoryItem => ({
+            id: `n-${n.id}`,
+            kind: "pastoral_note",
+            type: `Pastoral Note · ${n.book} ${n.chapter}:${n.verse}`,
+            source: "Shared with pastor",
+            date: n.updated_at,
+            status: "shared",
+            points: 0,
+            icon: "📖",
+            detail: n.note_text,
+          })),
         ].sort((a, b) => (a.date < b.date ? 1 : -1));
 
         const statusBadge = (s: string) => {

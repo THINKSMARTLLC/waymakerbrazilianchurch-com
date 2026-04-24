@@ -344,6 +344,20 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
 
   return (
     <div className="space-y-4">
+      {!completed && (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
+          <p className="text-foreground mb-2">
+            Você ainda não fez seu devocional hoje. Que tal começar agora seu momento com Deus?
+          </p>
+          <button
+            type="button"
+            onClick={() => sectionRefs.current.devotional?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
+          >
+            <Sparkles className="h-3.5 w-3.5" /> Abrir devocional de hoje
+          </button>
+        </div>
+      )}
       {showResume && !completed && (
         <button
           type="button"

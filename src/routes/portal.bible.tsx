@@ -418,6 +418,180 @@ function Section({ title, body }: { title: string; body: string }) {
   );
 }
 
+// ============== MY REFLECTION (auto-saved personal devotional notes) ==============
+type DevotionalNote = {
+  learned_text: string;
+  keywords: string[];
+  god_spoke_text: string;
+};
+
+function MyReflection({ memberId, devotionalId }: { memberId: string | null; devotionalId: string }) {
+  const [note, setNote] = useState<DevotionalNote>({ learned_text: "", keywords: [], god_spoke_text: "" });
+  const [keywordInput, setKeywordInput] = useState("");
+  const [loaded, setLoaded] = useState(false);
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const noteIdRef = useRef<string | null>(null);
+  const skipNextSave = useRef(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!memberId || !devotionalId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("devotional_notes")
+        .select("id, learned_text, keywords, god_spoke_text")
+        .eq("member_id", memberId)
+        .eq("devotional_id", devotionalId)
+        .maybeSingle();
+      if (cancelled) return;
+      if (data) {
+        noteIdRef.current = data.id;
+        setNote({
+          learned_text: data.learned_text ?? "",
+          keywords: data.keywords ?? [],
+          god_spoke_text: data.god_spoke_text ?? "",
+        });
+      }
+      skipNextSave.current = true;
+      setLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, [memberId, devotionalId]);
+
+  useEffect(() => {
+    if (!loaded || !memberId) return;
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
+      return;
+    }
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    setStatus("saving");
+    saveTimer.current = setTimeout(async () => {
+      const isEmpty = !note.learned_text.trim() && !note.god_spoke_text.trim() && note.keywords.length === 0;
+      if (isEmpty && !noteIdRef.current) {
+        setStatus("idle");
+        return;
+      }
+      const { data, error } = await supabase
+        .from("devotional_notes")
+        .upsert(
+          {
+            member_id: memberId,
+            devotional_id: devotionalId,
+            learned_text: note.learned_text,
+            keywords: note.keywords,
+            god_spoke_text: note.god_spoke_text,
+          },
+          { onConflict: "member_id,devotional_id" }
+        )
+        .select("id")
+        .maybeSingle();
+      if (error) {
+        setStatus("error");
+        return;
+      }
+      if (data?.id) noteIdRef.current = data.id;
+      setStatus("saved");
+    }, 700);
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, [note, loaded, memberId, devotionalId]);
+
+  const addKeyword = () => {
+    const v = keywordInput.trim();
+    if (!v) return;
+    if (note.keywords.includes(v)) {
+      setKeywordInput("");
+      return;
+    }
+    setNote((p) => ({ ...p, keywords: [...p.keywords, v] }));
+    setKeywordInput("");
+  };
+
+  const removeKeyword = (k: string) => {
+    setNote((p) => ({ ...p, keywords: p.keywords.filter((x) => x !== k) }));
+  };
+
+  if (!memberId) return null;
+
+  return (
+    <div className="pt-4 border-t border-border space-y-4">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide flex items-center gap-2">
+          <NotebookPen className="h-4 w-4 text-primary" />
+          Minha Reflexão
+        </h4>
+        <span className="text-xs text-muted-foreground min-h-[1rem]">
+          {status === "saving" && "Salvando..."}
+          {status === "saved" && <span className="text-emerald-600 dark:text-emerald-400">Salvo ✔</span>}
+          {status === "error" && <span className="text-destructive">Erro ao salvar</span>}
+        </span>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-muted-foreground">O que aprendi hoje</label>
+        <textarea
+          value={note.learned_text}
+          onChange={(e) => setNote((p) => ({ ...p, learned_text: e.target.value }))}
+          rows={3}
+          placeholder="Escreva o que Deus te ensinou hoje..."
+          className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-muted-foreground">Palavras-chave</label>
+        {note.keywords.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {note.keywords.map((k) => (
+              <span
+                key={k}
+                className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-1 text-xs font-medium"
+              >
+                {k}
+                <button
+                  type="button"
+                  onClick={() => removeKeyword(k)}
+                  className="hover:text-destructive"
+                  aria-label={`Remover ${k}`}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <input
+          value={keywordInput}
+          onChange={(e) => setKeywordInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === ",") {
+              e.preventDefault();
+              addKeyword();
+            }
+          }}
+          onBlur={addKeyword}
+          placeholder="Digite e pressione Enter (ex: fé, esperança)"
+          className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-muted-foreground">Deus falou comigo</label>
+        <textarea
+          value={note.god_spoke_text}
+          onChange={(e) => setNote((p) => ({ ...p, god_spoke_text: e.target.value }))}
+          rows={3}
+          placeholder="Como Deus falou ao seu coração hoje?"
+          className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+        />
+      </div>
+    </div>
+  );
+}
+
 // ============== BIBLE READER ==============
 function BibleReader({
   memberId,

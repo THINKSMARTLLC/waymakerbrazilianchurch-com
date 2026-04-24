@@ -1128,7 +1128,7 @@ function MyNotes({ memberId }: { memberId: string | null }) {
 }
 
 // ============== PROGRESS ==============
-function Progress({ memberId }: { memberId: string | null }) {
+function Progress({ memberId, onNavigate }: { memberId: string | null; onNavigate: (tab: Tab) => void }) {
   const [stats, setStats] = useState({
     streak: 0,
     devotionals: 0,

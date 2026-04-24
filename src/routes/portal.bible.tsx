@@ -135,13 +135,43 @@ interface Devotional {
 interface BibleVerse { book_id: string; book_name: string; chapter: number; verse: number; text: string; }
 interface BibleNote { id: string; book: string; chapter: number; verse: number; note_text: string; share_with_pastor: boolean; updated_at: string; }
 
+const LAST_POS_KEY = "wmf:bible:lastPosition";
+
+type LastPosition = {
+  tab: Tab;
+  section?: "devotional" | "verse" | "reflection" | "application" | "prayer" | "note";
+  noteId?: string;
+  updatedAt: string;
+};
+
+function loadLastPosition(): LastPosition | null {
+  try {
+    const raw = typeof window !== "undefined" ? localStorage.getItem(LAST_POS_KEY) : null;
+    if (!raw) return null;
+    return JSON.parse(raw) as LastPosition;
+  } catch { return null; }
+}
+
+function saveLastPosition(pos: Partial<LastPosition>) {
+  try {
+    if (typeof window === "undefined") return;
+    const prev = loadLastPosition() ?? { tab: "today" as Tab, updatedAt: new Date().toISOString() };
+    const next: LastPosition = { ...prev, ...pos, updatedAt: new Date().toISOString() };
+    localStorage.setItem(LAST_POS_KEY, JSON.stringify(next));
+  } catch { /* ignore */ }
+}
+
 function BiblePage() {
   const { i18n } = useTranslation();
   const member = useCurrentMember();
-  const [tab, setTab] = useState<Tab>("today");
+  const [tab, setTab] = useState<Tab>(() => loadLastPosition()?.tab ?? "today");
   const [target, setTarget] = useState<{ book: string; chapter: number; verse: number | null } | null>(null);
 
   const lang = (i18n.language?.split("-")[0] || "pt") as "pt" | "en" | "es";
+
+  useEffect(() => {
+    saveLastPosition({ tab });
+  }, [tab]);
 
   const openInBible = (ref: string) => {
     const parsed = parseBibleReference(ref);

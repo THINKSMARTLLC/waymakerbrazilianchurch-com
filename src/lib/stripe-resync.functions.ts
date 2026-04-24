@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import Stripe from "stripe";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Json } from "@/integrations/supabase/types";
 
 const NY_TZ = "America/New_York";
 
@@ -43,7 +44,8 @@ function intervalToFrequency(interval?: string | null): FreqValue {
 
 function getInvoiceFrequency(invoice: Stripe.Invoice, fallback: FreqValue): FreqValue {
   for (const line of invoice.lines.data) {
-    const interval = line.pricing?.price_details?.price?.recurring?.interval ?? null;
+    const price = line.pricing?.price_details?.price;
+    const interval = price && typeof price !== "string" ? price.recurring?.interval ?? null : null;
     if (interval) return intervalToFrequency(interval);
   }
   return fallback;
@@ -62,10 +64,12 @@ async function ensureStaff(userId: string) {
 }
 
 async function logStripeSync(action: string, metadata: Record<string, unknown>) {
-  await supabaseAdmin.from("activity_logs").insert({
-    action,
-    metadata,
-  });
+  await supabaseAdmin.from("activity_logs").insert([
+    {
+      action,
+      metadata: metadata as Json,
+    },
+  ]);
 }
 
 async function paymentAlreadyRegistered(memberId: string, externalPaymentId: string) {

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check, AlertTriangle, Archive, Download, Upload, Cake } from "lucide-react";
+import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check, AlertTriangle, Archive, Download, Upload, Cake, MessageCircle } from "lucide-react";
+import { WhatsAppMessageModal, type WhatsAppMember } from "@/components/WhatsAppMessageModal";
 import { getBirthdayInfo, type BirthdayWindow } from "@/lib/birthday";
 import { exportMembersCSV, exportMembersXLSX } from "@/lib/dataExportImport";
 import { ImportPreviewModal } from "@/components/ImportPreviewModal";

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import Stripe from "stripe";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Json } from "@/integrations/supabase/types";
 
 const NY_TZ = "America/New_York";
 
@@ -26,10 +27,28 @@ function normEmail(e?: string | null) {
 }
 
 type FreqValue = "weekly" | "monthly";
+type MemberStatusPayment = "On Time" | "Late" | "Pending";
+type MemberRow = {
+  id: string;
+  email: string | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  contribution_frequency: FreqValue | null;
+  last_payment_date?: string | null;
+};
 
 function intervalToFrequency(interval?: string | null): FreqValue {
   if (interval === "month" || interval === "year") return "monthly";
   return "weekly";
+}
+
+function getInvoiceFrequency(invoice: Stripe.Invoice, fallback: FreqValue): FreqValue {
+  for (const line of invoice.lines.data) {
+    const price = line.pricing?.price_details?.price;
+    const interval = price && typeof price !== "string" ? price.recurring?.interval ?? null : null;
+    if (interval) return intervalToFrequency(interval);
+  }
+  return fallback;
 }
 
 async function ensureStaff(userId: string) {
@@ -44,25 +63,113 @@ async function ensureStaff(userId: string) {
   }
 }
 
+async function logStripeSync(action: string, metadata: Record<string, unknown>) {
+  await supabaseAdmin.from("activity_logs").insert([
+    {
+      action,
+      metadata: metadata as Json,
+    },
+  ]);
+}
+
+async function paymentAlreadyRegistered(memberId: string, externalPaymentId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("payments")
+    .select("id")
+    .eq("member_id", memberId)
+    .eq("payment_method", "stripe")
+    .ilike("notes", `%${externalPaymentId}%`)
+    .limit(1);
+
+  if (error) throw new Error(error.message);
+  return (data?.length ?? 0) > 0;
+}
+
+function createMemberResolver(membersAll: MemberRow[], stats: { mappingErrors: number; membersUnmatched: number }) {
+  const byCustomer = new Map<string, MemberRow>();
+  const byEmail = new Map<string, MemberRow[]>();
+
+  for (const member of membersAll) {
+    const email = normEmail(member.email);
+    if (member.stripe_customer_id) byCustomer.set(member.stripe_customer_id, member);
+    if (email) byEmail.set(email, [...(byEmail.get(email) ?? []), member]);
+  }
+
+  const resolve = async (customer: Stripe.Customer): Promise<MemberRow | null> => {
+    const email = normEmail(customer.email);
+    const emailMatches = email ? byEmail.get(email) ?? [] : [];
+    const customerMatch = byCustomer.get(customer.id) ?? null;
+
+    if (emailMatches.length > 1) {
+      stats.mappingErrors += 1;
+      await logStripeSync("stripe_sync_duplicate_email_match", {
+        member_ids: emailMatches.map((m) => m.id),
+        stripe_customer_id: customer.id,
+        stripe_email: email,
+      });
+      return customerMatch;
+    }
+
+    const emailMatch = emailMatches[0] ?? null;
+
+    if (emailMatch && customerMatch && emailMatch.id !== customerMatch.id) {
+      stats.mappingErrors += 1;
+      await logStripeSync("stripe_sync_email_customer_mismatch", {
+        customer_matched_member_id: customerMatch.id,
+        email_matched_member_id: emailMatch.id,
+        stripe_customer_id: customer.id,
+        stripe_email: email,
+      });
+    }
+
+    if (!emailMatch && email) {
+      stats.mappingErrors += 1;
+      await logStripeSync("stripe_sync_member_not_found_by_email", {
+        stripe_customer_id: customer.id,
+        stripe_email: email,
+      });
+    }
+
+    const resolved = emailMatch ?? customerMatch;
+    if (!resolved) {
+      stats.membersUnmatched += 1;
+      await logStripeSync("stripe_sync_unmatched_customer", {
+        stripe_customer_id: customer.id,
+        stripe_email: email,
+      });
+      return null;
+    }
+
+    if (email && resolved.email && normEmail(resolved.email) !== email) {
+      stats.mappingErrors += 1;
+      await logStripeSync("stripe_sync_exact_email_mismatch", {
+        member_email: normEmail(resolved.email),
+        member_id: resolved.id,
+        stripe_customer_id: customer.id,
+        stripe_email: email,
+      });
+    }
+
+    return resolved;
+  };
+
+  const linkCustomer = (customerId: string, member: MemberRow) => {
+    byCustomer.set(customerId, member);
+  };
+
+  return { resolve, linkCustomer };
+}
+
 export const resyncStripeData = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await ensureStaff(context.userId);
     const stripe = getStripe();
 
-    // Load all members with email or stripe_customer_id
     const { data: membersAll, error: membersErr } = await supabaseAdmin
       .from("members")
-      .select("id, email, stripe_customer_id, stripe_subscription_id, contribution_frequency");
+      .select("id, email, stripe_customer_id, stripe_subscription_id, contribution_frequency, last_payment_date");
     if (membersErr) throw new Error(membersErr.message);
-
-    const byEmail = new Map<string, typeof membersAll[number]>();
-    const byCustomer = new Map<string, typeof membersAll[number]>();
-    for (const m of membersAll ?? []) {
-      const e = normEmail(m.email);
-      if (e) byEmail.set(e, m);
-      if (m.stripe_customer_id) byCustomer.set(m.stripe_customer_id, m);
-    }
 
     const stats = {
       customersScanned: 0,
@@ -71,83 +178,86 @@ export const resyncStripeData = createServerFn({ method: "POST" })
       membersUpdated: 0,
       membersUnmatched: 0,
       failedEvents: 0,
+      mappingErrors: 0,
     };
 
-    // Track last payment per member, frequency, status
-    const lastPaidAtByMember = new Map<string, number>(); // unix
-    const subStatusByMember = new Map<string, { active: boolean; frequency: FreqValue; subId: string | null; customerId: string | null; failed: boolean }>();
+    const { resolve, linkCustomer } = createMemberResolver((membersAll ?? []) as MemberRow[], stats);
+    const lastPaidAtByMember = new Map<string, number>();
+    const subStatusByMember = new Map<string, {
+      active: boolean;
+      customerId: string | null;
+      failed: boolean;
+      frequency: FreqValue;
+      subId: string | null;
+    }>();
     const matchedMemberIds = new Set<string>();
 
-    function applyMatch(memberId: string, customerId: string | null, subId: string | null, freq: FreqValue, active: boolean, failed: boolean) {
+    function applyMatch(
+      memberId: string,
+      customerId: string | null,
+      subId: string | null,
+      freq: FreqValue,
+      active: boolean,
+      failed: boolean,
+    ) {
       matchedMemberIds.add(memberId);
       const prev = subStatusByMember.get(memberId);
       subStatusByMember.set(memberId, {
         active: active || (prev?.active ?? false),
-        frequency: freq ?? prev?.frequency ?? "weekly",
-        subId: subId ?? prev?.subId ?? null,
         customerId: customerId ?? prev?.customerId ?? null,
         failed: failed || (prev?.failed ?? false),
+        frequency: freq ?? prev?.frequency ?? "weekly",
+        subId: subId ?? prev?.subId ?? null,
       });
     }
 
-    // Iterate all customers
     let starting_after: string | undefined;
     while (true) {
       const page = await stripe.customers.list({ limit: 100, starting_after });
+
       for (const customer of page.data) {
         stats.customersScanned += 1;
-        const email = normEmail(customer.email);
-        const member =
-          (customer.id ? byCustomer.get(customer.id) : undefined) ??
-          (email ? byEmail.get(email) : undefined);
+        const member = await resolve(customer);
 
-        if (!member) {
-          stats.membersUnmatched += 1;
-          continue;
-        }
+        if (!member) continue;
 
-        // Persist customer id link if missing
         if (!member.stripe_customer_id) {
           await supabaseAdmin
             .from("members")
             .update({ stripe_customer_id: customer.id })
             .eq("id", member.id);
           member.stripe_customer_id = customer.id;
-          byCustomer.set(customer.id, member);
+          linkCustomer(customer.id, member);
         }
 
-        // Subscriptions
         const subs = await stripe.subscriptions.list({ customer: customer.id, status: "all", limit: 100 });
-        let memberFreq: FreqValue = "weekly";
+        let memberFreq: FreqValue = member.contribution_frequency ?? "weekly";
         let activeSub = false;
-        let subId: string | null = null;
+        let subId: string | null = member.stripe_subscription_id ?? null;
         let failed = false;
+
         for (const sub of subs.data) {
           const item = sub.items.data[0];
           const interval = item?.price?.recurring?.interval ?? null;
           memberFreq = intervalToFrequency(interval);
           subId = sub.id;
           if (sub.status === "active" || sub.status === "trialing") activeSub = true;
-          if (sub.status === "past_due" || sub.status === "unpaid" || sub.status === "incomplete_expired") failed = true;
+          if (sub.status === "past_due" || sub.status === "unpaid" || sub.status === "incomplete_expired") {
+            failed = true;
+            stats.failedEvents += 1;
+          }
         }
 
-        // Invoices (paid + failed)
         const invoices = await stripe.invoices.list({ customer: customer.id, limit: 100 });
         for (const inv of invoices.data) {
+          const invoiceFrequency = getInvoiceFrequency(inv, memberFreq);
           if (inv.status === "paid" && inv.amount_paid > 0) {
             const externalId = inv.id;
-            if (!externalId) continue;
             const paidAtUnix = inv.status_transitions?.paid_at ?? inv.created;
             const date = nyDate(paidAtUnix);
             const amount = (inv.amount_paid ?? 0) / 100;
-            const { data: existing } = await supabaseAdmin
-              .from("payments")
-              .select("id")
-              .eq("member_id", member.id)
-              .eq("payment_method", "stripe")
-              .ilike("notes", `%${externalId}%`)
-              .limit(1);
-            if ((existing?.length ?? 0) > 0) {
+
+            if (await paymentAlreadyRegistered(member.id, externalId)) {
               stats.paymentsSkipped += 1;
             } else {
               const { data: ins, error: insErr } = await supabaseAdmin
@@ -160,7 +270,7 @@ export const resyncStripeData = createServerFn({ method: "POST" })
                   member_id: member.id,
                   notes: `Stripe payment ID: ${externalId} | Event: resync.invoice.paid`,
                   payment_date: date,
-                  payment_frequency: memberFreq,
+                  payment_frequency: invoiceFrequency,
                   payment_method: "stripe",
                   reference_month: null,
                   status: "paid",
@@ -168,66 +278,89 @@ export const resyncStripeData = createServerFn({ method: "POST" })
                 }])
                 .select("id")
                 .single();
-              if (!insErr && ins) {
-                await supabaseAdmin.from("payment_contributions").insert({
-                  amount,
-                  contribution_type: "pastor_salary",
-                  destination: null,
-                  payment_id: ins.id,
-                });
-                stats.paymentsInserted += 1;
-              }
+
+              if (insErr) throw new Error(insErr.message);
+
+              await supabaseAdmin.from("payment_contributions").insert({
+                amount,
+                contribution_type: "pastor_salary",
+                destination: null,
+                payment_id: ins.id,
+              });
+              stats.paymentsInserted += 1;
             }
-            const cur = lastPaidAtByMember.get(member.id) ?? 0;
-            if (paidAtUnix && paidAtUnix > cur) lastPaidAtByMember.set(member.id, paidAtUnix);
+
+            const currentLast = lastPaidAtByMember.get(member.id) ?? 0;
+            if (paidAtUnix && paidAtUnix > currentLast) lastPaidAtByMember.set(member.id, paidAtUnix);
+            memberFreq = invoiceFrequency;
           }
-          if (inv.status === "open" || (inv as any).attempted) {
-            // detect failure
-            if ((inv as any).attempt_count && (inv as any).status !== "paid") {
-              // not necessarily failed; only mark when amount_remaining > 0 and status not draft/paid
-              if (inv.status !== "paid" && inv.status !== "draft" && (inv.amount_remaining ?? 0) > 0) {
-                failed = true;
-                stats.failedEvents += 1;
-              }
-            }
+
+          if (
+            inv.status === "uncollectible" ||
+            inv.status === "void" ||
+            (inv.status !== "paid" && inv.status !== "draft" && (inv.amount_remaining ?? 0) > 0 && (inv.attempt_count ?? 0) > 0)
+          ) {
+            failed = true;
+            stats.failedEvents += 1;
+          }
+        }
+
+        const paymentIntents = await stripe.paymentIntents.list({ customer: customer.id, limit: 100 });
+        for (const paymentIntent of paymentIntents.data) {
+          if (
+            paymentIntent.status === "canceled" ||
+            paymentIntent.status === "requires_payment_method"
+          ) {
+            failed = true;
+            stats.failedEvents += 1;
+            await logStripeSync("stripe_sync_payment_intent_failed", {
+              amount: (paymentIntent.amount ?? 0) / 100,
+              member_id: member.id,
+              payment_intent_id: paymentIntent.id,
+              stripe_customer_id: customer.id,
+              stripe_email: normEmail(customer.email),
+            });
           }
         }
 
         applyMatch(member.id, customer.id, subId, memberFreq, activeSub, failed);
       }
+
       if (!page.has_more) break;
       starting_after = page.data[page.data.length - 1]?.id;
       if (!starting_after) break;
     }
 
-    // Apply member status updates
     const todayNY = nyDate();
-    for (const memberId of matchedMemberIds) {
-      const info = subStatusByMember.get(memberId);
-      const lastUnix = lastPaidAtByMember.get(memberId);
-      const lastDate = lastUnix ? nyDate(lastUnix) : null;
+    for (const member of (membersAll ?? []) as MemberRow[]) {
+      if (!matchedMemberIds.has(member.id)) continue;
 
-      let statusPayment: "On Time" | "Late" | "Pending" = "Pending";
+      const info = subStatusByMember.get(member.id);
+      const lastUnix = lastPaidAtByMember.get(member.id);
+      const lastDate = lastUnix ? nyDate(lastUnix) : (member.last_payment_date ?? null);
+
+      let statusPayment: MemberStatusPayment = "Pending";
       if (info?.failed) {
         statusPayment = "Late";
-      } else if (lastUnix) {
+      } else if (lastUnix || member.last_payment_date) {
+        const baseDate = lastUnix ? new Date(lastUnix * 1000) : new Date(`${member.last_payment_date}T12:00:00Z`);
         const daysWindow = info?.frequency === "monthly" ? 30 : 7;
-        const ageDays = (Date.now() - lastUnix * 1000) / 86400000;
+        const ageDays = (Date.now() - baseDate.getTime()) / 86400000;
         statusPayment = ageDays <= daysWindow ? "On Time" : "Late";
       }
 
       await supabaseAdmin
         .from("members")
         .update({
-          status_payment: statusPayment,
+          contribution_frequency: info?.frequency ?? member.contribution_frequency ?? "weekly",
           last_payment_date: lastDate,
-          subscription_active: !!info?.active,
-          stripe_customer_id: info?.customerId ?? null,
-          stripe_subscription_id: info?.subId ?? null,
-          contribution_frequency: info?.frequency ?? "weekly",
           payment_type: "card",
+          status_payment: statusPayment,
+          stripe_customer_id: info?.customerId ?? member.stripe_customer_id,
+          stripe_subscription_id: info?.subId ?? member.stripe_subscription_id,
+          subscription_active: !!info?.active,
         })
-        .eq("id", memberId);
+        .eq("id", member.id);
       stats.membersUpdated += 1;
     }
 

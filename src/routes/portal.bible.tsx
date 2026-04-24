@@ -381,6 +381,8 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
           <Section title="Oração" body={dev.prayer} />
         </div>
 
+        <MyReflection memberId={memberId} devotionalId={dev.id} />
+
         <div className="flex flex-wrap gap-3 pt-2 border-t border-border">
           <button
             type="button"

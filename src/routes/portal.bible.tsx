@@ -204,7 +204,7 @@ function BiblePage() {
       {tab === "today" && <TodayDevotional memberId={member?.id ?? null} lang={lang} onReadVerse={openInBible} />}
       {tab === "bible" && <BibleReader memberId={member?.id ?? null} target={target} onTargetConsumed={() => setTarget(null)} />}
       {tab === "notes" && <MyNotes memberId={member?.id ?? null} />}
-      {tab === "progress" && <Progress memberId={member?.id ?? null} />}
+      {tab === "progress" && <Progress memberId={member?.id ?? null} onNavigate={setTab} />}
     </div>
   );
 }

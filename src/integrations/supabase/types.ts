@@ -178,6 +178,47 @@ export type Database = {
           },
         ]
       }
+      devotional_notes: {
+        Row: {
+          created_at: string
+          devotional_id: string
+          god_spoke_text: string
+          id: string
+          keywords: string[]
+          learned_text: string
+          member_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          devotional_id: string
+          god_spoke_text?: string
+          id?: string
+          keywords?: string[]
+          learned_text?: string
+          member_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          devotional_id?: string
+          god_spoke_text?: string
+          id?: string
+          keywords?: string[]
+          learned_text?: string
+          member_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devotional_notes_devotional_id_fkey"
+            columns: ["devotional_id"]
+            isOneToOne: false
+            referencedRelation: "devotionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devotionals: {
         Row: {
           application: string

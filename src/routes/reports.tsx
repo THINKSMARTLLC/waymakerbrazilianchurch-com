@@ -501,7 +501,7 @@ function ReportsPage() {
           </div>
           {groupBy === "member" ? (
             memberRows.length === 0 ? (
-              <div className="py-8 text-center text-sm text-muted-foreground">No members match the filters.</div>
+              <div className="py-8 text-center text-sm text-muted-foreground">No members found in this category</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">

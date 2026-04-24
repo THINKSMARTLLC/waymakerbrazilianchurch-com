@@ -9,7 +9,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentMember } from "@/hooks/useCurrentMember";
 import { getOrGenerateTodayDevotional } from "@/lib/devotional.functions";
-import { todayNYC } from "@/lib/datetime";
+import { todayNYC, formatDate, formatLocalDateOnly } from "@/lib/datetime";
 
 export const Route = createFileRoute("/portal/bible")({
   head: () => ({
@@ -133,7 +133,7 @@ interface Devotional {
 }
 
 interface BibleVerse { book_id: string; book_name: string; chapter: number; verse: number; text: string; }
-interface BibleNote { id: string; book: string; chapter: number; verse: number; note_text: string; share_with_pastor: boolean; updated_at: string; }
+interface BibleNote { id: string; book: string; chapter: number; verse: number; note_text: string; share_with_pastor: boolean; created_at: string; updated_at: string; }
 
 const LAST_POS_KEY = "wmf:bible:lastPosition";
 
@@ -346,6 +346,27 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
     setMarking(false);
   };
 
+  const unmarkCompleted = async () => {
+    if (!memberId || !dev || !completed) return;
+    setMarking(true);
+    const isFallback = dev.id.startsWith("fallback-");
+    if (!isFallback) {
+      const { error: e } = await supabase
+        .from("devotional_completions")
+        .delete()
+        .eq("member_id", memberId)
+        .eq("devotional_id", dev.id);
+      if (e) {
+        toast.error("Erro ao desmarcar");
+        setMarking(false);
+        return;
+      }
+    }
+    setCompleted(false);
+    toast.success("Devocional desmarcado");
+    setMarking(false);
+  };
+
   if (loading) {
     return <div className="card-elevated p-8 flex items-center justify-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" /> Preparando seu devocional...</div>;
   }
@@ -443,6 +464,16 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
             {marking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
             {completed ? "Concluído (+10 pts)" : "Marcar como Concluído"}
           </button>
+          {completed && (
+            <button
+              onClick={unmarkCompleted}
+              disabled={marking || !memberId}
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              {marking ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="text-base leading-none">↺</span>}
+              Desmarcar
+            </button>
+          )}
         </div>
       </article>
     </div>
@@ -746,6 +777,41 @@ function MyReflection({ memberId, devotionalId }: { memberId: string | null; dev
   );
 }
 
+// ---------- Reading Plan (client-side, per device) ----------
+type ReadingPlan = { kind: "none" } | { kind: "bible365" } | { kind: "custom"; days: number };
+const READING_PLAN_KEY = "wmf:bible:readingPlan";
+const TOTAL_BIBLE_CHAPTERS = BIBLE_BOOKS.reduce((acc, b) => acc + b.chapters, 0); // 1189
+
+function loadReadingPlan(): ReadingPlan {
+  try {
+    if (typeof window === "undefined") return { kind: "none" };
+    const raw = localStorage.getItem(READING_PLAN_KEY);
+    if (!raw) return { kind: "none" };
+    const parsed = JSON.parse(raw) as ReadingPlan;
+    if (parsed && (parsed.kind === "none" || parsed.kind === "bible365" || parsed.kind === "custom")) return parsed;
+    return { kind: "none" };
+  } catch { return { kind: "none" }; }
+}
+
+function saveReadingPlan(plan: ReadingPlan) {
+  try {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(READING_PLAN_KEY, JSON.stringify(plan));
+  } catch { /* ignore */ }
+}
+
+function planTargetChapters(plan: ReadingPlan): number {
+  if (plan.kind === "none") return TOTAL_BIBLE_CHAPTERS;
+  if (plan.kind === "bible365") return TOTAL_BIBLE_CHAPTERS; // read whole Bible in 365 days
+  return TOTAL_BIBLE_CHAPTERS;
+}
+
+function planLabel(plan: ReadingPlan): string {
+  if (plan.kind === "bible365") return "Bíblia em 365 dias";
+  if (plan.kind === "custom") return `Personalizado (${plan.days} dias)`;
+  return "Sem plano";
+}
+
 // ============== BIBLE READER ==============
 function BibleReader({
   memberId,
@@ -764,6 +830,10 @@ function BibleReader({
   const [notesMap, setNotesMap] = useState<Map<number, BibleNote>>(new Map());
   const [openVerse, setOpenVerse] = useState<number | null>(null);
   const [highlightVerse, setHighlightVerse] = useState<number | null>(null);
+  const [chapterCompleted, setChapterCompleted] = useState<boolean>(false);
+  const [marking, setMarking] = useState<boolean>(false);
+  const [completedCount, setCompletedCount] = useState<number>(0);
+  const [plan, setPlan] = useState<ReadingPlan>(() => loadReadingPlan());
   const verseRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
   // Apply incoming target (from devotional "Read Verse")
@@ -819,16 +889,9 @@ function BibleReader({
         if (!cancelled) setLoading(false);
       }
 
-      // Track reading
-      if (memberId) {
-        const today = todayNYC();
-        const { error } = await supabase.from("bible_readings").insert({
-          member_id: memberId, book, chapter, read_date: today,
-        });
-        if (!error) {
-          // First time today for this chapter → +3pts toast (silent if duplicate)
-        }
-      }
+      // Reading is NOT auto-tracked anymore. The user must explicitly click
+      // "Mark as Completed" on the chapter to register progress.
+
     })();
     return () => { cancelled = true; };
   }, [book, chapter, translation, memberId]);
@@ -870,6 +933,76 @@ function BibleReader({
       return next;
     });
   };
+
+  // Check if current chapter has been manually marked as completed
+  useEffect(() => {
+    if (!memberId) { setChapterCompleted(false); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("bible_readings")
+        .select("id")
+        .eq("member_id", memberId)
+        .eq("book", book)
+        .eq("chapter", chapter)
+        .limit(1);
+      if (!cancelled) setChapterCompleted(!!data && data.length > 0);
+    })();
+    return () => { cancelled = true; };
+  }, [memberId, book, chapter]);
+
+  // Total distinct chapters completed (for plan progress bar)
+  useEffect(() => {
+    if (!memberId) { setCompletedCount(0); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("bible_readings")
+        .select("book, chapter")
+        .eq("member_id", memberId);
+      if (cancelled) return;
+      const uniq = new Set((data || []).map((r) => `${r.book}-${r.chapter}`));
+      setCompletedCount(uniq.size);
+    })();
+    return () => { cancelled = true; };
+  }, [memberId, chapterCompleted]);
+
+  const markChapterCompleted = async () => {
+    if (!memberId || chapterCompleted) return;
+    setMarking(true);
+    const today = todayNYC();
+    const { error } = await supabase.from("bible_readings").insert({
+      member_id: memberId, book, chapter, read_date: today,
+    });
+    setMarking(false);
+    if (error && !error.message.includes("duplicate")) {
+      toast.error("Erro ao marcar capítulo");
+      return;
+    }
+    setChapterCompleted(true);
+    toast.success(`${book} ${chapter} marcado como concluído`);
+  };
+
+  const unmarkChapterCompleted = async () => {
+    if (!memberId || !chapterCompleted) return;
+    setMarking(true);
+    const { error } = await supabase
+      .from("bible_readings")
+      .delete()
+      .eq("member_id", memberId)
+      .eq("book", book)
+      .eq("chapter", chapter);
+    setMarking(false);
+    if (error) {
+      toast.error("Erro ao desmarcar capítulo");
+      return;
+    }
+    setChapterCompleted(false);
+    toast.success(`${book} ${chapter} desmarcado`);
+  };
+
+  const planTotal = planTargetChapters(plan);
+  const planPercent = planTotal > 0 ? Math.min(100, Math.round((completedCount / planTotal) * 100)) : 0;
 
   return (
     <div className="space-y-4">
@@ -927,6 +1060,90 @@ function BibleReader({
           >
             Próximo <ChevronRight className="h-4 w-4" />
           </button>
+        </div>
+
+        {/* Mark / Unmark + Reading Plan */}
+        <div className="pt-3 border-t border-border space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-xs text-muted-foreground">
+              {chapterCompleted ? (
+                <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-medium">
+                  <Check className="h-3.5 w-3.5" /> Capítulo concluído
+                </span>
+              ) : (
+                <span>Não marcado como concluído</span>
+              )}
+            </div>
+            {chapterCompleted ? (
+              <button
+                type="button"
+                onClick={unmarkChapterCompleted}
+                disabled={marking || !memberId}
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                {marking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <span>↺</span>}
+                Desmarcar
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={markChapterCompleted}
+                disabled={marking || !memberId}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {marking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                Marcar como Concluído
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="text-xs font-medium text-muted-foreground">Plano de leitura:</label>
+            <select
+              value={plan.kind === "custom" ? "custom" : plan.kind}
+              onChange={(e) => {
+                const v = e.target.value;
+                let next: ReadingPlan;
+                if (v === "bible365") next = { kind: "bible365" };
+                else if (v === "custom") next = { kind: "custom", days: plan.kind === "custom" ? plan.days : 180 };
+                else next = { kind: "none" };
+                setPlan(next);
+                saveReadingPlan(next);
+              }}
+              className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+            >
+              <option value="none">Sem plano</option>
+              <option value="bible365">Bíblia em 365 dias</option>
+              <option value="custom">Personalizado</option>
+            </select>
+            {plan.kind === "custom" && (
+              <input
+                type="number"
+                min={1}
+                max={3650}
+                value={plan.days}
+                onChange={(e) => {
+                  const days = Math.max(1, Number(e.target.value) || 1);
+                  const next: ReadingPlan = { kind: "custom", days };
+                  setPlan(next);
+                  saveReadingPlan(next);
+                }}
+                className="h-8 w-20 rounded-md border border-input bg-background px-2 text-xs"
+              />
+            )}
+            <span className="text-xs text-muted-foreground ml-auto">
+              {completedCount} / {planTotal} capítulos · {planPercent}%
+            </span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all"
+              style={{ width: `${planPercent}%` }}
+            />
+          </div>
+          <div className="text-[11px] text-muted-foreground">
+            {planLabel(plan)} — apenas capítulos marcados manualmente contam para o progresso.
+          </div>
         </div>
       </div>
 
@@ -1141,7 +1358,7 @@ function MyNotes({ memberId }: { memberId: string | null }) {
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-muted-foreground hidden sm:inline">
                       {n.share_with_pastor ? <Share2 className="inline h-3 w-3 mr-1" /> : <Lock className="inline h-3 w-3 mr-1" />}
-                      {new Date(n.updated_at).toLocaleDateString()}
+                      {n.share_with_pastor ? "Compartilhada" : "Privada"}
                     </span>
                     <button
                       type="button"
@@ -1175,6 +1392,10 @@ function MyNotes({ memberId }: { memberId: string | null }) {
                     />
                   )
                 )}
+                <div className="mt-3 pt-2 border-t border-border/60 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                  <span>Criado em: <span className="text-foreground/80">{formatDate(n.created_at)}</span></span>
+                  <span>Atualizado em: <span className="text-foreground/80">{formatDate(n.updated_at)}</span></span>
+                </div>
               </div>
             );
           })}
@@ -1545,9 +1766,13 @@ function ProgressHistory({
             <div key={n.id} className="card-elevated p-4">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-semibold text-primary">{n.book} {n.chapter}:{n.verse}</span>
-                <span className="text-xs text-muted-foreground">{new Date(n.updated_at).toLocaleDateString()}</span>
+                <span className="text-xs text-muted-foreground">{formatDate(n.updated_at)}</span>
               </div>
               <p className="text-sm text-foreground whitespace-pre-wrap">{n.note_text}</p>
+              <div className="mt-3 pt-2 border-t border-border/60 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                <span>Criado em: <span className="text-foreground/80">{formatDate(n.created_at)}</span></span>
+                <span>Atualizado em: <span className="text-foreground/80">{formatDate(n.updated_at)}</span></span>
+              </div>
             </div>
           ))}
         </div>

@@ -415,6 +415,24 @@ function MembersPage() {
                                   </span>
                                 ) : null;
                               })()}
+                              {member.phone && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setWhatsappTarget({
+                                      name: member.name,
+                                      phone: member.phone,
+                                      due_date: member.last_payment_date,
+                                    });
+                                  }}
+                                  className="inline-flex items-center justify-center rounded-full p-1 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
+                                  title="Enviar mensagem via WhatsApp"
+                                  aria-label="Enviar mensagem via WhatsApp"
+                                >
+                                  <MessageCircle className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                             </span>
                             {dupGroup && (
                               <button

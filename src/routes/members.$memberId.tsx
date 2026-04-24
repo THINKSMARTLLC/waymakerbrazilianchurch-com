@@ -97,16 +97,25 @@ type Member = Database["public"]["Tables"]["members"]["Row"];
 type Payment = Database["public"]["Tables"]["payments"]["Row"];
 type MemberActivity = Database["public"]["Tables"]["member_activities"]["Row"];
 type SocialEngagement = Database["public"]["Tables"]["social_engagements"]["Row"];
+type PastoralNote = {
+  id: string;
+  book: string;
+  chapter: number;
+  verse: number;
+  note_text: string;
+  updated_at: string;
+};
 
 type HistoryItem = {
   id: string;
-  kind: "activity" | "social" | "payment";
+  kind: "activity" | "social" | "payment" | "pastoral_note";
   type: string;
   source: string;
   date: string;
   status: string;
   points: number;
   icon: string;
+  detail?: string;
 };
 
 function MemberProfilePage() {
@@ -117,6 +126,7 @@ function MemberProfilePage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [activities, setActivities] = useState<MemberActivity[]>([]);
   const [socials, setSocials] = useState<SocialEngagement[]>([]);
+  const [pastoralNotes, setPastoralNotes] = useState<PastoralNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
@@ -124,16 +134,23 @@ function MemberProfilePage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchData = async () => {
-    const [memberRes, paymentsRes, actsRes, socRes] = await Promise.all([
+    const [memberRes, paymentsRes, actsRes, socRes, notesRes] = await Promise.all([
       supabase.from("members").select("*").eq("id", memberId).single(),
       supabase.from("payments").select("*").eq("member_id", memberId).order("payment_date", { ascending: false }),
       supabase.from("member_activities").select("*").eq("member_id", memberId).order("activity_date", { ascending: false }),
       supabase.from("social_engagements").select("*").eq("member_id", memberId).order("created_at", { ascending: false }),
+      supabase
+        .from("bible_notes")
+        .select("id, book, chapter, verse, note_text, updated_at")
+        .eq("member_id", memberId)
+        .eq("share_with_pastor", true)
+        .order("updated_at", { ascending: false }),
     ]);
     setMember(memberRes.data);
     setPayments(paymentsRes.data || []);
     setActivities(actsRes.data || []);
     setSocials(socRes.data || []);
+    setPastoralNotes((notesRes.data || []) as PastoralNote[]);
     setLoading(false);
   };
 

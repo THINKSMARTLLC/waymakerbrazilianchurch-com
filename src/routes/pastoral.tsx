@@ -337,6 +337,23 @@ function PastoralDashboard() {
               </div>
 
               <div>
+                <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><BookOpen className="h-4 w-4" /> Pastoral Notes ({selectedNotes.length})</h3>
+                <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border p-2">
+                  {selectedNotes.length === 0 ? (
+                    <p className="p-2 text-sm text-muted-foreground">No notes shared yet.</p>
+                  ) : selectedNotes.map((n) => (
+                    <div key={n.id} className="border-b pb-2 last:border-0">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-medium text-primary">{n.book} {n.chapter}:{n.verse}</span>
+                        <span className="text-muted-foreground">{fmtDate(n.updated_at)}</span>
+                      </div>
+                      <p className="mt-1 text-sm whitespace-pre-wrap">{n.note_text}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
                 <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Heart className="h-4 w-4" /> Points History</h3>
                 <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border p-2">
                   {selectedEngagements.length === 0 ? (

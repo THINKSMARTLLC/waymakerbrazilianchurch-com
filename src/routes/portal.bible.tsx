@@ -478,13 +478,14 @@ function MyReflection({ memberId, devotionalId }: { memberId: string | null; dev
       return;
     }
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    setStatus("saving");
+    // Debounce only — do NOT flip to "saving" on every keystroke.
+    // Status changes when the save actually fires.
     saveTimer.current = setTimeout(async () => {
       const isEmpty = !note.learned_text.trim() && !note.god_spoke_text.trim() && note.keywords.length === 0;
       if (isEmpty && !noteIdRef.current) {
-        setStatus("idle");
         return;
       }
+      setStatus("saving");
       const { data, error } = await supabase
         .from("devotional_notes")
         .upsert(
@@ -510,29 +511,13 @@ function MyReflection({ memberId, devotionalId }: { memberId: string | null; dev
         setLastEditedAt(new Date().toISOString());
       }
       setStatus("saved");
-    }, 700);
+    }, 1200);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, [note, loaded, memberId, devotionalId]);
 
-  // Exit edit mode shortly after typing stops (and any pending save completes)
-  useEffect(() => {
-    if (mode !== "edit") return;
-    if (exitTimer.current) clearTimeout(exitTimer.current);
-    exitTimer.current = setTimeout(() => {
-      const hasContent =
-        note.learned_text.trim().length > 0 ||
-        note.god_spoke_text.trim().length > 0 ||
-        note.keywords.length > 0;
-      if (hasContent) setMode("view");
-    }, 2500);
-    return () => {
-      if (exitTimer.current) clearTimeout(exitTimer.current);
-    };
-  }, [note, mode]);
-
-  // Click outside the reflection card → return to view mode
+  // Click outside the reflection card → return to view mode (only explicit exit path)
   useEffect(() => {
     if (mode !== "edit") return;
     const onDocClick = (e: MouseEvent) => {

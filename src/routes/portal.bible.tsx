@@ -230,14 +230,6 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
   const [completed, setCompleted] = useState(false);
   const [marking, setMarking] = useState(false);
   const [readToday, setReadToday] = useState<boolean | null>(null);
-
-function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | null; lang: "pt" | "en" | "es"; onReadVerse: (ref: string) => void }) {
-  const [dev, setDev] = useState<Devotional | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [completed, setCompleted] = useState(false);
-  const [marking, setMarking] = useState(false);
-  const [readToday, setReadToday] = useState<boolean | null>(null);
   const [notesToday, setNotesToday] = useState(0);
   const [resumeSection, setResumeSection] = useState<LastPosition["section"] | null>(null);
   const [showResume, setShowResume] = useState(false);

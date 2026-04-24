@@ -795,6 +795,10 @@ function BibleReader({
   const [notesMap, setNotesMap] = useState<Map<number, BibleNote>>(new Map());
   const [openVerse, setOpenVerse] = useState<number | null>(null);
   const [highlightVerse, setHighlightVerse] = useState<number | null>(null);
+  const [chapterCompleted, setChapterCompleted] = useState<boolean>(false);
+  const [marking, setMarking] = useState<boolean>(false);
+  const [completedCount, setCompletedCount] = useState<number>(0);
+  const [plan, setPlan] = useState<ReadingPlan>(() => loadReadingPlan());
   const verseRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
   // Apply incoming target (from devotional "Read Verse")

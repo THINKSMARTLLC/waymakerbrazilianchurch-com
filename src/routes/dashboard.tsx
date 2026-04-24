@@ -59,9 +59,24 @@ function DashboardPage() {
       <BirthdayLoginAlert />
       <NewSignupsBanner />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title={t("dashboard.totalMembers")} value={String(stats.totalMembers)} icon={Users} />
-        <StatCard title={t("dashboard.weeklyExpected")} value={formatUSD(weeklyExpected)} icon={TrendingUp} />
-        <StatCard title={t("dashboard.collectedThisMonth")} value={formatUSD(stats.collectedThisMonth)} icon={DollarSign} />
+        <StatCard
+          title={t("dashboard.totalMembers")}
+          value={String(stats.totalMembers)}
+          icon={Users}
+          onClick={() => navigate({ to: "/members" })}
+        />
+        <StatCard
+          title={t("dashboard.weeklyExpected")}
+          value={formatUSD(weeklyExpected)}
+          icon={TrendingUp}
+          onClick={() => navigate({ to: "/reports", search: { range: "all" } as never })}
+        />
+        <StatCard
+          title={t("dashboard.collectedThisMonth")}
+          value={formatUSD(stats.collectedThisMonth)}
+          icon={DollarSign}
+          onClick={() => navigate({ to: "/reports", search: { range: "this_month" } as never })}
+        />
         <StatCard
           title={t("dashboard.outstanding")}
           value={formatUSD(stats.outstanding)}

@@ -11,7 +11,14 @@ import { PAYMENT_METHOD_LABEL } from "@/components/RecordPaymentModal";
 import { EditPaymentModal } from "@/components/EditPaymentModal";
 import type { Database } from "@/integrations/supabase/types";
 
+interface ReportsSearch {
+  range?: "this_month" | "last_month" | "all" | "custom";
+}
+
 export const Route = createFileRoute("/reports")({
+  validateSearch: (search: Record<string, unknown>): ReportsSearch => ({
+    range: (search.range as ReportsSearch["range"]) ?? undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Relatórios — Way Maker Church" },
@@ -48,7 +55,8 @@ function getDateRange(filter: FilterRange, customStart?: string, customEnd?: str
 }
 
 function ReportsPage() {
-  const [filter, setFilter] = useState<FilterRange>("this_month");
+  const { range } = Route.useSearch();
+  const [filter, setFilter] = useState<FilterRange>(range ?? "this_month");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [payments, setPayments] = useState<PaymentWithMember[]>([]);

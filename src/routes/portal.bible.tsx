@@ -936,9 +936,13 @@ function BibleReader({
     });
   };
 
-  // Check if current chapter has been manually marked as completed
+  // Check if current chapter has been manually marked as completed.
+  // IMPORTANT: reset state immediately on book/chapter change to avoid the
+  // previous chapter's "completed" flag bleeding into the new chapter while
+  // the async check is in flight.
   useEffect(() => {
-    if (!memberId) { setChapterCompleted(false); return; }
+    setChapterCompleted(false);
+    if (!memberId) return;
     let cancelled = false;
     (async () => {
       const { data } = await supabase

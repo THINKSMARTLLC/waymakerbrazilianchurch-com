@@ -1272,17 +1272,22 @@ function Progress({ memberId, onNavigate }: { memberId: string | null; onNavigat
 
   if (loading) return <div className="flex justify-center p-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
 
+  if (view !== "overview") {
+    return <ProgressHistory view={view} memberId={memberId} onBack={() => setView("overview")} />;
+  }
+
+  type CardView = "streak" | "devotionals" | "reflections" | "chapters" | "notes";
   const cards: Array<{
     label: string;
     value: number;
     icon: typeof Flame;
     color: string;
-    target?: Tab;
+    target?: CardView;
   }> = [
-    { label: "Sequência (dias)", value: stats.streak, icon: Flame, color: "text-orange-500", target: "today" },
-    { label: "Devocionais", value: stats.devotionals, icon: Sparkles, color: "text-primary", target: "today" },
-    { label: "Reflexões", value: stats.reflections, icon: NotebookPen, color: "text-violet-600", target: "today" },
-    { label: "Capítulos lidos", value: stats.chapters, icon: BookOpen, color: "text-emerald-600", target: "bible" },
+    { label: "Sequência (dias)", value: stats.streak, icon: Flame, color: "text-orange-500", target: "streak" },
+    { label: "Devocionais", value: stats.devotionals, icon: Sparkles, color: "text-primary", target: "devotionals" },
+    { label: "Reflexões", value: stats.reflections, icon: NotebookPen, color: "text-violet-600", target: "reflections" },
+    { label: "Capítulos lidos", value: stats.chapters, icon: BookOpen, color: "text-emerald-600", target: "chapters" },
     { label: "Notas", value: stats.notes, icon: BookMarked, color: "text-amber-600", target: "notes" },
     { label: "Pontos totais", value: stats.points, icon: Sparkles, color: "text-primary" },
   ];
@@ -1299,8 +1304,8 @@ function Progress({ memberId, onNavigate }: { memberId: string | null; onNavigat
               {...(clickable
                 ? {
                     type: "button",
-                    onClick: () => onNavigate(c.target as Tab),
-                    "aria-label": `Ver detalhes de ${c.label}`,
+                    onClick: () => setView(c.target as CardView),
+                    "aria-label": `Ver histórico de ${c.label}`,
                   }
                 : {})}
               className={`card-elevated p-4 text-left ${clickable ? "cursor-pointer hover:bg-muted/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" : ""}`}

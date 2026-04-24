@@ -874,6 +874,7 @@ function BibleReader({
               className="mt-1 w-full h-9 rounded-md border border-input bg-background px-2 text-sm"
             >
               <option value="almeida">Almeida (PT)</option>
+              <option value="rvr">Reina-Valera (ES)</option>
               <option value="web">World English (EN)</option>
               <option value="kjv">King James (EN)</option>
             </select>

@@ -327,15 +327,18 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
     if (!memberId || !dev || completed) return;
     setMarking(true);
     const today = todayNYC();
-    const { error: e } = await supabase.from("devotional_completions").insert({
-      member_id: memberId,
-      devotional_id: dev.id,
-      completed_date: today,
-    });
-    if (e && !e.message.includes("duplicate")) {
-      toast.error("Erro ao registrar conclusão");
-      setMarking(false);
-      return;
+    const isFallback = dev.id.startsWith("fallback-");
+    if (!isFallback) {
+      const { error: e } = await supabase.from("devotional_completions").insert({
+        member_id: memberId,
+        devotional_id: dev.id,
+        completed_date: today,
+      });
+      if (e && !e.message.includes("duplicate")) {
+        toast.error("Erro ao registrar conclusão");
+        setMarking(false);
+        return;
+      }
     }
     setCompleted(true);
     saveLastPosition({ tab: "today", section: "prayer" });
@@ -346,8 +349,14 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
   if (loading) {
     return <div className="card-elevated p-8 flex items-center justify-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" /> Preparando seu devocional...</div>;
   }
-  if (error || !dev) {
-    return <div className="card-elevated p-6 text-sm text-muted-foreground">{error || "Sem devocional disponível."}</div>;
+  if (!dev) {
+    // Defensive: server now always returns a fallback, but if something truly fails,
+    // never show "Sem devocional disponível" — surface a soft retry hint instead.
+    return (
+      <div className="card-elevated p-6 text-sm text-muted-foreground">
+        {error || "Carregando devocional de hoje..."}
+      </div>
+    );
   }
 
   return (

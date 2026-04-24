@@ -1082,6 +1082,19 @@ function MyNotes({ memberId }: { memberId: string | null }) {
     });
   };
 
+  const handleDelete = async (n: BibleNote) => {
+    if (!memberId) return;
+    if (!confirm(`Excluir esta nota de ${n.book} ${n.chapter}:${n.verse}?`)) return;
+    const { error } = await supabase.from("bible_notes").delete().eq("id", n.id);
+    if (error) {
+      toast.error("Erro ao excluir nota");
+      return;
+    }
+    setNotes((prev) => prev.filter((x) => x.id !== n.id));
+    if (editingId === n.id) setEditingId(null);
+    toast.success("Nota excluída");
+  };
+
   return (
     <div className="space-y-4">
       <div className="relative">
@@ -1106,31 +1119,44 @@ function MyNotes({ memberId }: { memberId: string | null }) {
             const isEditing = editingId === n.id;
             return (
               <div key={n.id} className="card-elevated p-4">
-                <button
-                  type="button"
-                  onClick={() => setEditingId(isEditing ? null : n.id)}
-                  className="w-full text-left"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-semibold text-primary">{n.book} {n.chapter}:{n.verse}</span>
-                    <span className="text-xs text-muted-foreground">
+                <div className="flex items-center justify-between mb-2 gap-2">
+                  <span className="text-sm font-semibold text-primary">{n.book} {n.chapter}:{n.verse}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground hidden sm:inline">
                       {n.share_with_pastor ? <Share2 className="inline h-3 w-3 mr-1" /> : <Lock className="inline h-3 w-3 mr-1" />}
                       {new Date(n.updated_at).toLocaleDateString()}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(isEditing ? null : n.id)}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                      aria-label={isEditing ? "Fechar edição" : "Editar nota"}
+                    >
+                      <Pencil className="h-3.5 w-3.5" /> {isEditing ? "Fechar" : "Editar"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(n)}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-destructive hover:underline"
+                      aria-label="Excluir nota"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Excluir
+                    </button>
                   </div>
-                  {!isEditing && (
-                    <p className="text-sm text-foreground whitespace-pre-wrap">{n.note_text}</p>
-                  )}
-                </button>
-                {isEditing && memberId && (
-                  <NoteEditor
-                    memberId={memberId}
-                    book={n.book}
-                    chapter={n.chapter}
-                    verse={n.verse}
-                    existing={n}
-                    onSaved={handleSaved}
-                  />
+                </div>
+                {!isEditing ? (
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{n.note_text}</p>
+                ) : (
+                  memberId && (
+                    <NoteEditor
+                      memberId={memberId}
+                      book={n.book}
+                      chapter={n.chapter}
+                      verse={n.verse}
+                      existing={n}
+                      onSaved={handleSaved}
+                    />
+                  )
                 )}
               </div>
             );

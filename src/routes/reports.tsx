@@ -67,7 +67,8 @@ function ReportsPage() {
   const [memberIdFilter, setMemberIdFilter] = useState<string>("all");
   const [nameFilter, setNameFilter] = useState("");
   const [methodFilter, setMethodFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<MemberPaymentStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<MemberPaymentStatus | "all" | "paid">("all");
+  const [showAllMembers, setShowAllMembers] = useState(false);
   const [groupBy, setGroupBy] = useState<"transactions" | "member">("member");
 
   // Latest payment dates per member (status — uses ALL payments, not just filtered range)

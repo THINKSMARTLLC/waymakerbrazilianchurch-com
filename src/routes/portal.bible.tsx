@@ -777,6 +777,41 @@ function MyReflection({ memberId, devotionalId }: { memberId: string | null; dev
   );
 }
 
+// ---------- Reading Plan (client-side, per device) ----------
+type ReadingPlan = { kind: "none" } | { kind: "bible365" } | { kind: "custom"; days: number };
+const READING_PLAN_KEY = "wmf:bible:readingPlan";
+const TOTAL_BIBLE_CHAPTERS = BIBLE_BOOKS.reduce((acc, b) => acc + b.chapters, 0); // 1189
+
+function loadReadingPlan(): ReadingPlan {
+  try {
+    if (typeof window === "undefined") return { kind: "none" };
+    const raw = localStorage.getItem(READING_PLAN_KEY);
+    if (!raw) return { kind: "none" };
+    const parsed = JSON.parse(raw) as ReadingPlan;
+    if (parsed && (parsed.kind === "none" || parsed.kind === "bible365" || parsed.kind === "custom")) return parsed;
+    return { kind: "none" };
+  } catch { return { kind: "none" }; }
+}
+
+function saveReadingPlan(plan: ReadingPlan) {
+  try {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(READING_PLAN_KEY, JSON.stringify(plan));
+  } catch { /* ignore */ }
+}
+
+function planTargetChapters(plan: ReadingPlan): number {
+  if (plan.kind === "none") return TOTAL_BIBLE_CHAPTERS;
+  if (plan.kind === "bible365") return TOTAL_BIBLE_CHAPTERS; // read whole Bible in 365 days
+  return TOTAL_BIBLE_CHAPTERS;
+}
+
+function planLabel(plan: ReadingPlan): string {
+  if (plan.kind === "bible365") return "Bíblia em 365 dias";
+  if (plan.kind === "custom") return `Personalizado (${plan.days} dias)`;
+  return "Sem plano";
+}
+
 // ============== BIBLE READER ==============
 function BibleReader({
   memberId,

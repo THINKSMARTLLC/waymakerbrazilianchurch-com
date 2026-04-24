@@ -247,10 +247,14 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
       setLoading(true);
       setError(null);
       try {
-        const { devotional, error: e } = await getOrGenerateTodayDevotional({ data: { language: lang } });
+        const { devotional } = await getOrGenerateTodayDevotional({ data: { language: lang } });
         if (cancelled || myReq !== reqIdRef.current) return;
-        if (e) setError(e);
         setDev(devotional ?? null);
+        if (devotional) {
+          // Debug: confirm same content for all users on the same day.
+          // eslint-disable-next-line no-console
+          console.log("[devotional] loaded:", devotional.devotional_date, devotional.id, devotional.title);
+        }
       } catch (err) {
         console.error(err);
         if (!cancelled && myReq === reqIdRef.current) setError("Não foi possível carregar o devocional");

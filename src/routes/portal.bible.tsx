@@ -1766,9 +1766,13 @@ function ProgressHistory({
             <div key={n.id} className="card-elevated p-4">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-semibold text-primary">{n.book} {n.chapter}:{n.verse}</span>
-                <span className="text-xs text-muted-foreground">{new Date(n.updated_at).toLocaleDateString()}</span>
+                <span className="text-xs text-muted-foreground">{formatDate(n.updated_at)}</span>
               </div>
               <p className="text-sm text-foreground whitespace-pre-wrap">{n.note_text}</p>
+              <div className="mt-3 pt-2 border-t border-border/60 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                <span>Criado em: <span className="text-foreground/80">{formatDate(n.created_at)}</span></span>
+                <span>Atualizado em: <span className="text-foreground/80">{formatDate(n.updated_at)}</span></span>
+              </div>
             </div>
           ))}
         </div>

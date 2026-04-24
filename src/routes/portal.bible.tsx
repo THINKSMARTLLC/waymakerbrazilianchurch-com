@@ -1031,6 +1031,7 @@ function MyNotes({ memberId }: { memberId: string | null }) {
   const [notes, setNotes] = useState<BibleNote[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!memberId) { setLoading(false); return; }
@@ -1059,6 +1060,14 @@ function MyNotes({ memberId }: { memberId: string | null }) {
     );
   }, [notes, query]);
 
+  const handleSaved = (updated: BibleNote) => {
+    setNotes((prev) => {
+      const next = prev.map((n) => (n.id === updated.id ? updated : n));
+      // re-sort by updated_at desc
+      return [...next].sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1));
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="relative">
@@ -1079,18 +1088,39 @@ function MyNotes({ memberId }: { memberId: string | null }) {
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((n) => (
-            <div key={n.id} className="card-elevated p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold text-primary">{n.book} {n.chapter}:{n.verse}</span>
-                <span className="text-xs text-muted-foreground">
-                  {n.share_with_pastor ? <Share2 className="inline h-3 w-3 mr-1" /> : <Lock className="inline h-3 w-3 mr-1" />}
-                  {new Date(n.updated_at).toLocaleDateString()}
-                </span>
+          {filtered.map((n) => {
+            const isEditing = editingId === n.id;
+            return (
+              <div key={n.id} className="card-elevated p-4">
+                <button
+                  type="button"
+                  onClick={() => setEditingId(isEditing ? null : n.id)}
+                  className="w-full text-left"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-semibold text-primary">{n.book} {n.chapter}:{n.verse}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {n.share_with_pastor ? <Share2 className="inline h-3 w-3 mr-1" /> : <Lock className="inline h-3 w-3 mr-1" />}
+                      {new Date(n.updated_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {!isEditing && (
+                    <p className="text-sm text-foreground whitespace-pre-wrap">{n.note_text}</p>
+                  )}
+                </button>
+                {isEditing && memberId && (
+                  <NoteEditor
+                    memberId={memberId}
+                    book={n.book}
+                    chapter={n.chapter}
+                    verse={n.verse}
+                    existing={n}
+                    onSaved={handleSaved}
+                  />
+                )}
               </div>
-              <p className="text-sm text-foreground whitespace-pre-wrap">{n.note_text}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

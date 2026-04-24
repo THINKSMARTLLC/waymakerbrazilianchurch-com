@@ -365,7 +365,16 @@ function ReportsPage() {
           </div>
         )}
         {isSuperAdmin && (
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={handleResyncStripe}
+              disabled={resyncing}
+              className="inline-flex items-center gap-2 rounded-xl border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              title="Re-fetch all Stripe customers, subscriptions and invoices and rebuild member payment status"
+            >
+              <CreditCard className="h-4 w-4" />
+              {resyncing ? "Resyncing…" : "Resync Stripe Data"}
+            </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button

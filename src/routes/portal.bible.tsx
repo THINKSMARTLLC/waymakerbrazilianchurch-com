@@ -247,10 +247,14 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
       setLoading(true);
       setError(null);
       try {
-        const { devotional, error: e } = await getOrGenerateTodayDevotional({ data: { language: lang } });
+        const { devotional } = await getOrGenerateTodayDevotional({ data: { language: lang } });
         if (cancelled || myReq !== reqIdRef.current) return;
-        if (e) setError(e);
         setDev(devotional ?? null);
+        if (devotional) {
+          // Debug: confirm same content for all users on the same day.
+          // eslint-disable-next-line no-console
+          console.log("[devotional] loaded:", devotional.devotional_date, devotional.id, devotional.title);
+        }
       } catch (err) {
         console.error(err);
         if (!cancelled && myReq === reqIdRef.current) setError("Não foi possível carregar o devocional");
@@ -265,16 +269,20 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
   // Runs without toggling the main loader.
   useEffect(() => {
     if (!memberId || !dev) return;
+    const isFallback = dev.id.startsWith("fallback-");
     let cancelled = false;
     (async () => {
       const today = todayNYC();
+      const compPromise = isFallback
+        ? Promise.resolve({ data: null })
+        : supabase
+            .from("devotional_completions")
+            .select("id")
+            .eq("member_id", memberId)
+            .eq("devotional_id", dev.id)
+            .maybeSingle();
       const [compRes, readingsRes, notesRes] = await Promise.all([
-        supabase
-          .from("devotional_completions")
-          .select("id")
-          .eq("member_id", memberId)
-          .eq("devotional_id", dev.id)
-          .maybeSingle(),
+        compPromise,
         supabase.from("bible_readings").select("id").eq("member_id", memberId).eq("read_date", today).limit(1),
         supabase
           .from("bible_notes")
@@ -319,15 +327,18 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
     if (!memberId || !dev || completed) return;
     setMarking(true);
     const today = todayNYC();
-    const { error: e } = await supabase.from("devotional_completions").insert({
-      member_id: memberId,
-      devotional_id: dev.id,
-      completed_date: today,
-    });
-    if (e && !e.message.includes("duplicate")) {
-      toast.error("Erro ao registrar conclusão");
-      setMarking(false);
-      return;
+    const isFallback = dev.id.startsWith("fallback-");
+    if (!isFallback) {
+      const { error: e } = await supabase.from("devotional_completions").insert({
+        member_id: memberId,
+        devotional_id: dev.id,
+        completed_date: today,
+      });
+      if (e && !e.message.includes("duplicate")) {
+        toast.error("Erro ao registrar conclusão");
+        setMarking(false);
+        return;
+      }
     }
     setCompleted(true);
     saveLastPosition({ tab: "today", section: "prayer" });
@@ -338,8 +349,14 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
   if (loading) {
     return <div className="card-elevated p-8 flex items-center justify-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" /> Preparando seu devocional...</div>;
   }
-  if (error || !dev) {
-    return <div className="card-elevated p-6 text-sm text-muted-foreground">{error || "Sem devocional disponível."}</div>;
+  if (!dev) {
+    // Defensive: server now always returns a fallback, but if something truly fails,
+    // never show "Sem devocional disponível" — surface a soft retry hint instead.
+    return (
+      <div className="card-elevated p-6 text-sm text-muted-foreground">
+        {error || "Carregando devocional de hoje..."}
+      </div>
+    );
   }
 
   return (

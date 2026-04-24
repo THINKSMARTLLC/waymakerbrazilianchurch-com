@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { getFallbackDevotional, dayOfYearFromISODate } from "@/lib/devotionalFallback";
 
 function todayNYC(): string {
   return new Intl.DateTimeFormat("en-CA", {
@@ -16,7 +17,10 @@ export const getOrGenerateTodayDevotional = createServerFn({ method: "POST" })
     const date = todayNYC();
     const lang = data.language || "pt";
 
-    // 1. Try to fetch today's devotional
+    // Debug (temporary): confirm same date + day-of-year for every user.
+    console.log("[devotional] NY date:", date, "day-of-year:", dayOfYearFromISODate(date), "lang:", lang);
+
+    // 1. Try to fetch today's devotional in requested language
     const { data: existing } = await supabaseAdmin
       .from("devotionals")
       .select("*")
@@ -24,12 +28,23 @@ export const getOrGenerateTodayDevotional = createServerFn({ method: "POST" })
       .eq("language", lang)
       .maybeSingle();
 
-    if (existing) return { devotional: existing };
+    if (existing) {
+      console.log("[devotional] loaded from DB id:", existing.id);
+      return { devotional: existing };
+    }
 
     // 2. Generate via Lovable AI
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) {
-      return { devotional: null, error: "AI service not configured" };
+      // No AI available — try any language for today, then deterministic fallback.
+      const { data: anyLang } = await supabaseAdmin
+        .from("devotionals")
+        .select("*")
+        .eq("devotional_date", date)
+        .limit(1)
+        .maybeSingle();
+      if (anyLang) return { devotional: anyLang };
+      return { devotional: getFallbackDevotional(date, lang) };
     }
 
     const langName = lang === "pt" ? "Portuguese (Brazilian)" : lang === "es" ? "Spanish" : "English";
@@ -84,14 +99,12 @@ All in ${langName}.`;
       if (!response.ok) {
         const txt = await response.text();
         console.error("AI gateway error", response.status, txt);
-        if (response.status === 429) return { devotional: null, error: "Rate limit exceeded" };
-        if (response.status === 402) return { devotional: null, error: "AI credits exhausted" };
-        return { devotional: null, error: "Failed to generate devotional" };
+        return { devotional: getFallbackDevotional(date, lang) };
       }
 
       const ai = await response.json();
       const toolCall = ai?.choices?.[0]?.message?.tool_calls?.[0];
-      if (!toolCall) return { devotional: null, error: "No content generated" };
+      if (!toolCall) return { devotional: getFallbackDevotional(date, lang) };
 
       const args = JSON.parse(toolCall.function.arguments);
 
@@ -134,12 +147,13 @@ All in ${langName}.`;
           .eq("devotional_date", date)
           .eq("language", lang)
           .maybeSingle();
-        return { devotional: retry };
+        return { devotional: retry ?? getFallbackDevotional(date, lang) };
       }
 
       return { devotional: inserted };
     } catch (e) {
       console.error("generate devotional failed", e);
-      return { devotional: null, error: "Generation failed" };
+      return { devotional: getFallbackDevotional(date, lang) };
     }
   });
+

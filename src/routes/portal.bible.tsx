@@ -1392,6 +1392,10 @@ function MyNotes({ memberId }: { memberId: string | null }) {
                     />
                   )
                 )}
+                <div className="mt-3 pt-2 border-t border-border/60 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                  <span>Criado em: <span className="text-foreground/80">{formatDate(n.created_at)}</span></span>
+                  <span>Atualizado em: <span className="text-foreground/80">{formatDate(n.updated_at)}</span></span>
+                </div>
               </div>
             );
           })}

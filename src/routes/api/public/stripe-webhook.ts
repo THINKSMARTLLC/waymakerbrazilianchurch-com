@@ -312,7 +312,16 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             return createOkResponse({ received: true, ignored: true });
           }
 
+          const eventObject = event.data.object as { metadata?: Record<string, string> | null; customer_email?: string | null };
+          logWebhookDebug(`Event received: ${event.type}`, {
+            eventId: event.id,
+            eventType: event.type,
+            customer_email: eventObject?.customer_email ?? null,
+            metadata_member_id: eventObject?.metadata?.member_id ?? null,
+          });
+
           if (!handledEventTypes.has(event.type)) {
+            logWebhookDebug(`Event type not handled: ${event.type}`);
             return createOkResponse({ received: true, ignored: true, eventType: event.type });
           }
 

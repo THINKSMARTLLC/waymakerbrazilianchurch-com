@@ -133,7 +133,7 @@ interface Devotional {
 }
 
 interface BibleVerse { book_id: string; book_name: string; chapter: number; verse: number; text: string; }
-interface BibleNote { id: string; book: string; chapter: number; verse: number; note_text: string; share_with_pastor: boolean; updated_at: string; }
+interface BibleNote { id: string; book: string; chapter: number; verse: number; note_text: string; share_with_pastor: boolean; created_at: string; updated_at: string; }
 
 const LAST_POS_KEY = "wmf:bible:lastPosition";
 

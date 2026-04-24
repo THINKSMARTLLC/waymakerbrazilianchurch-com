@@ -119,7 +119,7 @@ function toApiBook(name: string): string {
 }
 
 type Tab = "today" | "bible" | "notes" | "progress";
-type Translation = "web" | "kjv" | "almeida";
+type Translation = "web" | "kjv" | "almeida" | "rvr";
 
 interface Devotional {
   id: string;

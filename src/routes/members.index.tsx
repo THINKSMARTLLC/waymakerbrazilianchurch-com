@@ -571,6 +571,11 @@ function MembersPage() {
         />
       )}
       <ImportPreviewModal open={showImport} onClose={() => setShowImport(false)} onImported={fetchMembers} />
+      <WhatsAppMessageModal
+        open={!!whatsappTarget}
+        onOpenChange={(open) => { if (!open) setWhatsappTarget(null); }}
+        member={whatsappTarget}
+      />
     </div>
   );
 }

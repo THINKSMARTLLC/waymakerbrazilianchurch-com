@@ -92,6 +92,25 @@ function stripAccents(s: string): string {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
+// Parse a reference like "Mateus 11:28", "John 3:16-17", "1 João 4:7"
+// Returns the canonical English book name (matching BIBLE_BOOKS) plus chapter/verse.
+function parseBibleReference(ref: string): { book: string; chapter: number; verse: number | null } | null {
+  if (!ref) return null;
+  const cleaned = ref.trim().replace(/\s+/g, " ");
+  // Match optional leading number, book words, then "chapter:verse" or just "chapter"
+  const m = cleaned.match(/^((?:[1-3]\s+)?[A-Za-zÀ-ÿ.\s]+?)\s+(\d+)(?::(\d+))?/);
+  if (!m) return null;
+  const rawBook = m[1].trim().replace(/\.$/, "");
+  const chapter = parseInt(m[2], 10);
+  const verse = m[3] ? parseInt(m[3], 10) : null;
+  const key = stripAccents(rawBook).toLowerCase();
+  const englishLower = BOOK_ALIASES[key] ?? key;
+  // Find canonical book in BIBLE_BOOKS (case-insensitive)
+  const canonical = BIBLE_BOOKS.find((b) => b.name.toLowerCase() === englishLower);
+  if (!canonical) return null;
+  return { book: canonical.name, chapter, verse };
+}
+
 function toApiBook(name: string): string {
   const key = stripAccents(name).toLowerCase().trim();
   const mapped = BOOK_ALIASES[key] ?? BOOK_ALIASES[stripAccents(name).toLowerCase()] ?? key;

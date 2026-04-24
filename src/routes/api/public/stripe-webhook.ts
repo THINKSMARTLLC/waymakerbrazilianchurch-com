@@ -66,6 +66,26 @@ async function logStripeEvent(action: string, metadata: Record<string, unknown>)
   ]);
 }
 
+async function findMemberById(memberId?: string | null) {
+  if (!memberId) return null;
+  const { data } = await supabaseAdmin
+    .from("members")
+    .select("id, email, status, status_payment, stripe_customer_id, stripe_subscription_id")
+    .eq("id", memberId)
+    .maybeSingle();
+  return data ?? null;
+}
+
+async function findMemberByStripeCustomer(stripeCustomerId?: string | null) {
+  if (!stripeCustomerId) return null;
+  const { data } = await supabaseAdmin
+    .from("members")
+    .select("id, email, status, status_payment, stripe_customer_id, stripe_subscription_id")
+    .eq("stripe_customer_id", stripeCustomerId)
+    .limit(1);
+  return data?.[0] ?? null;
+}
+
 async function findMemberForStripeEmail(email?: string | null) {
   const normalizedEmail = normalizeEmail(email);
 
@@ -90,6 +110,18 @@ async function findMemberForStripeEmail(email?: string | null) {
   }
 
   return null;
+}
+
+async function resolveMember(input: {
+  memberIdMetadata?: string | null;
+  email?: string | null;
+  stripeCustomerId?: string | null;
+}) {
+  return (
+    (await findMemberById(input.memberIdMetadata)) ??
+    (await findMemberForStripeEmail(input.email)) ??
+    (await findMemberByStripeCustomer(input.stripeCustomerId))
+  );
 }
 
 async function paymentAlreadyRegistered(memberId: string, externalPaymentId: string) {

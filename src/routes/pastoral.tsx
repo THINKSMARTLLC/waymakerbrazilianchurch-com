@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Users, UserCheck, UserX, UserPlus, AlertTriangle, Heart, Activity as ActivityIcon, ChevronRight, X } from "lucide-react";
+import { Users, UserCheck, UserX, UserPlus, AlertTriangle, Heart, Activity as ActivityIcon, ChevronRight, X, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +51,16 @@ interface EngagementRow {
   created_at: string;
 }
 
+interface PastoralNoteRow {
+  id: string;
+  member_id: string;
+  book: string;
+  chapter: number;
+  verse: number;
+  note_text: string;
+  updated_at: string;
+}
+
 interface MemberHealth {
   member: MemberRow;
   lastActivityDate: string | null;
@@ -94,6 +104,7 @@ function PastoralDashboard() {
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [activities, setActivities] = useState<ActivityRow[]>([]);
   const [engagements, setEngagements] = useState<EngagementRow[]>([]);
+  const [pastoralNotes, setPastoralNotes] = useState<PastoralNoteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [search, setSearch] = useState("");
@@ -105,14 +116,21 @@ function PastoralDashboard() {
 
   async function load() {
     setLoading(true);
-    const [mRes, aRes, eRes] = await Promise.all([
+    const [mRes, aRes, eRes, nRes] = await Promise.all([
       supabase.from("members").select("id, name, email, status, created_at").order("created_at", { ascending: false }),
       supabase.from("member_activities").select("id, member_id, activity_type, activity_date, source, notes, created_at").order("activity_date", { ascending: false }).limit(2000),
       supabase.from("social_engagements").select("id, member_id, platform, action_type, points, status, created_at").order("created_at", { ascending: false }).limit(2000),
+      supabase
+        .from("bible_notes")
+        .select("id, member_id, book, chapter, verse, note_text, updated_at")
+        .eq("share_with_pastor", true)
+        .order("updated_at", { ascending: false })
+        .limit(500),
     ]);
     setMembers(mRes.data ?? []);
     setActivities(aRes.data ?? []);
     setEngagements(eRes.data ?? []);
+    setPastoralNotes((nRes.data ?? []) as PastoralNoteRow[]);
     setLoading(false);
   }
 

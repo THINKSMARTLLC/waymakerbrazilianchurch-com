@@ -14,6 +14,7 @@ const handledEventTypes = new Set([
   "checkout.session.completed",
   "invoice.paid",
   "invoice.payment_failed",
+  "payment_intent.payment_failed",
   "customer.subscription.created",
   "customer.subscription.updated",
   "customer.subscription.deleted",
@@ -44,6 +45,20 @@ function getStripeClient() {
 
 function normalizeEmail(email?: string | null) {
   return email?.trim().toLowerCase() ?? null;
+}
+
+function intervalToFrequency(interval?: string | null): "weekly" | "monthly" {
+  if (interval === "month" || interval === "year") return "monthly";
+  return "weekly";
+}
+
+function getInvoiceFrequency(invoice: Stripe.Invoice): "weekly" | "monthly" {
+  for (const line of invoice.lines.data) {
+    const price = line.pricing?.price_details?.price;
+    const interval = price && typeof price !== "string" ? price.recurring?.interval ?? null : null;
+    if (interval) return intervalToFrequency(interval);
+  }
+  return "weekly";
 }
 
 function getNewYorkDateFromUnix(timestamp?: number | null) {
@@ -143,6 +158,7 @@ async function registerMatchedStripePayment(input: {
   externalPaymentId: string;
   memberId: string;
   paymentDate: string;
+  paymentFrequency?: "weekly" | "monthly";
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
 }) {
@@ -169,7 +185,7 @@ async function registerMatchedStripePayment(input: {
       member_id: input.memberId,
       notes: `Stripe payment ID: ${input.externalPaymentId} | Event: ${input.eventType}`,
       payment_date: input.paymentDate,
-      payment_frequency: "weekly",
+      payment_frequency: input.paymentFrequency ?? "weekly",
       payment_method: "stripe",
       reference_month: null,
       status: "paid",
@@ -247,6 +263,7 @@ async function markUnmatchedStripePayment(input: {
 }
 
 async function updateMemberSubscriptionStatus(input: {
+  contributionFrequency?: "weekly" | "monthly";
   memberId: string;
   statusPayment: "On Time" | "Late" | "Pending";
   subscriptionActive: boolean;
@@ -258,10 +275,12 @@ async function updateMemberSubscriptionStatus(input: {
     payment_type: "card";
     status?: "active";
     status_payment: "On Time" | "Late" | "Pending";
+    contribution_frequency?: "weekly" | "monthly";
     stripe_customer_id: string | null;
     stripe_subscription_id: string | null;
     subscription_active: boolean;
   } = {
+    contribution_frequency: input.contributionFrequency,
     last_payment_date: input.statusPayment === "On Time" ? getCurrentNewYorkDate() : null,
     payment_type: "card",
     status_payment: input.statusPayment,
@@ -397,6 +416,7 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             const stripeSubscriptionId = typeof invoice.parent?.subscription_details?.subscription === "string"
               ? invoice.parent.subscription_details.subscription
               : invoice.parent?.subscription_details?.subscription?.id ?? null;
+            const paymentFrequency = getInvoiceFrequency(invoice);
             const email = await resolveCustomerEmail(stripe, {
               customerEmail: invoice.customer_email,
               customerId: stripeCustomerId,
@@ -437,6 +457,7 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
               logWebhookDebug(`Member matched: ${member.id}`, { email, eventType: event.type });
 
               await updateMemberSubscriptionStatus({
+                contributionFrequency: paymentFrequency,
                 memberId: member.id,
                 statusPayment: "On Time",
                 subscriptionActive: true,
@@ -451,6 +472,7 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
                 externalPaymentId: invoice.id,
                 memberId: member.id,
                 paymentDate,
+                paymentFrequency,
                 stripeCustomerId,
                 stripeSubscriptionId,
               });
@@ -515,6 +537,8 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             const isDeleted = event.type === "customer.subscription.deleted";
             const isActive =
               !isDeleted && (subscription.status === "active" || subscription.status === "trialing");
+            const interval = subscription.items.data[0]?.price?.recurring?.interval ?? null;
+            const contributionFrequency = intervalToFrequency(interval);
 
             logWebhookDebug(`Subscription ${event.type}`, {
               eventType: event.type,
@@ -532,6 +556,7 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
                   : "Pending";
 
               await updateMemberSubscriptionStatus({
+                contributionFrequency,
                 memberId: member.id,
                 statusPayment,
                 subscriptionActive: isActive,
@@ -547,6 +572,39 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
               status: subscription.status,
               stripe_customer_id: stripeCustomerId,
               stripe_subscription_id: stripeSubscriptionId,
+            });
+          }
+
+          if (event.type === "payment_intent.payment_failed") {
+            const paymentIntent = event.data.object;
+            const stripeCustomerId = typeof paymentIntent.customer === "string"
+              ? paymentIntent.customer
+              : paymentIntent.customer?.id ?? null;
+            const email = stripeCustomerId
+              ? await resolveCustomerEmail(stripe, { customerId: stripeCustomerId })
+              : null;
+            const member = await resolveMember({
+              email,
+              stripeCustomerId,
+            });
+
+            if (member) {
+              await updateMemberSubscriptionStatus({
+                memberId: member.id,
+                statusPayment: "Late",
+                subscriptionActive: false,
+                stripeCustomerId,
+                stripeSubscriptionId: member.stripe_subscription_id,
+              });
+            }
+
+            await logStripeEvent("stripe_payment_failed", {
+              amount: (paymentIntent.amount ?? 0) / 100,
+              email: normalizeEmail(email),
+              event_type: event.type,
+              member_id: member?.id ?? null,
+              payment_intent_id: paymentIntent.id,
+              stripe_customer_id: stripeCustomerId,
             });
           }
 

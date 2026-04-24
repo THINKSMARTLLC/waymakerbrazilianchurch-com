@@ -1184,6 +1184,7 @@ function Progress({ memberId, onNavigate }: { memberId: string | null; onNavigat
     readToday: false,
   });
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<"overview" | "streak" | "devotionals" | "reflections" | "chapters" | "notes">("overview");
 
   useEffect(() => {
     if (!memberId) { setLoading(false); return; }

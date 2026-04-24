@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   BookOpen, Sparkles, NotebookPen, Search, Flame, Check, Loader2,
-  ChevronLeft, ChevronRight, Lock, Share2, BookMarked,
+  ChevronLeft, ChevronRight, Lock, Share2, BookMarked, Pencil, Trash2, ArrowLeft,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentMember } from "@/hooks/useCurrentMember";
@@ -344,6 +344,20 @@ function TodayDevotional({ memberId, lang, onReadVerse }: { memberId: string | n
 
   return (
     <div className="space-y-4">
+      {!completed && (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
+          <p className="text-foreground mb-2">
+            Você ainda não fez seu devocional hoje. Que tal começar agora seu momento com Deus?
+          </p>
+          <button
+            type="button"
+            onClick={() => sectionRefs.current.devotional?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors"
+          >
+            <Sparkles className="h-3.5 w-3.5" /> Abrir devocional de hoje
+          </button>
+        </div>
+      )}
       {showResume && !completed && (
         <button
           type="button"
@@ -1068,6 +1082,19 @@ function MyNotes({ memberId }: { memberId: string | null }) {
     });
   };
 
+  const handleDelete = async (n: BibleNote) => {
+    if (!memberId) return;
+    if (!confirm(`Excluir esta nota de ${n.book} ${n.chapter}:${n.verse}?`)) return;
+    const { error } = await supabase.from("bible_notes").delete().eq("id", n.id);
+    if (error) {
+      toast.error("Erro ao excluir nota");
+      return;
+    }
+    setNotes((prev) => prev.filter((x) => x.id !== n.id));
+    if (editingId === n.id) setEditingId(null);
+    toast.success("Nota excluída");
+  };
+
   return (
     <div className="space-y-4">
       <div className="relative">
@@ -1092,31 +1119,44 @@ function MyNotes({ memberId }: { memberId: string | null }) {
             const isEditing = editingId === n.id;
             return (
               <div key={n.id} className="card-elevated p-4">
-                <button
-                  type="button"
-                  onClick={() => setEditingId(isEditing ? null : n.id)}
-                  className="w-full text-left"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-semibold text-primary">{n.book} {n.chapter}:{n.verse}</span>
-                    <span className="text-xs text-muted-foreground">
+                <div className="flex items-center justify-between mb-2 gap-2">
+                  <span className="text-sm font-semibold text-primary">{n.book} {n.chapter}:{n.verse}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground hidden sm:inline">
                       {n.share_with_pastor ? <Share2 className="inline h-3 w-3 mr-1" /> : <Lock className="inline h-3 w-3 mr-1" />}
                       {new Date(n.updated_at).toLocaleDateString()}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(isEditing ? null : n.id)}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                      aria-label={isEditing ? "Fechar edição" : "Editar nota"}
+                    >
+                      <Pencil className="h-3.5 w-3.5" /> {isEditing ? "Fechar" : "Editar"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(n)}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-destructive hover:underline"
+                      aria-label="Excluir nota"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Excluir
+                    </button>
                   </div>
-                  {!isEditing && (
-                    <p className="text-sm text-foreground whitespace-pre-wrap">{n.note_text}</p>
-                  )}
-                </button>
-                {isEditing && memberId && (
-                  <NoteEditor
-                    memberId={memberId}
-                    book={n.book}
-                    chapter={n.chapter}
-                    verse={n.verse}
-                    existing={n}
-                    onSaved={handleSaved}
-                  />
+                </div>
+                {!isEditing ? (
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{n.note_text}</p>
+                ) : (
+                  memberId && (
+                    <NoteEditor
+                      memberId={memberId}
+                      book={n.book}
+                      chapter={n.chapter}
+                      verse={n.verse}
+                      existing={n}
+                      onSaved={handleSaved}
+                    />
+                  )
                 )}
               </div>
             );
@@ -1144,6 +1184,7 @@ function Progress({ memberId, onNavigate }: { memberId: string | null; onNavigat
     readToday: false,
   });
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<"overview" | "streak" | "devotionals" | "reflections" | "chapters" | "notes">("overview");
 
   useEffect(() => {
     if (!memberId) { setLoading(false); return; }
@@ -1232,17 +1273,22 @@ function Progress({ memberId, onNavigate }: { memberId: string | null; onNavigat
 
   if (loading) return <div className="flex justify-center p-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
 
+  if (view !== "overview") {
+    return <ProgressHistory view={view} memberId={memberId} onBack={() => setView("overview")} />;
+  }
+
+  type CardView = "streak" | "devotionals" | "reflections" | "chapters" | "notes";
   const cards: Array<{
     label: string;
     value: number;
     icon: typeof Flame;
     color: string;
-    target?: Tab;
+    target?: CardView;
   }> = [
-    { label: "Sequência (dias)", value: stats.streak, icon: Flame, color: "text-orange-500", target: "today" },
-    { label: "Devocionais", value: stats.devotionals, icon: Sparkles, color: "text-primary", target: "today" },
-    { label: "Reflexões", value: stats.reflections, icon: NotebookPen, color: "text-violet-600", target: "today" },
-    { label: "Capítulos lidos", value: stats.chapters, icon: BookOpen, color: "text-emerald-600", target: "bible" },
+    { label: "Sequência (dias)", value: stats.streak, icon: Flame, color: "text-orange-500", target: "streak" },
+    { label: "Devocionais", value: stats.devotionals, icon: Sparkles, color: "text-primary", target: "devotionals" },
+    { label: "Reflexões", value: stats.reflections, icon: NotebookPen, color: "text-violet-600", target: "reflections" },
+    { label: "Capítulos lidos", value: stats.chapters, icon: BookOpen, color: "text-emerald-600", target: "chapters" },
     { label: "Notas", value: stats.notes, icon: BookMarked, color: "text-amber-600", target: "notes" },
     { label: "Pontos totais", value: stats.points, icon: Sparkles, color: "text-primary" },
   ];
@@ -1259,8 +1305,8 @@ function Progress({ memberId, onNavigate }: { memberId: string | null; onNavigat
               {...(clickable
                 ? {
                     type: "button",
-                    onClick: () => onNavigate(c.target as Tab),
-                    "aria-label": `Ver detalhes de ${c.label}`,
+                    onClick: () => setView(c.target as CardView),
+                    "aria-label": `Ver histórico de ${c.label}`,
                   }
                 : {})}
               className={`card-elevated p-4 text-left ${clickable ? "cursor-pointer hover:bg-muted/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" : ""}`}
@@ -1308,6 +1354,250 @@ function Progress({ memberId, onNavigate }: { memberId: string | null; onNavigat
           </li>
         </ul>
       </div>
+    </div>
+  );
+}
+
+// ============== PROGRESS HISTORY (per-metric dataset) ==============
+type HistoryView = "streak" | "devotionals" | "reflections" | "chapters" | "notes";
+
+const HISTORY_TITLES: Record<HistoryView, string> = {
+  streak: "Dias de sequência",
+  devotionals: "Histórico de devocionais",
+  reflections: "Minhas reflexões",
+  chapters: "Capítulos lidos",
+  notes: "Todas as notas",
+};
+
+function ProgressHistory({
+  view, memberId, onBack,
+}: { view: HistoryView; memberId: string | null; onBack: () => void }) {
+  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<any[]>([]);
+  const [openDevotionalId, setOpenDevotionalId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!memberId) { setLoading(false); return; }
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        if (view === "devotionals" || view === "streak") {
+          const { data } = await supabase
+            .from("devotional_completions")
+            .select("id, completed_date, devotional_id, devotionals(id, title, bible_reference, devotional_date)")
+            .eq("member_id", memberId)
+            .order("completed_date", { ascending: false });
+          if (!cancelled) setItems(data || []);
+        } else if (view === "reflections") {
+          const { data } = await supabase
+            .from("devotional_notes")
+            .select("id, learned_text, keywords, god_spoke_text, updated_at, devotional_id, devotionals(id, title, bible_reference, devotional_date)")
+            .eq("member_id", memberId)
+            .order("updated_at", { ascending: false });
+          const filtered = (data || []).filter((r: any) => {
+            const t = (r.learned_text?.trim().length ?? 0) > 0 || (r.god_spoke_text?.trim().length ?? 0) > 0;
+            const k = Array.isArray(r.keywords) && r.keywords.length > 0;
+            return t || k;
+          });
+          if (!cancelled) setItems(filtered);
+        } else if (view === "chapters") {
+          const { data } = await supabase
+            .from("bible_readings")
+            .select("id, book, chapter, read_date")
+            .eq("member_id", memberId)
+            .order("read_date", { ascending: false });
+          if (!cancelled) setItems(data || []);
+        } else if (view === "notes") {
+          const { data } = await supabase
+            .from("bible_notes")
+            .select("*")
+            .eq("member_id", memberId)
+            .order("updated_at", { ascending: false });
+          if (!cancelled) setItems(data || []);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [view, memberId]);
+
+  if (openDevotionalId) {
+    return (
+      <PastDevotionalViewer
+        devotionalId={openDevotionalId}
+        onBack={() => setOpenDevotionalId(null)}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+        >
+          <ArrowLeft className="h-4 w-4" /> Voltar
+        </button>
+        <h3 className="text-base font-semibold text-foreground">{HISTORY_TITLES[view]}</h3>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center p-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+      ) : items.length === 0 ? (
+        <div className="card-elevated p-8 text-center text-sm text-muted-foreground">
+          Nenhum registro encontrado.
+        </div>
+      ) : view === "streak" || view === "devotionals" ? (
+        <div className="space-y-2">
+          {items.map((c: any) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => c.devotionals?.id && setOpenDevotionalId(c.devotionals.id)}
+              className="card-elevated w-full text-left p-4 hover:bg-muted/40 transition-colors"
+              disabled={!c.devotionals?.id}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">
+                    {c.devotionals?.title || "Devocional"}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {c.devotionals?.bible_reference || ""}
+                  </div>
+                </div>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  {new Date(c.completed_date + "T12:00:00").toLocaleDateString()}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : view === "reflections" ? (
+        <div className="space-y-2">
+          {items.map((r: any) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => r.devotionals?.id && setOpenDevotionalId(r.devotionals.id)}
+              className="card-elevated w-full text-left p-4 hover:bg-muted/40 transition-colors"
+              disabled={!r.devotionals?.id}
+            >
+              <div className="flex items-center justify-between gap-3 mb-1">
+                <div className="text-sm font-semibold text-foreground">
+                  {r.devotionals?.title || "Reflexão"}
+                </div>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  {new Date(r.updated_at).toLocaleDateString()}
+                </span>
+              </div>
+              {r.learned_text && (
+                <p className="text-xs text-foreground/80 line-clamp-2 whitespace-pre-wrap">{r.learned_text}</p>
+              )}
+              {r.god_spoke_text && (
+                <p className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-wrap mt-1">{r.god_spoke_text}</p>
+              )}
+              {Array.isArray(r.keywords) && r.keywords.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {r.keywords.map((k: string) => (
+                    <span key={k} className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-medium">{k}</span>
+                  ))}
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      ) : view === "chapters" ? (
+        <div className="space-y-2">
+          {items.map((r: any) => (
+            <div key={r.id} className="card-elevated p-3 flex items-center justify-between">
+              <div className="text-sm font-medium text-foreground">{r.book} {r.chapter}</div>
+              <span className="text-xs text-muted-foreground">
+                {new Date(r.read_date + "T12:00:00").toLocaleDateString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {items.map((n: any) => (
+            <div key={n.id} className="card-elevated p-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm font-semibold text-primary">{n.book} {n.chapter}:{n.verse}</span>
+                <span className="text-xs text-muted-foreground">{new Date(n.updated_at).toLocaleDateString()}</span>
+              </div>
+              <p className="text-sm text-foreground whitespace-pre-wrap">{n.note_text}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============== PAST DEVOTIONAL VIEWER ==============
+function PastDevotionalViewer({ devotionalId, onBack }: { devotionalId: string; onBack: () => void }) {
+  const [dev, setDev] = useState<Devotional | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("devotionals")
+        .select("id, devotional_date, title, bible_reference, verse_text, reflection, application, prayer")
+        .eq("id", devotionalId)
+        .maybeSingle();
+      if (!cancelled) {
+        setDev((data as Devotional) || null);
+        setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [devotionalId]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+        >
+          <ArrowLeft className="h-4 w-4" /> Voltar
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="card-elevated p-8 flex items-center justify-center text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando devocional...
+        </div>
+      ) : !dev ? (
+        <div className="card-elevated p-6 text-sm text-muted-foreground">Devocional não encontrado.</div>
+      ) : (
+        <article className="card-elevated p-6 md:p-8 space-y-5">
+          <div>
+            <div className="text-xs font-medium text-primary uppercase tracking-wider">
+              📅 {new Date(dev.devotional_date + "T12:00:00").toLocaleDateString()}
+            </div>
+            <h3 className="font-display text-2xl md:text-3xl font-semibold text-foreground mt-1 leading-tight">{dev.title}</h3>
+            <p className="text-sm text-muted-foreground mt-1">{dev.bible_reference}</p>
+          </div>
+          {dev.verse_text && (
+            <blockquote className="border-l-4 border-primary pl-4 py-2 text-foreground italic leading-relaxed">
+              "{dev.verse_text}"
+            </blockquote>
+          )}
+          <Section title="Reflexão" body={dev.reflection} />
+          <Section title="Aplicação" body={dev.application} />
+          <Section title="Oração" body={dev.prayer} />
+        </article>
+      )}
     </div>
   );
 }

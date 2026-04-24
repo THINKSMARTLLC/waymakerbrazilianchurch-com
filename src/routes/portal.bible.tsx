@@ -497,19 +497,57 @@ function MyReflection({ memberId, devotionalId }: { memberId: string | null; dev
           },
           { onConflict: "member_id,devotional_id" }
         )
-        .select("id")
+        .select("id, updated_at")
         .maybeSingle();
       if (error) {
         setStatus("error");
         return;
       }
       if (data?.id) noteIdRef.current = data.id;
+      if ((data as { updated_at?: string } | null)?.updated_at) {
+        setLastEditedAt((data as { updated_at?: string }).updated_at ?? null);
+      } else {
+        setLastEditedAt(new Date().toISOString());
+      }
       setStatus("saved");
     }, 700);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, [note, loaded, memberId, devotionalId]);
+
+  // Exit edit mode shortly after typing stops (and any pending save completes)
+  useEffect(() => {
+    if (mode !== "edit") return;
+    if (exitTimer.current) clearTimeout(exitTimer.current);
+    exitTimer.current = setTimeout(() => {
+      const hasContent =
+        note.learned_text.trim().length > 0 ||
+        note.god_spoke_text.trim().length > 0 ||
+        note.keywords.length > 0;
+      if (hasContent) setMode("view");
+    }, 2500);
+    return () => {
+      if (exitTimer.current) clearTimeout(exitTimer.current);
+    };
+  }, [note, mode]);
+
+  // Click outside the reflection card → return to view mode
+  useEffect(() => {
+    if (mode !== "edit") return;
+    const onDocClick = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(e.target as Node)) {
+        const hasContent =
+          note.learned_text.trim().length > 0 ||
+          note.god_spoke_text.trim().length > 0 ||
+          note.keywords.length > 0;
+        if (hasContent) setMode("view");
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [mode, note]);
 
   const addKeyword = () => {
     const v = keywordInput.trim();

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Users, UserCheck, UserX, UserPlus, AlertTriangle, Heart, Activity as ActivityIcon, ChevronRight, X } from "lucide-react";
+import { Users, UserCheck, UserX, UserPlus, AlertTriangle, Heart, Activity as ActivityIcon, ChevronRight, X, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +51,16 @@ interface EngagementRow {
   created_at: string;
 }
 
+interface PastoralNoteRow {
+  id: string;
+  member_id: string;
+  book: string;
+  chapter: number;
+  verse: number;
+  note_text: string;
+  updated_at: string;
+}
+
 interface MemberHealth {
   member: MemberRow;
   lastActivityDate: string | null;
@@ -94,6 +104,7 @@ function PastoralDashboard() {
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [activities, setActivities] = useState<ActivityRow[]>([]);
   const [engagements, setEngagements] = useState<EngagementRow[]>([]);
+  const [pastoralNotes, setPastoralNotes] = useState<PastoralNoteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [search, setSearch] = useState("");
@@ -105,14 +116,21 @@ function PastoralDashboard() {
 
   async function load() {
     setLoading(true);
-    const [mRes, aRes, eRes] = await Promise.all([
+    const [mRes, aRes, eRes, nRes] = await Promise.all([
       supabase.from("members").select("id, name, email, status, created_at").order("created_at", { ascending: false }),
       supabase.from("member_activities").select("id, member_id, activity_type, activity_date, source, notes, created_at").order("activity_date", { ascending: false }).limit(2000),
       supabase.from("social_engagements").select("id, member_id, platform, action_type, points, status, created_at").order("created_at", { ascending: false }).limit(2000),
+      supabase
+        .from("bible_notes")
+        .select("id, member_id, book, chapter, verse, note_text, updated_at")
+        .eq("share_with_pastor", true)
+        .order("updated_at", { ascending: false })
+        .limit(500),
     ]);
     setMembers(mRes.data ?? []);
     setActivities(aRes.data ?? []);
     setEngagements(eRes.data ?? []);
+    setPastoralNotes((nRes.data ?? []) as PastoralNoteRow[]);
     setLoading(false);
   }
 
@@ -193,6 +211,9 @@ function PastoralDashboard() {
   const selected = selectedId ? healthList.find((h) => h.member.id === selectedId) ?? null : null;
   const selectedActivities = selected ? activities.filter((a) => a.member_id === selected.member.id).slice(0, 30) : [];
   const selectedEngagements = selected ? engagements.filter((e) => e.member_id === selected.member.id).slice(0, 30) : [];
+  const selectedNotes = selected ? pastoralNotes.filter((n) => n.member_id === selected.member.id) : [];
+
+  const memberName = (id: string) => members.find((m) => m.id === id)?.name ?? "Unknown member";
 
   return (
     <div className="space-y-6">
@@ -310,6 +331,23 @@ function PastoralDashboard() {
                     <div key={a.id} className="flex items-center justify-between border-b py-1.5 text-sm last:border-0">
                       <span>{a.activity_type}{a.source === "self_checkin" ? " (check-in)" : ""}</span>
                       <span className="text-xs text-muted-foreground">{fmtDate(a.activity_date)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><BookOpen className="h-4 w-4" /> Pastoral Notes ({selectedNotes.length})</h3>
+                <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border p-2">
+                  {selectedNotes.length === 0 ? (
+                    <p className="p-2 text-sm text-muted-foreground">No notes shared yet.</p>
+                  ) : selectedNotes.map((n) => (
+                    <div key={n.id} className="border-b pb-2 last:border-0">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-medium text-primary">{n.book} {n.chapter}:{n.verse}</span>
+                        <span className="text-muted-foreground">{fmtDate(n.updated_at)}</span>
+                      </div>
+                      <p className="mt-1 text-sm whitespace-pre-wrap">{n.note_text}</p>
                     </div>
                   ))}
                 </div>

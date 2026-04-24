@@ -535,8 +535,10 @@ function MyReflection({ memberId, devotionalId }: { memberId: string | null; dev
       }
       skipNextSave.current = true;
       setLoaded(true);
-      // Default to view mode if there's existing content; else edit so the user can start
-      setMode(hasContent ? "view" : "edit");
+      // Always start in edit mode so reflection fields are visible on every device.
+      // Users can collapse to a read-only view via the "Concluir" button.
+      void hasContent;
+      setMode("edit");
     })();
     return () => { cancelled = true; };
   }, [memberId, devotionalId]);
@@ -1196,6 +1198,26 @@ function BibleReader({
             })}
           </div>
         )}
+      </div>
+
+      {/* Bottom navigation — mirrors the top Previous/Next controls so users
+          don't need to scroll back up after finishing a chapter. */}
+      <div className="flex items-center justify-between pt-2">
+        <button
+          onClick={() => setChapter((c) => Math.max(1, c - 1))}
+          disabled={chapter <= 1}
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-30"
+        >
+          <ChevronLeft className="h-4 w-4" /> Anterior
+        </button>
+        <div className="text-sm font-medium text-foreground">{book} {chapter}</div>
+        <button
+          onClick={() => setChapter((c) => Math.min(currentBook.chapters, c + 1))}
+          disabled={chapter >= currentBook.chapters}
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-30"
+        >
+          Próximo <ChevronRight className="h-4 w-4" />
+        </button>
       </div>
     </div>
   );

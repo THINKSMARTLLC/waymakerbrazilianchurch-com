@@ -1061,6 +1061,90 @@ function BibleReader({
             Próximo <ChevronRight className="h-4 w-4" />
           </button>
         </div>
+
+        {/* Mark / Unmark + Reading Plan */}
+        <div className="pt-3 border-t border-border space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-xs text-muted-foreground">
+              {chapterCompleted ? (
+                <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-medium">
+                  <Check className="h-3.5 w-3.5" /> Capítulo concluído
+                </span>
+              ) : (
+                <span>Não marcado como concluído</span>
+              )}
+            </div>
+            {chapterCompleted ? (
+              <button
+                type="button"
+                onClick={unmarkChapterCompleted}
+                disabled={marking || !memberId}
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                {marking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <span>↺</span>}
+                Desmarcar
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={markChapterCompleted}
+                disabled={marking || !memberId}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {marking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                Marcar como Concluído
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="text-xs font-medium text-muted-foreground">Plano de leitura:</label>
+            <select
+              value={plan.kind === "custom" ? "custom" : plan.kind}
+              onChange={(e) => {
+                const v = e.target.value;
+                let next: ReadingPlan;
+                if (v === "bible365") next = { kind: "bible365" };
+                else if (v === "custom") next = { kind: "custom", days: plan.kind === "custom" ? plan.days : 180 };
+                else next = { kind: "none" };
+                setPlan(next);
+                saveReadingPlan(next);
+              }}
+              className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+            >
+              <option value="none">Sem plano</option>
+              <option value="bible365">Bíblia em 365 dias</option>
+              <option value="custom">Personalizado</option>
+            </select>
+            {plan.kind === "custom" && (
+              <input
+                type="number"
+                min={1}
+                max={3650}
+                value={plan.days}
+                onChange={(e) => {
+                  const days = Math.max(1, Number(e.target.value) || 1);
+                  const next: ReadingPlan = { kind: "custom", days };
+                  setPlan(next);
+                  saveReadingPlan(next);
+                }}
+                className="h-8 w-20 rounded-md border border-input bg-background px-2 text-xs"
+              />
+            )}
+            <span className="text-xs text-muted-foreground ml-auto">
+              {completedCount} / {planTotal} capítulos · {planPercent}%
+            </span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all"
+              style={{ width: `${planPercent}%` }}
+            />
+          </div>
+          <div className="text-[11px] text-muted-foreground">
+            {planLabel(plan)} — apenas capítulos marcados manualmente contam para o progresso.
+          </div>
+        </div>
       </div>
 
       <div className="card-elevated p-4 md:p-6">

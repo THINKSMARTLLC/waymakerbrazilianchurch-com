@@ -344,6 +344,27 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
             return createOkResponse({ received: true, ignored: true, eventType: event.type });
           }
 
+          // Idempotency: ensure each Stripe event is processed only once.
+          const { error: dedupError } = await supabaseAdmin
+            .from("stripe_processed_events")
+            .insert({ stripe_event_id: event.id, event_type: event.type });
+
+          if (dedupError) {
+            // 23505 = unique_violation → duplicate event already processed
+            if ((dedupError as { code?: string }).code === "23505") {
+              logWebhookDebug("log duplicate ignored", {
+                eventId: event.id,
+                eventType: event.type,
+              });
+              await logStripeEvent("stripe_event_duplicate_ignored", {
+                event_id: event.id,
+                event_type: event.type,
+              });
+              return createOkResponse({ received: true, duplicate: true });
+            }
+            console.error("[stripe-webhook] Failed to record event id", dedupError);
+          }
+
           if (event.type === "checkout.session.completed") {
             const session = event.data.object;
             const email = await resolveCustomerEmail(stripe, {

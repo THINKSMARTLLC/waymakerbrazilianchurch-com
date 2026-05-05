@@ -415,6 +415,7 @@ function actionLabel(a: string) {
     user_deleted: "Usuário excluído",
     user_created_by_admin: "Usuário criado por admin",
     error: "Erro",
+    admin_alert: "🚨 Alerta do sistema",
     stripe_payment_matched: "Stripe · pagamento registrado",
     stripe_payment_unmatched: "Stripe · pagamento sem membro",
     stripe_payment_duplicate_ignored: "Stripe · duplicado ignorado",

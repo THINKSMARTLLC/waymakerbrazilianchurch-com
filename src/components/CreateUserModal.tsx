@@ -200,10 +200,12 @@ export function CreateUserModal({
             <Field label="Telefone">
               <input
                 type="tel"
+                inputMode="numeric"
+                maxLength={14}
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(formatUSPhoneInput(e.target.value))}
                 className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="(opcional)"
+                placeholder="(555) 555-5555"
               />
             </Field>
 

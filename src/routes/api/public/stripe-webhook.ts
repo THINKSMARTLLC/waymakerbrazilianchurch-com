@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Json } from "@/integrations/supabase/types";
 import { getCurrentNewYorkDate } from "@/lib/stripe-subscriptions.functions";
+import { sendAdminAlert } from "@/lib/adminAlert.server";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -325,8 +326,12 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
           try {
             event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
           } catch (error) {
-            logWebhookDebug("Webhook ignored: invalid Stripe signature", {
-              error: error instanceof Error ? error.message : "Unknown signature error",
+            const errMsg = error instanceof Error ? error.message : "Unknown signature error";
+            logWebhookDebug("Webhook ignored: invalid Stripe signature", { error: errMsg });
+            await sendAdminAlert({
+              title: "Stripe webhook: assinatura inválida",
+              scope: "stripe-webhook",
+              message: errMsg,
             });
             return createOkResponse({ received: true, ignored: true });
           }
@@ -539,6 +544,18 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
               stripe_invoice_id: invoice.id,
               stripe_subscription_id: stripeSubscriptionId,
             });
+            await sendAdminAlert({
+              title: "Pagamento Stripe falhou (invoice)",
+              scope: "stripe-webhook",
+              message: `Invoice ${invoice.id} falhou — valor US$ ${((invoice.amount_due ?? 0) / 100).toFixed(2)}`,
+              context: {
+                event_type: event.type,
+                email: normalizeEmail(email),
+                member_id: member?.id ?? null,
+                stripe_customer_id: stripeCustomerId,
+                stripe_invoice_id: invoice.id,
+              },
+            });
           }
 
           if (
@@ -627,6 +644,18 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
               payment_intent_id: paymentIntent.id,
               stripe_customer_id: stripeCustomerId,
             });
+            await sendAdminAlert({
+              title: "Pagamento Stripe falhou (payment_intent)",
+              scope: "stripe-webhook",
+              message: `PaymentIntent ${paymentIntent.id} falhou — valor US$ ${((paymentIntent.amount ?? 0) / 100).toFixed(2)}`,
+              context: {
+                event_type: event.type,
+                email: normalizeEmail(email),
+                member_id: member?.id ?? null,
+                stripe_customer_id: stripeCustomerId,
+                payment_intent_id: paymentIntent.id,
+              },
+            });
           }
 
           return createOkResponse();
@@ -639,6 +668,12 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
               scope: "stripe-webhook",
               message,
               stack,
+            });
+            await sendAdminAlert({
+              title: "Falha no webhook do Stripe",
+              scope: "stripe-webhook",
+              message,
+              details: stack ?? undefined,
             });
           } catch (logErr) {
             console.error("[stripe-webhook] failed to persist error log", logErr);

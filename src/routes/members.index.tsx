@@ -6,6 +6,7 @@ import { exportMembersCSV, exportMembersXLSX } from "@/lib/dataExportImport";
 import { ImportPreviewModal } from "@/components/ImportPreviewModal";
 import { useUserRole } from "@/hooks/useUserRole";
 import { inactivateMember, reactivateMember } from "@/lib/memberLifecycle";
+import { logActivity, logError } from "@/lib/activityLog";
 import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";

@@ -405,6 +405,7 @@ function actionLabel(a: string) {
     signup: "Cadastro",
     member_created: "Membro criado",
     member_updated: "Membro atualizado",
+    member_deleted: "Membro excluído",
     member_status_changed: "Status do membro alterado",
     payment_added: "Pagamento adicionado",
     subscription_created: "Assinatura criada",
@@ -413,6 +414,13 @@ function actionLabel(a: string) {
     user_status_changed: "Status do usuário alterado",
     user_deleted: "Usuário excluído",
     user_created_by_admin: "Usuário criado por admin",
+    error: "Erro",
+    stripe_payment_matched: "Stripe · pagamento registrado",
+    stripe_payment_unmatched: "Stripe · pagamento sem membro",
+    stripe_payment_duplicate_ignored: "Stripe · duplicado ignorado",
+    stripe_payment_failed: "Stripe · pagamento falhou",
+    stripe_member_not_found: "Stripe · membro não encontrado",
+    stripe_event_duplicate_ignored: "Stripe · evento duplicado",
   };
   return map[a] ?? a;
 }

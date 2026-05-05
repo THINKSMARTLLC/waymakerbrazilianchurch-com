@@ -82,6 +82,6 @@ export async function deleteMemberPermanently(memberId: string): Promise<Lifecyc
   const { error } = await supabase.from("members").delete().eq("id", memberId);
   if (error) return { ok: false, error: error.message };
 
-  await logActivity("user_deleted", { member_snapshot: snapshot ?? { id: memberId } });
+  await logActivity("member_deleted", { member_id: memberId, member_snapshot: snapshot ?? { id: memberId } });
   return { ok: true };
 }

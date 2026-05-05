@@ -294,30 +294,85 @@ function RecoveryLinkModal({ email, link, onClose }: { email: string; link: stri
   );
 }
 
+type LogRow = {
+  id: string;
+  action: string;
+  user_email: string | null;
+  page_accessed: string | null;
+  created_at: string;
+  metadata: Record<string, unknown> | null;
+};
+
 function ActivityLogSection() {
-  const [logs, setLogs] = useState<Array<{ id: string; action: string; user_email: string | null; page_accessed: string | null; created_at: string }>>([]);
+  const [logs, setLogs] = useState<LogRow[]>([]);
+  const [filter, setFilter] = useState<"all" | "errors" | "stripe" | "members">("all");
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  const load = async () => {
+    let query = supabase
+      .from("activity_logs")
+      .select("id, action, user_email, page_accessed, created_at, metadata")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (filter === "errors") query = query.eq("action", "error");
+    else if (filter === "stripe") query = query.like("action", "stripe_%");
+    else if (filter === "members") query = query.in("action", ["member_created", "member_updated", "member_deleted", "member_status_changed"]);
+    const { data } = await query;
+    setLogs((data ?? []) as LogRow[]);
+  };
+
   useEffect(() => {
-    supabase.from("activity_logs").select("id, action, user_email, page_accessed, created_at")
-      .order("created_at", { ascending: false }).limit(50)
-      .then(({ data }) => setLogs(data ?? []));
-  }, []);
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
+
   return (
     <div className="card-elevated overflow-hidden">
-      <div className="px-5 py-4 border-b border-border">
-        <h2 className="font-semibold">Logs de Atividade (últimos 50)</h2>
+      <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3 flex-wrap">
+        <h2 className="font-semibold">System Logs</h2>
+        <div className="flex items-center gap-2 text-xs">
+          {(["all", "errors", "stripe", "members"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-2.5 py-1 rounded-md border ${
+                filter === f ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+          <button onClick={load} className="px-2.5 py-1 rounded-md border border-border hover:bg-muted">
+            Refresh
+          </button>
+        </div>
       </div>
-      <div className="divide-y divide-border max-h-96 overflow-y-auto">
-        {logs.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">Nenhuma atividade registrada ainda.</div>}
-        {logs.map((l) => (
-          <div key={l.id} className="px-5 py-3 flex items-center justify-between text-sm">
-            <div>
-              <span className="font-medium">{actionLabel(l.action)}</span>
-              <span className="text-muted-foreground"> · {l.user_email ?? "—"}</span>
-              {l.page_accessed && <span className="text-xs text-muted-foreground"> · {l.page_accessed}</span>}
+      <div className="divide-y divide-border max-h-[32rem] overflow-y-auto">
+        {logs.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">Nenhum log encontrado.</div>}
+        {logs.map((l) => {
+          const isError = l.action === "error";
+          const isOpen = expanded === l.id;
+          return (
+            <div key={l.id} className={`px-5 py-3 text-sm ${isError ? "bg-destructive/5" : ""}`}>
+              <button
+                onClick={() => setExpanded(isOpen ? null : l.id)}
+                className="w-full flex items-center justify-between gap-3 text-left"
+              >
+                <div className="min-w-0">
+                  <span className={`font-medium ${isError ? "text-destructive" : ""}`}>{actionLabel(l.action)}</span>
+                  <span className="text-muted-foreground"> · {l.user_email ?? "system"}</span>
+                  {l.page_accessed && <span className="text-xs text-muted-foreground"> · {l.page_accessed}</span>}
+                </div>
+                <span className="text-xs text-muted-foreground shrink-0">{formatDateTime(l.created_at)}</span>
+              </button>
+              {isOpen && l.metadata && (
+                <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-muted/50 p-3 text-xs font-mono whitespace-pre-wrap break-words">
+                  {JSON.stringify(l.metadata, null, 2)}
+                </pre>
+              )}
             </div>
-            <span className="text-xs text-muted-foreground">{formatDateTime(l.created_at)}</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -350,6 +405,7 @@ function actionLabel(a: string) {
     signup: "Cadastro",
     member_created: "Membro criado",
     member_updated: "Membro atualizado",
+    member_deleted: "Membro excluído",
     member_status_changed: "Status do membro alterado",
     payment_added: "Pagamento adicionado",
     subscription_created: "Assinatura criada",
@@ -358,6 +414,13 @@ function actionLabel(a: string) {
     user_status_changed: "Status do usuário alterado",
     user_deleted: "Usuário excluído",
     user_created_by_admin: "Usuário criado por admin",
+    error: "Erro",
+    stripe_payment_matched: "Stripe · pagamento registrado",
+    stripe_payment_unmatched: "Stripe · pagamento sem membro",
+    stripe_payment_duplicate_ignored: "Stripe · duplicado ignorado",
+    stripe_payment_failed: "Stripe · pagamento falhou",
+    stripe_member_not_found: "Stripe · membro não encontrado",
+    stripe_event_duplicate_ignored: "Stripe · evento duplicado",
   };
   return map[a] ?? a;
 }

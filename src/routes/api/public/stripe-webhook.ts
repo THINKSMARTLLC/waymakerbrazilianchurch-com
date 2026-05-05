@@ -631,12 +631,21 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
 
           return createOkResponse();
         } catch (error) {
-          logWebhookDebug("Webhook processing error", {
-            error: error instanceof Error ? error.message : "Webhook error",
-          });
+          const message = error instanceof Error ? error.message : "Webhook error";
+          const stack = error instanceof Error ? error.stack ?? null : null;
+          logWebhookDebug("Webhook processing error", { error: message, stack });
+          try {
+            await logStripeEvent("error", {
+              scope: "stripe-webhook",
+              message,
+              stack,
+            });
+          } catch (logErr) {
+            console.error("[stripe-webhook] failed to persist error log", logErr);
+          }
           return createOkResponse({
             received: true,
-            error: error instanceof Error ? error.message : "Webhook error",
+            error: message,
           });
         }
       },

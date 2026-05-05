@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { X, Copy, Check, AlertTriangle, Loader2 } from "lucide-react";
 import { createManagedUser, generateRecoveryForEmail } from "@/lib/adminUsers.functions";
 import type { Database } from "@/integrations/supabase/types";
+import { formatUSPhoneInput } from "@/lib/phone";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
@@ -199,10 +200,12 @@ export function CreateUserModal({
             <Field label="Telefone">
               <input
                 type="tel"
+                inputMode="numeric"
+                maxLength={14}
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(formatUSPhoneInput(e.target.value))}
                 className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="(opcional)"
+                placeholder="(555) 555-5555"
               />
             </Field>
 

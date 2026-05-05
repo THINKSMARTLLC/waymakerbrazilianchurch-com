@@ -406,7 +406,13 @@ function MembersPage() {
                           </div>
                           <div className="flex flex-col min-w-0">
                             <span className="text-sm font-medium text-foreground truncate flex items-center gap-1.5">
-                              {member.name}
+                              <Link
+                                to="/members/$memberId"
+                                params={{ memberId: member.id }}
+                                className="hover:underline cursor-pointer"
+                              >
+                                {member.name}
+                              </Link>
                               {(() => {
                                 const bi = getBirthdayInfo(member.date_of_birth);
                                 return bi?.daysUntil === 0 ? (

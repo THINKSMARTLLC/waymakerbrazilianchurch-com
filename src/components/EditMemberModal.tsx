@@ -80,7 +80,7 @@ export function EditMemberModal({ member, onClose, onSaved }: EditMemberModalPro
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1.5">Telefone</label>
-                  <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm" />
+                  <input type="tel" inputMode="numeric" maxLength={14} placeholder="(555) 555-5555" value={phone} onChange={(e) => setPhone(formatUSPhoneInput(e.target.value))} className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm" />
                 </div>
               </div>
             </div>

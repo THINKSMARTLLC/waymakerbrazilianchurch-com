@@ -87,13 +87,12 @@ function SignupPage() {
       return;
     }
 
-    const code = form.countryCode === "other" ? form.customCountryCode.trim() : form.countryCode;
-    if (!code || !/^\+?\d{1,4}$/.test(code.startsWith("+") ? code : `+${code}`)) {
-      setError("Código do país inválido.");
+    const phoneDigits = form.phone.replace(/\D/g, "");
+    if (phoneDigits.length !== 10) {
+      setError("Telefone inválido. Use 10 dígitos: (XXX) XXX-XXXX.");
       return;
     }
-    const normalizedCode = code.startsWith("+") ? code : `+${code}`;
-    const fullPhone = `${normalizedCode} ${form.phone.replace(/^\+?\d{1,4}\s*/, "").trim()}`;
+    const fullPhone = formatUSPhoneInput(form.phone);
 
     setLoading(true);
 

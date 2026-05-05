@@ -801,8 +801,21 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
 
     if (dbErr) {
       setError(dbErr.message);
+      await logError("members.persist", dbErr, {
+        action: isEditing ? "update" : "create",
+        member_id: isEditing ? member?.id ?? null : data?.id ?? null,
+        email: (payload.email as string | null) ?? null,
+      });
       setSaving(false);
       return;
+    }
+
+    if (isEditing) {
+      await logActivity("member_updated", { member_id: member?.id ?? null, email: (payload.email as string | null) ?? null });
+    } else if (createdNew) {
+      await logActivity("member_created", { member_id: data?.id ?? null, email: (payload.email as string | null) ?? null });
+    } else if (data) {
+      await logActivity("member_updated", { member_id: data.id, email: (payload.email as string | null) ?? null, via: "duplicate_resolution" });
     }
 
     // For new admin-created members: generate a temp access code only when a

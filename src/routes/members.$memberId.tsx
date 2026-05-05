@@ -135,7 +135,7 @@ function MemberProfilePage() {
 
   const fetchData = async () => {
     const [memberRes, paymentsRes, actsRes, socRes, notesRes] = await Promise.all([
-      supabase.from("members").select("*").eq("id", memberId).single(),
+      supabase.from("members").select("*").eq("id", memberId).maybeSingle(),
       supabase.from("payments").select("*").eq("member_id", memberId).order("payment_date", { ascending: false }),
       supabase.from("member_activities").select("*").eq("member_id", memberId).order("activity_date", { ascending: false }),
       supabase.from("social_engagements").select("*").eq("member_id", memberId).order("created_at", { ascending: false }),

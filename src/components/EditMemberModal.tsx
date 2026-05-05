@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { EmergencyContactFields } from "@/components/EmergencyContactFields";
 import { parseEmergencyContact, serializeEmergencyContact } from "@/lib/emergencyContact";
+import { formatUSPhoneInput } from "@/lib/phone";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 

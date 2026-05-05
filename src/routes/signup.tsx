@@ -6,6 +6,7 @@ import { logActivity } from "@/lib/activityLog";
 import { EmergencyContactFields } from "@/components/EmergencyContactFields";
 import { serializeEmergencyContact, type EmergencyContact } from "@/lib/emergencyContact";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
+import { formatUSPhoneInput } from "@/lib/phone";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({

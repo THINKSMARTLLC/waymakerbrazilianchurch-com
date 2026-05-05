@@ -195,9 +195,11 @@ function SignupPage() {
               <input
                 type="tel"
                 required
+                inputMode="numeric"
                 value={form.phone}
-                onChange={update("phone")}
-                placeholder="(99) 99999-9999"
+                onChange={(e) => setForm({ ...form, phone: formatUSPhoneInput(e.target.value) })}
+                placeholder="(555) 555-5555"
+                maxLength={14}
                 className={`${fieldCls} flex-1`}
               />
             </div>

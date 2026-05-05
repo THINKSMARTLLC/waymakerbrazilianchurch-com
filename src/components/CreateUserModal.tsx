@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { X, Copy, Check, AlertTriangle, Loader2 } from "lucide-react";
 import { createManagedUser, generateRecoveryForEmail } from "@/lib/adminUsers.functions";
 import type { Database } from "@/integrations/supabase/types";
+import { formatUSPhoneInput } from "@/lib/phone";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 

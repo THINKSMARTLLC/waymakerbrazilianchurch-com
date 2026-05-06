@@ -59,7 +59,7 @@ const AB_VARIATIONS = {
 };
 
 const WHATSAPP_URL =
-  'https://wa.me/15512237610?text=Olá,%20quero%20mais%20informações.';
+  'https://wa.me/18622362964?text=Olá%2C%20vim%20através%20da%20rede%20social%20e%20gostaria%20de%20maiores%20informações%20sobre%20a%20Way%20Maker';
 
 const ACTIVE_DONATION_URL = "https://buy.stripe.com/6oU9AVdhw6mJgBg3jD8og01";
 

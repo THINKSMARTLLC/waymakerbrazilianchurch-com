@@ -421,17 +421,60 @@ function LandingPage() {
                 >
                   <Calendar className="h-5 w-5" style={{ color: "oklch(0.5 0.12 110)" }} />
                 </span>
-                <h3 className="font-display text-xl font-semibold text-[oklch(0.18_0.01_60)]">
-                  📅 Dias de culto
-                </h3>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[oklch(0.5_0.12_110)]">
+                    Programação oficial
+                  </p>
+                  <h3 className="font-display text-xl font-semibold text-[oklch(0.18_0.01_60)]">
+                    Dias de culto
+                  </h3>
+                </div>
               </div>
-              <ul className="mt-6 space-y-3 text-base leading-relaxed text-[oklch(0.3_0.02_60)]">
-                <li className="flex gap-3"><span className="text-[oklch(0.5_0.12_110)]">•</span> Domingo – 10h30min</li>
-                <li className="flex gap-3"><span className="text-[oklch(0.5_0.12_110)]">•</span> Segunda – 8pm (Ensino Bíblico)</li>
-                <li className="flex gap-3"><span className="text-[oklch(0.5_0.12_110)]">•</span> Quarta – 8pm (Culto)</li>
-                <li className="flex gap-3"><span className="text-[oklch(0.5_0.12_110)]">•</span> Sexta-feira – 8pm Culto de Jovens</li>
-                <li className="flex gap-3"><span className="text-[oklch(0.5_0.12_110)]">•</span> Santa Ceia – sempre o primeiro domingo do mês</li>
-              </ul>
+
+              <div className="mt-6 space-y-5 text-[oklch(0.3_0.02_60)]">
+                <div className="animate-fade-in">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.18_0.01_60)]">Domingo</p>
+                  <ul className="mt-2 space-y-1.5 text-base leading-relaxed">
+                    <li className="flex gap-2"><span>☕</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">9:30 AM</span> — Café Colonial <span className="text-sm text-[oklch(0.5_0.02_60)]">(Membros & Visitantes)</span></span></li>
+                    <li className="flex gap-2"><span>🙌</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">10:30 AM</span> — Culto de Adoração</span></li>
+                  </ul>
+                </div>
+
+                <div className="animate-fade-in">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.18_0.01_60)]">Segunda-feira</p>
+                  <ul className="mt-2 space-y-1.5 text-base leading-relaxed">
+                    <li className="flex gap-2"><span>📖</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">8:00 PM</span> — Ensino Bíblico <span className="text-sm text-[oklch(0.5_0.02_60)]">(Obrigatório para todos os líderes)</span></span></li>
+                  </ul>
+                </div>
+
+                <div className="animate-fade-in">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.18_0.01_60)]">Quarta-feira</p>
+                  <ul className="mt-2 space-y-1.5 text-base leading-relaxed">
+                    <li className="flex gap-2"><span>🔥</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">8:00 PM</span> — Culto de Resgate</span></li>
+                  </ul>
+                </div>
+
+                <div className="animate-fade-in">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.18_0.01_60)]">Sexta-feira</p>
+                  <ul className="mt-2 space-y-1.5 text-base leading-relaxed">
+                    <li className="flex gap-2"><span>⚡</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">8:00 PM</span> — Culto de Jovens · Flow Ministry</span></li>
+                  </ul>
+                </div>
+
+                <div className="border-t border-black/5 pt-4 space-y-2 text-sm leading-relaxed">
+                  <p className="flex gap-2"><span>🍞</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">Santa Ceia</span> — sempre no primeiro domingo do mês.</span></p>
+                  <p className="flex gap-2"><span>🌸</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">Ella's Ministry</span> — Reunião de Mulheres, última sexta-feira de cada mês.</span></p>
+                </div>
+              </div>
+
+              <div className="mt-8 rounded-2xl bg-[oklch(0.16_0.01_60)] p-6 text-center animate-fade-in">
+                <p className="font-display text-lg font-medium leading-snug text-white sm:text-xl">
+                  "Jesus ainda continua restaurando vidas."
+                </p>
+                <p className="mt-2 text-sm text-[oklch(0.75_0.04_90)]">
+                  Todas as vidas são valiosas pra nós.
+                </p>
+              </div>
             </div>
 
             <div className="flex flex-col rounded-3xl border border-black/5 bg-white p-8 shadow-sm">

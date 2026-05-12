@@ -271,14 +271,26 @@ export function DuplicateResolutionModal({
             </div>
 
             <div className="mt-5 rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
-              <strong className="text-foreground">Merge rules:</strong> Keep the most complete name, valid email, valid phone, and address from either record. All payment history from the loser is moved to the winner. The loser is deleted only after you confirm.
+              <strong className="text-foreground">Merge rules:</strong> Keep the most complete name, valid email, valid phone, and address from either record. All payment history from the merged record is moved to the kept one. The merged record is <strong className="text-foreground">archived</strong> with a full snapshot — you can undo the merge anytime from <em>Archived Members</em>.
             </div>
 
+            {winner && loser && (
+              <div className="mt-4 rounded-xl border border-border bg-background p-4 text-sm">
+                <p className="font-medium text-foreground mb-2">Summary of this merge</p>
+                <ul className="space-y-1 text-xs text-muted-foreground list-disc pl-5">
+                  <li><strong className="text-foreground">{loser.paymentCount}</strong> payment{loser.paymentCount === 1 ? "" : "s"} (total {formatUSD(loser.totalPaid)}) will be moved to <strong className="text-foreground">{toTitleCase(winner.member.name)}</strong>.</li>
+                  <li>All activities, visits, notes, devotionals and bible history from <strong className="text-foreground">{toTitleCase(loser.member.name)}</strong> will move to the kept record.</li>
+                  <li>Fields filled only on the merged record (email, phone, address, etc.) will fill in any blanks on the kept record.</li>
+                  <li>The merged record will be archived (not deleted) and can be restored from <em>Archived Members</em>.</li>
+                </ul>
+              </div>
+            )}
+
             {confirmDelete && (
-              <div className="mt-4 rounded-xl border border-destructive/40 bg-destructive/10 p-4">
-                <p className="text-sm font-medium text-foreground mb-1">Delete duplicate record?</p>
+              <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-50 dark:bg-amber-950/30 p-4">
+                <p className="text-sm font-medium text-foreground mb-1">Confirm merge?</p>
                 <p className="text-xs text-muted-foreground">
-                  Payment history will be moved to <strong>{toTitleCase(winner?.member.name ?? "")}</strong>, then <strong>{toTitleCase(loser?.member.name ?? "")}</strong> will be permanently deleted. This cannot be undone.
+                  Payment history will be moved to <strong>{toTitleCase(winner?.member.name ?? "")}</strong>, then <strong>{toTitleCase(loser?.member.name ?? "")}</strong> will be archived with a full snapshot. You can undo this from <em>Archived Members</em>.
                 </p>
               </div>
             )}

@@ -2,6 +2,7 @@
 // candidate member, then payments are reassigned and the loser is deleted.
 import { useMemo, useState } from "react";
 import { AlertTriangle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Member } from "@/lib/duplicates";
 import { mergeMembers } from "@/lib/duplicates";
 import { toTitleCase } from "@/lib/format";
@@ -10,16 +11,6 @@ import { formatPhoneDisplay } from "@/lib/phone";
 // SAFE MERGE: email and id are intentionally excluded — the existing
 // record's email is the unique identifier and must never be overwritten.
 type FieldKey = "name" | "phone" | "address" | "emergency_contact" | "date_of_birth" | "member_role" | "department";
-
-const FIELD_LABEL: Record<FieldKey, string> = {
-  name: "Name",
-  phone: "Phone",
-  address: "Address",
-  emergency_contact: "Emergency Contact",
-  date_of_birth: "Date of Birth",
-  member_role: "Role",
-  department: "Department",
-};
 
 const FIELDS: FieldKey[] = ["name", "phone", "address", "emergency_contact", "date_of_birth", "member_role", "department"];
 

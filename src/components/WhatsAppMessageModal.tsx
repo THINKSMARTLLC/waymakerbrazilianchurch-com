@@ -196,7 +196,7 @@ function replaceVariables(body: string, member: WhatsAppMember, templateId: stri
 }
 
 export function WhatsAppMessageModal({ open, onOpenChange, member }: WhatsAppMessageModalProps) {
-  const { t } = useTranslation();
+  const { t: tr } = useTranslation();
   const todayWeekday = useMemo(() => {
     // Weekday in NY tz (0=Sun..6=Sat)
     const dayName = formatInTimeZone(new Date(), APP_TIMEZONE, "i"); // 1=Mon..7=Sun (ISO)

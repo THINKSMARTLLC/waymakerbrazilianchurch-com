@@ -98,17 +98,17 @@ function AdminPage() {
   }, [isSuperAdmin]);
 
   if (roleLoading) {
-    return <div className="p-8 text-muted-foreground">Carregando...</div>;
+    return <div className="p-8 text-muted-foreground">{t("common.loading")}</div>;
   }
 
   if (!isSuperAdmin) {
     return (
       <div className="p-8 text-center">
         <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-        <h2 className="text-xl font-semibold mb-2">Acesso restrito</h2>
-        <p className="text-muted-foreground mb-4">Apenas Super Admins podem acessar este painel.</p>
+        <h2 className="text-xl font-semibold mb-2">{t("admin.restrictedTitle")}</h2>
+        <p className="text-muted-foreground mb-4">{t("admin.restrictedBody")}</p>
         <Link to="/" className="btn-google inline-flex items-center gap-2">
-          <ArrowLeft className="h-4 w-4" /> Voltar
+          <ArrowLeft className="h-4 w-4" /> {t("common.back")}
         </Link>
       </div>
     );

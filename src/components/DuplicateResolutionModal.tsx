@@ -47,7 +47,15 @@ export function DuplicateResolutionModal({
   onClose: () => void;
   onResolved: () => void;
 }) {
-  const isWarning = severity === "warning";
+  const isWarningRaw = severity === "warning";
+  const [overrideMerge, setOverrideMerge] = useState(false);
+  const [archiveMode, setArchiveMode] = useState(false);
+  const [archiveTargetId, setArchiveTargetId] = useState<string>("");
+  const [confirmArchive, setConfirmArchive] = useState(false);
+  const [confirmDifferentPeople, setConfirmDifferentPeople] = useState(false);
+  // Effective view: warning info card unless admin opted into merge or archive.
+  const isWarning = isWarningRaw && !overrideMerge && !archiveMode;
+  const showMergeUI = !isWarningRaw || overrideMerge;
   const [stats, setStats] = useState<MemberStats[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

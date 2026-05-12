@@ -363,7 +363,7 @@ function ActivityLogSection() {
                 className="w-full flex items-center justify-between gap-3 text-left"
               >
                 <div className="min-w-0">
-                  <span className={`font-medium ${isError ? "text-destructive" : ""}`}>{actionLabel(l.action)}</span>
+                  <span className={`font-medium ${isError ? "text-destructive" : ""}`}>{t(`admin.actions.${l.action}`, { defaultValue: l.action })}</span>
                   <span className="text-muted-foreground"> · {l.user_email ?? "system"}</span>
                   {l.page_accessed && <span className="text-xs text-muted-foreground"> · {l.page_accessed}</span>}
                 </div>

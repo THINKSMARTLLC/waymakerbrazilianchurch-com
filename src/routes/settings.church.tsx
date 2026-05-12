@@ -61,7 +61,7 @@ function ChurchSettingsPage() {
 
   const useMyLocation = () => {
     if (!("geolocation" in navigator)) {
-      alert("Geolocalização não suportada.");
+      alert(t("settingsPage.geolocationNotSupported"));
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -69,7 +69,7 @@ function ChurchSettingsPage() {
         setLat(pos.coords.latitude.toFixed(7));
         setLng(pos.coords.longitude.toFixed(7));
       },
-      (err) => alert(`Erro: ${err.message}`),
+      (err) => alert(`${t("settingsPage.errorPrefix")}: ${err.message}`),
       { enableHighAccuracy: true },
     );
   };

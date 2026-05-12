@@ -207,8 +207,17 @@ function MembersPage() {
           if (birthdayFilter === "month" && bi.daysUntil > 30) return false;
         }
         if (!search) return true;
-        const q = search.toLowerCase();
-        return m.name.toLowerCase().includes(q) || (m.email || "").toLowerCase().includes(q);
+        const q = search.toLowerCase().trim();
+        if (m.name.toLowerCase().includes(q)) return true;
+        if ((m.email || "").toLowerCase().includes(q)) return true;
+        // Phone search — match on digits-only substring so "8624056263",
+        // "(862) 405-6263", "405-6263", and "4056263" all hit the same row.
+        const qDigits = q.replace(/\D/g, "");
+        if (qDigits) {
+          const mDigits = (m.phone || "").replace(/\D/g, "");
+          if (mDigits && mDigits.includes(qDigits)) return true;
+        }
+        return false;
       }),
     [members, search, statusFilter, selectedMemberId, lifecycleFilter, birthdayFilter]
   );

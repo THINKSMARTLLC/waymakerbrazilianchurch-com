@@ -162,6 +162,13 @@ export function DuplicateResolutionModal({
 
   const handleMerge = async () => {
     if (!winner || !loser) return;
+    // For admin override merges (records may belong to different people),
+    // require an explicit "yes, same person" confirmation BEFORE the
+    // standard merge confirmation step.
+    if (overrideMerge && !confirmDifferentPeople) {
+      setConfirmDifferentPeople(true);
+      return;
+    }
     if (!confirmDelete) {
       setConfirmDelete(true);
       return;
@@ -186,6 +193,35 @@ export function DuplicateResolutionModal({
     } catch (e) {
       setError(e instanceof Error ? e.message : "Merge failed");
       setConfirmDelete(false);
+    } finally {
+      setMerging(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!archiveTargetId) return;
+    if (!confirmArchive) {
+      setConfirmArchive(true);
+      return;
+    }
+    setMerging(true);
+    setError("");
+    try {
+      const { error: aErr } = await archiveMember({
+        memberId: archiveTargetId,
+        reason: "admin_archived_duplicate",
+      });
+      if (aErr) {
+        setError(aErr);
+        setConfirmArchive(false);
+        return;
+      }
+      if (groupKey) await dismissDuplicateGroup(groupKey).catch(() => {});
+      alert("Member archived. History preserved and recoverable from Archived Members.");
+      onResolved();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Archive failed");
+      setConfirmArchive(false);
     } finally {
       setMerging(false);
     }

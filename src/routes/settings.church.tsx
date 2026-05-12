@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Loader2, MapPin, Save, Crosshair } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,7 +8,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 
 export const Route = createFileRoute("/settings/church")({
   head: () => ({
-    meta: [{ title: "Configurações da Igreja — Way Maker Church" }],
+    meta: [{ title: "Church Settings — Way Maker Church" }],
   }),
   component: ChurchSettingsPage,
 });

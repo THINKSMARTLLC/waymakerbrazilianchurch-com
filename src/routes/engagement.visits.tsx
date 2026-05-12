@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Plus, Check, X, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toTitleCase } from "@/lib/format";
@@ -29,6 +30,7 @@ interface MemberLite {
 
 function VisitsPage() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [visits, setVisits] = useState<VisitRow[]>([]);
   const [members, setMembers] = useState<MemberLite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,14 +70,14 @@ function VisitsPage() {
         activity_type: "visit_scheduled",
         source: "admin_manual",
         recorded_by: user?.id ?? null,
-        notes: "Visita concluída",
+        notes: t("visitsPage.visitCompleted"),
       },
     ]);
     load();
   };
 
   const handleCancel = async (id: string) => {
-    if (!confirm("Cancelar esta visita?")) return;
+    if (!confirm(t("visitsPage.confirmCancel"))) return;
     await supabase.from("member_visits").update({ status: "cancelled" }).eq("id", id);
     load();
   };
@@ -93,13 +95,13 @@ function VisitsPage() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <Link to="/engagement" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" /> Voltar
+            <ArrowLeft className="h-4 w-4" /> {t("visitsPage.back")}
           </Link>
-          <h2 className="font-display text-2xl font-semibold text-foreground mt-2">Visitas</h2>
-          <p className="text-sm text-muted-foreground mt-1">Agende e acompanhe visitas aos membros.</p>
+          <h2 className="font-display text-2xl font-semibold text-foreground mt-2">{t("visitsPage.title")}</h2>
+          <p className="text-sm text-muted-foreground mt-1">{t("visitsPage.subtitle")}</p>
         </div>
         <button onClick={() => setShowNew(true)} className="btn-google inline-flex items-center gap-2">
-          <Plus className="h-4 w-4" /> Agendar visita
+          <Plus className="h-4 w-4" /> {t("visitsPage.scheduleVisit")}
         </button>
       </div>
 
@@ -111,10 +113,10 @@ function VisitsPage() {
         <>
           <section className="card-elevated overflow-hidden">
             <div className="p-5 border-b border-border">
-              <h3 className="font-display text-base font-medium text-foreground">Agendadas ({scheduled.length})</h3>
+              <h3 className="font-display text-base font-medium text-foreground">{t("visitsPage.scheduledHeader", { count: scheduled.length })}</h3>
             </div>
             {scheduled.length === 0 ? (
-              <div className="py-8 text-center text-sm text-muted-foreground">Nenhuma visita agendada.</div>
+              <div className="py-8 text-center text-sm text-muted-foreground">{t("visitsPage.noScheduled")}</div>
             ) : (
               <ul>
                 {scheduled.map((v) => (
@@ -122,7 +124,7 @@ function VisitsPage() {
                     <div>
                       <p className="font-medium text-foreground">{memberName(v.member_id)}</p>
                       <p className="text-xs text-muted-foreground">
-                        Agendada para {formatLocalDateOnly(v.scheduled_date)}
+                        {t("visitsPage.scheduledFor", { date: formatLocalDateOnly(v.scheduled_date) })}
                         {v.notes ? ` · ${v.notes}` : ""}
                       </p>
                     </div>
@@ -131,13 +133,13 @@ function VisitsPage() {
                         onClick={() => handleComplete(v.id, v.member_id)}
                         className="inline-flex items-center gap-1 rounded-lg bg-success/15 text-success px-3 py-1.5 text-xs font-medium hover:bg-success/25"
                       >
-                        <Check className="h-3 w-3" /> Concluir
+                        <Check className="h-3 w-3" /> {t("visitsPage.complete")}
                       </button>
                       <button
                         onClick={() => handleCancel(v.id)}
                         className="inline-flex items-center gap-1 rounded-lg bg-muted text-muted-foreground px-3 py-1.5 text-xs font-medium hover:bg-destructive/10 hover:text-destructive"
                       >
-                        <X className="h-3 w-3" /> Cancelar
+                        <X className="h-3 w-3" /> {t("visitsPage.cancel")}
                       </button>
                     </div>
                   </li>
@@ -148,10 +150,10 @@ function VisitsPage() {
 
           <section className="card-elevated overflow-hidden">
             <div className="p-5 border-b border-border">
-              <h3 className="font-display text-base font-medium text-foreground">Histórico</h3>
+              <h3 className="font-display text-base font-medium text-foreground">{t("visitsPage.history")}</h3>
             </div>
             {others.length === 0 ? (
-              <div className="py-8 text-center text-sm text-muted-foreground">Nenhuma visita no histórico.</div>
+              <div className="py-8 text-center text-sm text-muted-foreground">{t("visitsPage.noHistory")}</div>
             ) : (
               <ul>
                 {others.map((v) => (
@@ -159,7 +161,7 @@ function VisitsPage() {
                     <div>
                       <p className="font-medium text-foreground">{memberName(v.member_id)}</p>
                       <p className="text-xs text-muted-foreground">
-                        {formatLocalDateOnly(v.scheduled_date)} · {v.status === "completed" ? "Concluída" : "Cancelada"}
+                        {formatLocalDateOnly(v.scheduled_date)} · {v.status === "completed" ? t("visitsPage.completed") : t("visitsPage.cancelled")}
                         {v.notes ? ` · ${v.notes}` : ""}
                       </p>
                     </div>
@@ -195,6 +197,7 @@ function NewVisitModal({
   onSaved: () => void;
 }) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [memberId, setMemberId] = useState(members[0]?.id ?? "");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState("");
@@ -226,14 +229,14 @@ function NewVisitModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-4">
       <div className="bg-card rounded-2xl shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between p-5 border-b border-border">
-          <h2 className="font-display text-lg font-semibold text-foreground">Agendar Visita</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">{t("visitsPage.modal.title")}</h2>
           <button onClick={onClose} className="rounded-lg p-1 text-muted-foreground hover:bg-muted">
             <X className="h-5 w-5" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="text-sm font-medium text-foreground mb-1 block">Membro</label>
+            <label className="text-sm font-medium text-foreground mb-1 block">{t("visitsPage.modal.member")}</label>
             <select
               value={memberId}
               onChange={(e) => setMemberId(e.target.value)}
@@ -246,7 +249,7 @@ function NewVisitModal({
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium text-foreground mb-1 block">Data</label>
+            <label className="text-sm font-medium text-foreground mb-1 block">{t("visitsPage.modal.date")}</label>
             <input
               type="date"
               value={date}
@@ -256,23 +259,23 @@ function NewVisitModal({
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-foreground mb-1 block">Notas</label>
+            <label className="text-sm font-medium text-foreground mb-1 block">{t("visitsPage.modal.notes")}</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              placeholder="Motivo, contexto..."
+              placeholder={t("visitsPage.modal.notesPlaceholder")}
             />
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <div className="flex gap-2 pt-2">
             <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted">
-              Cancelar
+              {t("visitsPage.modal.cancel")}
             </button>
             <button type="submit" disabled={submitting} className="flex-1 btn-google inline-flex items-center justify-center gap-2 disabled:opacity-50">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Agendar
+              {t("visitsPage.modal.schedule")}
             </button>
           </div>
         </form>

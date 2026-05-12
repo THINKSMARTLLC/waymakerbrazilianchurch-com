@@ -40,12 +40,23 @@ function ArchivePage() {
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<InactiveRow | null>(null);
 
+  const [mergeHistory, setMergeHistory] = useState<Array<{
+    id: string;
+    original_member_id: string;
+    merged_into_member_id: string;
+    merge_date: string;
+    restored: boolean;
+    snapshot_data: { member?: { name?: string; email?: string | null } } | null;
+    winner_name?: string;
+  }>>([]);
+
   const load = async () => {
     setLoading(true);
+    // Include both legacy "status=inactive" rows AND newly archived (merged) members.
     const { data: members } = await supabase
       .from("members")
       .select("*")
-      .eq("status", "inactive")
+      .or("status.eq.inactive,archived.eq.true")
       .order("inactivated_at", { ascending: false, nullsFirst: false });
 
     const list = (members ?? []) as Member[];
@@ -75,6 +86,24 @@ function ArchivePage() {
         payment_count: countByMember.get(m.id) ?? 0,
       })),
     );
+
+    // Load merge history (most recent 50, not yet restored).
+    const { data: mh } = await supabase
+      .from("member_merge_history" as never)
+      .select("id, original_member_id, merged_into_member_id, merge_date, restored, snapshot_data")
+      .order("merge_date", { ascending: false })
+      .limit(50);
+    const winnerIds = Array.from(new Set((mh ?? []).map((r: { merged_into_member_id: string }) => r.merged_into_member_id)));
+    const winnerNames = new Map<string, string>();
+    if (winnerIds.length > 0) {
+      const { data: wm } = await supabase.from("members").select("id, name").in("id", winnerIds);
+      for (const w of wm ?? []) winnerNames.set(w.id, toTitleCase(w.name));
+    }
+    setMergeHistory(((mh ?? []) as Array<{ id: string; original_member_id: string; merged_into_member_id: string; merge_date: string; restored: boolean; snapshot_data: { member?: { name?: string } } | null }>).map((r) => ({
+      ...r,
+      winner_name: winnerNames.get(r.merged_into_member_id) ?? "—",
+    })));
+
     setLoading(false);
   };
 

@@ -281,7 +281,7 @@ export function WhatsAppMessageModal({ open, onOpenChange, member }: WhatsAppMes
   const handleDeleteCustom = (id: string) => {
     const tpl = customTemplates.find((t) => t.id === id);
     if (!tpl) return;
-    if (!confirm(`Excluir a mensagem "${tpl.title}"?`)) return;
+    if (!confirm(t("whatsapp.confirmDelete", { title: tpl.title }))) return;
     const next = customTemplates.filter((t) => t.id !== id);
     setCustomTemplates(next);
     saveCustomTemplates(next);

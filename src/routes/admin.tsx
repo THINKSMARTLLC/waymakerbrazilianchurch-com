@@ -383,49 +383,16 @@ function ActivityLogSection() {
 }
 
 function StatusBadge({ status }: { status: AccountStatus }) {
+  const { t } = useTranslation();
   const cls = status === "active"
     ? "bg-primary/10 text-primary"
     : status === "pending"
     ? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
     : "bg-destructive/10 text-destructive";
-  const label = status === "active" ? "Ativo" : status === "pending" ? "Pendente" : "Suspenso";
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}>{label}</span>;
+  return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}>{t(`admin.status.${status}`)}</span>;
 }
 
 function roleLabel(r: AppRole) {
-  return {
-    super_admin: "Super Admin",
-    church_admin: "Admin Igreja",
-    admin: "Admin",
-    finance_manager: "Financeiro",
-    member: "Membro",
-  }[r];
-}
-
-function actionLabel(a: string) {
-  const map: Record<string, string> = {
-    login: "Login",
-    logout: "Logout",
-    signup: "Cadastro",
-    member_created: "Membro criado",
-    member_updated: "Membro atualizado",
-    member_deleted: "Membro excluído",
-    member_status_changed: "Status do membro alterado",
-    payment_added: "Pagamento adicionado",
-    subscription_created: "Assinatura criada",
-    cash_donation_added: "Doação em dinheiro",
-    user_role_changed: "Função alterada",
-    user_status_changed: "Status do usuário alterado",
-    user_deleted: "Usuário excluído",
-    user_created_by_admin: "Usuário criado por admin",
-    error: "Erro",
-    admin_alert: "🚨 Alerta do sistema",
-    stripe_payment_matched: "Stripe · pagamento registrado",
-    stripe_payment_unmatched: "Stripe · pagamento sem membro",
-    stripe_payment_duplicate_ignored: "Stripe · duplicado ignorado",
-    stripe_payment_failed: "Stripe · pagamento falhou",
-    stripe_member_not_found: "Stripe · membro não encontrado",
-    stripe_event_duplicate_ignored: "Stripe · evento duplicado",
-  };
-  return map[a] ?? a;
+  // Kept for type safety; actual labels render via i18n in <select> options.
+  return r;
 }

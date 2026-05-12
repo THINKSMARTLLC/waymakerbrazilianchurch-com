@@ -310,7 +310,7 @@ export function DuplicateResolutionModal({
                 className="btn-google flex-1 inline-flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <GitMerge className="h-4 w-4" />
-                {merging ? "Merging..." : confirmDelete ? "Confirm & Delete Duplicate" : "Merge Records"}
+                {merging ? "Merging..." : confirmDelete ? "Confirm merge & archive duplicate" : "Merge Records"}
               </button>
             </div>
           </>

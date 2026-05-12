@@ -80,7 +80,7 @@ export function UpcomingBirthdays() {
                   <p className="text-sm font-medium text-foreground truncate">{r.name}</p>
                   <p className="text-[11px] text-muted-foreground">
                     {r.info.monthDay} · {formatBirthdayLabel(r.info)}
-                    {r.info.turningAge !== null && r.info.daysUntil <= 7 ? ` · ${r.info.turningAge} anos` : ""}
+                    {r.info.turningAge !== null && r.info.daysUntil <= 7 ? ` · ${r.info.turningAge} ${t("birthdays.yearsOld")}` : ""}
                   </p>
                 </div>
               </Link>

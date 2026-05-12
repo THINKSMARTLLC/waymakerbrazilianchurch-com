@@ -121,6 +121,7 @@ export function DuplicateResolutionModal({
       const sorted = [...result].sort((a, b) => score(b) - score(a));
       setWinnerId(sorted[0].member.id);
       setLoserId(sorted[1]?.member.id ?? "");
+      setArchiveTargetId(sorted[1]?.member.id ?? sorted[0].member.id);
       setLoading(false);
     })();
     return () => {

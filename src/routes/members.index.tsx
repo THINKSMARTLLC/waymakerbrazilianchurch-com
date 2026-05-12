@@ -8,6 +8,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { inactivateMember, reactivateMember } from "@/lib/memberLifecycle";
 import { logActivity, logError } from "@/lib/activityLog";
 import { useState, useEffect, useMemo, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import {
@@ -67,6 +68,7 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
 };
 
 function MembersPage() {
+  const { t } = useTranslation();
   const { status: statusParam, lifecycle: lifecycleParam } = Route.useSearch();
   const [search, setSearch] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Users, UserCheck, UserX, UserPlus, AlertTriangle, Heart, Activity as ActivityIcon, ChevronRight, X, BookOpen } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Users, UserCheck, UserX, UserPlus, AlertTriangle, Heart, Activity as ActivityIcon, ChevronRight, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { formatDate } from "@/lib/datetime";
 
 export const Route = createFileRoute("/pastoral")({
   head: () => ({
@@ -70,7 +72,7 @@ interface MemberHealth {
   daysSinceCheckin: number;
   isNew: boolean;
   health: HealthStatus;
-  alerts: string[];
+  alertKeys: string[];
 }
 
 const NEW_MEMBER_DAYS = 14;
@@ -89,18 +91,8 @@ function computeHealth(m: MemberHealth): HealthStatus {
   return "healthy";
 }
 
-function statusBadge(h: HealthStatus) {
-  if (h === "risk") return <Badge className="bg-destructive text-destructive-foreground">At Risk</Badge>;
-  if (h === "attention") return <Badge className="bg-amber-500 text-white">Attention</Badge>;
-  return <Badge className="bg-emerald-600 text-white">Healthy</Badge>;
-}
-
-function fmtDate(d: string | null) {
-  if (!d) return "—";
-  return new Date(d).toLocaleDateString("en-US");
-}
-
 function PastoralDashboard() {
+  const { t } = useTranslation();
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [activities, setActivities] = useState<ActivityRow[]>([]);
   const [engagements, setEngagements] = useState<EngagementRow[]>([]);
@@ -109,6 +101,12 @@ function PastoralDashboard() {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  function statusBadge(h: HealthStatus) {
+    if (h === "risk") return <Badge className="bg-destructive text-destructive-foreground">{t("pastoralPage.badges.atRisk")}</Badge>;
+    if (h === "attention") return <Badge className="bg-amber-500 text-white">{t("pastoralPage.badges.attention")}</Badge>;
+    return <Badge className="bg-emerald-600 text-white">{t("pastoralPage.badges.healthy")}</Badge>;
+  }
 
   useEffect(() => {
     void load();
@@ -164,13 +162,13 @@ function PastoralDashboard() {
         daysSinceCheckin: daysBetween(lastCheckin),
         isNew,
         health: "healthy",
-        alerts: [],
+        alertKeys: [],
       };
       base.health = computeHealth(base);
 
-      if (base.daysSinceActivity >= RISK_DAYS) base.alerts.push("No activity 14+ days");
-      if (base.daysSinceCheckin >= RISK_DAYS) base.alerts.push("No check-in 14+ days");
-      if (isNew && acts.length === 0 && engs.length === 0) base.alerts.push("New member — needs connection");
+      if (base.daysSinceActivity >= RISK_DAYS) base.alertKeys.push("noActivity14");
+      if (base.daysSinceCheckin >= RISK_DAYS) base.alertKeys.push("noCheckin14");
+      if (isNew && acts.length === 0 && engs.length === 0) base.alertKeys.push("newNeedsConnection");
 
       return base;
     });
@@ -213,54 +211,59 @@ function PastoralDashboard() {
   const selectedEngagements = selected ? engagements.filter((e) => e.member_id === selected.member.id).slice(0, 30) : [];
   const selectedNotes = selected ? pastoralNotes.filter((n) => n.member_id === selected.member.id) : [];
 
-  const memberName = (id: string) => members.find((m) => m.id === id)?.name ?? "Unknown member";
+  const filterLabel = (k: FilterKey) =>
+    k === "all" ? t("pastoralPage.all")
+    : k === "active" ? t("pastoralPage.active")
+    : k === "inactive" ? t("pastoralPage.inactive")
+    : k === "risk" ? t("pastoralPage.atRisk")
+    : t("pastoralPage.new");
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-semibold text-foreground">Pastoral Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Identify who needs care, who is growing, and who is disengaging.</p>
+        <h1 className="font-display text-2xl font-semibold text-foreground">{t("pastoralPage.title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("pastoralPage.subtitle")}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Members" value={String(stats.total)} icon={Users} />
-        <StatCard title="Active (7 days)" value={String(stats.active7)} icon={UserCheck} />
-        <StatCard title="Inactive" value={String(stats.inactive)} icon={UserX} />
-        <StatCard title="New Members" value={String(stats.newCount)} icon={UserPlus} />
+        <StatCard title={t("pastoralPage.totalMembers")} value={String(stats.total)} icon={Users} />
+        <StatCard title={t("pastoralPage.active7")} value={String(stats.active7)} icon={UserCheck} />
+        <StatCard title={t("pastoralPage.inactive")} value={String(stats.inactive)} icon={UserX} />
+        <StatCard title={t("pastoralPage.newMembers")} value={String(stats.newCount)} icon={UserPlus} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <AlertCard title="No check-in 14+ days" icon={<AlertTriangle className="h-4 w-4 text-destructive" />} items={alerts.noCheckin} onSelect={setSelectedId} emptyText="Everyone checked in recently 🙌" />
-        <AlertCard title="No activity 14+ days" icon={<AlertTriangle className="h-4 w-4 text-amber-500" />} items={alerts.noActivity} onSelect={setSelectedId} emptyText="All members are engaging" />
-        <AlertCard title="New members no follow-up" icon={<Heart className="h-4 w-4 text-primary" />} items={alerts.newNoFollow} onSelect={setSelectedId} emptyText="All new members connected" />
+        <AlertCard title={t("pastoralPage.noCheckin14")} icon={<AlertTriangle className="h-4 w-4 text-destructive" />} items={alerts.noCheckin} onSelect={setSelectedId} emptyText={t("pastoralPage.everyoneCheckedIn")} statusBadge={statusBadge} />
+        <AlertCard title={t("pastoralPage.noActivity14")} icon={<AlertTriangle className="h-4 w-4 text-amber-500" />} items={alerts.noActivity} onSelect={setSelectedId} emptyText={t("pastoralPage.allEngaging")} statusBadge={statusBadge} />
+        <AlertCard title={t("pastoralPage.newNoFollow")} icon={<Heart className="h-4 w-4 text-primary" />} items={alerts.newNoFollow} onSelect={setSelectedId} emptyText={t("pastoralPage.allConnected")} statusBadge={statusBadge} />
       </div>
 
       <Card>
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-base">Member Health</CardTitle>
+          <CardTitle className="text-base">{t("pastoralPage.memberHealth")}</CardTitle>
           <div className="flex flex-wrap gap-2">
-            <Input placeholder="Search name or email..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-9 w-full sm:w-56" />
+            <Input placeholder={t("pastoralPage.searchPlaceholder")} value={search} onChange={(e) => setSearch(e.target.value)} className="h-9 w-full sm:w-56" />
             {(["all", "active", "inactive", "risk", "new"] as FilterKey[]).map((k) => (
               <Button key={k} type="button" variant={filter === k ? "default" : "outline"} size="sm" onClick={() => setFilter(k)}>
-                {k === "all" ? "All" : k === "active" ? "Active" : k === "inactive" ? "Inactive" : k === "risk" ? "At Risk" : "New"}
+                {filterLabel(k)}
               </Button>
             ))}
           </div>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">Loading…</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">{t("pastoralPage.loading")}</p>
           ) : filtered.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">No members match the filter.</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">{t("pastoralPage.noMatch")}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Last activity</TableHead>
-                  <TableHead>Last check-in</TableHead>
-                  <TableHead>Points</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t("pastoralPage.name")}</TableHead>
+                  <TableHead>{t("pastoralPage.lastActivity")}</TableHead>
+                  <TableHead>{t("pastoralPage.lastCheckin")}</TableHead>
+                  <TableHead>{t("pastoralPage.points")}</TableHead>
+                  <TableHead>{t("pastoralPage.status")}</TableHead>
                   <TableHead className="w-[40px]" />
                 </TableRow>
               </TableHeader>
@@ -271,8 +274,8 @@ function PastoralDashboard() {
                       <div className="font-medium">{h.member.name}</div>
                       <div className="text-xs text-muted-foreground">{h.member.email ?? "—"}</div>
                     </TableCell>
-                    <TableCell className="text-sm">{fmtDate(h.lastActivityDate)}</TableCell>
-                    <TableCell className="text-sm">{fmtDate(h.lastCheckinDate)}</TableCell>
+                    <TableCell className="text-sm">{formatDate(h.lastActivityDate) || "—"}</TableCell>
+                    <TableCell className="text-sm">{formatDate(h.lastCheckinDate) || "—"}</TableCell>
                     <TableCell className="text-sm">{h.totalPoints}</TableCell>
                     <TableCell>{statusBadge(h.health)}</TableCell>
                     <TableCell>
@@ -295,57 +298,57 @@ function PastoralDashboard() {
                   <span>{selected.member.name}</span>
                   {statusBadge(selected.health)}
                 </DialogTitle>
-                <p className="text-sm text-muted-foreground">{selected.member.email ?? "No email"}</p>
+                <p className="text-sm text-muted-foreground">{selected.member.email ?? t("pastoralPage.noEmail")}</p>
               </DialogHeader>
 
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Points</p>
+                  <p className="text-xs text-muted-foreground">{t("pastoralPage.points")}</p>
                   <p className="font-semibold">{selected.totalPoints}</p>
                 </div>
                 <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Last activity</p>
-                  <p className="font-semibold">{fmtDate(selected.lastActivityDate)}</p>
+                  <p className="text-xs text-muted-foreground">{t("pastoralPage.lastActivity")}</p>
+                  <p className="font-semibold">{formatDate(selected.lastActivityDate) || "—"}</p>
                 </div>
                 <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Last check-in</p>
-                  <p className="font-semibold">{fmtDate(selected.lastCheckinDate)}</p>
+                  <p className="text-xs text-muted-foreground">{t("pastoralPage.lastCheckin")}</p>
+                  <p className="font-semibold">{formatDate(selected.lastCheckinDate) || "—"}</p>
                 </div>
               </div>
 
-              {selected.alerts.length > 0 && (
+              {selected.alertKeys.length > 0 && (
                 <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3">
-                  <p className="mb-1 text-xs font-medium text-destructive">Alerts</p>
+                  <p className="mb-1 text-xs font-medium text-destructive">{t("pastoralPage.alerts")}</p>
                   <ul className="space-y-1 text-sm">
-                    {selected.alerts.map((a) => <li key={a}>• {a}</li>)}
+                    {selected.alertKeys.map((a) => <li key={a}>• {t(`pastoralPage.alertItems.${a}`)}</li>)}
                   </ul>
                 </div>
               )}
 
               <div>
-                <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><ActivityIcon className="h-4 w-4" /> Activity Timeline</h3>
+                <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><ActivityIcon className="h-4 w-4" /> {t("pastoralPage.activityTimeline")}</h3>
                 <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border p-2">
                   {selectedActivities.length === 0 ? (
-                    <p className="p-2 text-sm text-muted-foreground">No activities yet.</p>
+                    <p className="p-2 text-sm text-muted-foreground">{t("pastoralPage.noActivities")}</p>
                   ) : selectedActivities.map((a) => (
                     <div key={a.id} className="flex items-center justify-between border-b py-1.5 text-sm last:border-0">
-                      <span>{a.activity_type}{a.source === "self_checkin" ? " (check-in)" : ""}</span>
-                      <span className="text-xs text-muted-foreground">{fmtDate(a.activity_date)}</span>
+                      <span>{a.activity_type}{a.source === "self_checkin" ? t("pastoralPage.checkinSuffix") : ""}</span>
+                      <span className="text-xs text-muted-foreground">{formatDate(a.activity_date) || "—"}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               <div>
-                <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><BookOpen className="h-4 w-4" /> Pastoral Notes ({selectedNotes.length})</h3>
+                <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><BookOpen className="h-4 w-4" /> {t("pastoralPage.pastoralNotes")} ({selectedNotes.length})</h3>
                 <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border p-2">
                   {selectedNotes.length === 0 ? (
-                    <p className="p-2 text-sm text-muted-foreground">No notes shared yet.</p>
+                    <p className="p-2 text-sm text-muted-foreground">{t("pastoralPage.noNotesShared")}</p>
                   ) : selectedNotes.map((n) => (
                     <div key={n.id} className="border-b pb-2 last:border-0">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-medium text-primary">{n.book} {n.chapter}:{n.verse}</span>
-                        <span className="text-muted-foreground">{fmtDate(n.updated_at)}</span>
+                        <span className="text-muted-foreground">{formatDate(n.updated_at) || "—"}</span>
                       </div>
                       <p className="mt-1 text-sm whitespace-pre-wrap">{n.note_text}</p>
                     </div>
@@ -354,10 +357,10 @@ function PastoralDashboard() {
               </div>
 
               <div>
-                <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Heart className="h-4 w-4" /> Points History</h3>
+                <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Heart className="h-4 w-4" /> {t("pastoralPage.pointsHistory")}</h3>
                 <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border p-2">
                   {selectedEngagements.length === 0 ? (
-                    <p className="p-2 text-sm text-muted-foreground">No engagement history.</p>
+                    <p className="p-2 text-sm text-muted-foreground">{t("pastoralPage.noEngagement")}</p>
                   ) : selectedEngagements.map((e) => (
                     <div key={e.id} className="flex items-center justify-between border-b py-1.5 text-sm last:border-0">
                       <span>{e.platform} · {e.action_type} <span className="text-xs text-muted-foreground">({e.status})</span></span>
@@ -374,7 +377,7 @@ function PastoralDashboard() {
   );
 }
 
-function AlertCard({ title, icon, items, onSelect, emptyText }: { title: string; icon: React.ReactNode; items: MemberHealth[]; onSelect: (id: string) => void; emptyText: string }) {
+function AlertCard({ title, icon, items, onSelect, emptyText, statusBadge }: { title: string; icon: React.ReactNode; items: MemberHealth[]; onSelect: (id: string) => void; emptyText: string; statusBadge: (h: HealthStatus) => React.ReactNode }) {
   return (
     <Card>
       <CardHeader className="pb-3">

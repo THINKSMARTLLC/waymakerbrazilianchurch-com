@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { StatCard } from "@/components/StatCard";
 import { Users, AlertTriangle, TrendingUp, Sprout, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { formatDateTime } from "@/lib/datetime";
 
 export const Route = createFileRoute("/discipleship")({
   head: () => ({
@@ -27,25 +29,17 @@ export const Route = createFileRoute("/discipleship")({
 type Stage = "visitor" | "new_believer" | "in_discipleship" | "committed" | "serving" | "leader";
 
 const STAGE_ORDER: Stage[] = ["visitor", "new_believer", "in_discipleship", "committed", "serving", "leader"];
-const STAGE_LABEL: Record<Stage, string> = {
-  visitor: "Visitor",
-  new_believer: "New Believer",
-  in_discipleship: "In Discipleship",
-  committed: "Committed",
-  serving: "Serving",
-  leader: "Leader",
-};
 
-const STEPS = [
-  { key: "accepted_jesus", label: "Accepted Jesus" },
-  { key: "baptized", label: "Baptized" },
-  { key: "completed_course", label: "Completed course" },
-  { key: "attending_regularly", label: "Attending regularly" },
-  { key: "in_small_group", label: "In small group" },
-  { key: "serving_ministry", label: "Serving" },
+const STEP_KEYS = [
+  "accepted_jesus",
+  "baptized",
+  "completed_course",
+  "attending_regularly",
+  "in_small_group",
+  "serving_ministry",
 ] as const;
 
-type StepKey = typeof STEPS[number]["key"];
+type StepKey = typeof STEP_KEYS[number];
 
 interface MemberRow {
   id: string;
@@ -80,31 +74,12 @@ function suggestStage(m: MemberRow): Stage {
   return "visitor";
 }
 
-function nextStep(m: MemberRow): string {
-  for (const s of STEPS) {
-    if (!m[s.key]) return s.label;
-  }
-  return "All steps completed 🙌";
-}
-
 function daysSince(d: string): number {
   return Math.floor((Date.now() - new Date(d).getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function stageBadge(s: Stage) {
-  const idx = STAGE_ORDER.indexOf(s);
-  const colors = [
-    "bg-muted text-muted-foreground",
-    "bg-blue-500 text-white",
-    "bg-indigo-500 text-white",
-    "bg-emerald-500 text-white",
-    "bg-amber-500 text-white",
-    "bg-primary text-primary-foreground",
-  ];
-  return <Badge className={colors[idx]}>{STAGE_LABEL[s]}</Badge>;
-}
-
 function DiscipleshipPage() {
+  const { t } = useTranslation();
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,16 +88,39 @@ function DiscipleshipPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [newNote, setNewNote] = useState("");
 
+  const stageLabel = (s: Stage) => t(`discipleshipPage.stages.${s}`);
+  const stepLabel = (k: StepKey) => t(`discipleshipPage.stepLabels.${k}`);
+
+  function nextStepLabel(m: MemberRow): string {
+    for (const k of STEP_KEYS) {
+      if (!m[k]) return stepLabel(k);
+    }
+    return t("discipleshipPage.allStepsCompleted");
+  }
+
+  function stageBadge(s: Stage) {
+    const idx = STAGE_ORDER.indexOf(s);
+    const colors = [
+      "bg-muted text-muted-foreground",
+      "bg-blue-500 text-white",
+      "bg-indigo-500 text-white",
+      "bg-emerald-500 text-white",
+      "bg-amber-500 text-white",
+      "bg-primary text-primary-foreground",
+    ];
+    return <Badge className={colors[idx]}>{stageLabel(s)}</Badge>;
+  }
+
   useEffect(() => { void load(); }, []);
 
   async function load() {
     setLoading(true);
     const [mRes, nRes] = await Promise.all([
-      supabase.from("members" as any).select("id, name, email, created_at, discipleship_stage, stage_updated_at, accepted_jesus, baptized, completed_course, attending_regularly, in_small_group, serving_ministry, assigned_leader_id").order("name"),
-      supabase.from("discipleship_notes" as any).select("*").order("created_at", { ascending: false }).limit(500),
+      supabase.from("members" as never).select("id, name, email, created_at, discipleship_stage, stage_updated_at, accepted_jesus, baptized, completed_course, attending_regularly, in_small_group, serving_ministry, assigned_leader_id").order("name"),
+      supabase.from("discipleship_notes" as never).select("*").order("created_at", { ascending: false }).limit(500),
     ]);
-    setMembers((mRes.data as any) ?? []);
-    setNotes((nRes.data as any) ?? []);
+    setMembers(((mRes as { data: unknown }).data as MemberRow[]) ?? []);
+    setNotes(((nRes as { data: unknown }).data as Note[]) ?? []);
     setLoading(false);
   }
 
@@ -153,56 +151,56 @@ function DiscipleshipPage() {
   const selectedNotes = selected ? notes.filter((n) => n.member_id === selected.id) : [];
 
   async function updateMember(id: string, patch: Partial<MemberRow>) {
-    const { error } = await supabase.from("members" as any).update(patch as any).eq("id", id);
+    const { error } = await supabase.from("members" as never).update(patch as never).eq("id", id);
     if (error) { toast.error(error.message); return; }
     setMembers((prev) => prev.map((m) => m.id === id ? { ...m, ...patch } as MemberRow : m));
-    toast.success("Updated");
+    toast.success(t("discipleshipPage.updated"));
   }
 
   async function addNote() {
     if (!selected || !newNote.trim()) return;
     const { data: auth } = await supabase.auth.getUser();
-    const { data, error } = await supabase.from("discipleship_notes" as any).insert({
+    const { data, error } = await supabase.from("discipleship_notes" as never).insert({
       member_id: selected.id,
       message: newNote.trim(),
       author_id: auth.user?.id ?? null,
       visibility: "admin_only",
-    }).select().single();
+    } as never).select().single();
     if (error) { toast.error(error.message); return; }
-    setNotes((p) => [data as any, ...p]);
+    setNotes((p) => [data as Note, ...p]);
     setNewNote("");
-    toast.success("Note added");
+    toast.success(t("discipleshipPage.noteAdded"));
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-semibold text-foreground">Discipleship Journey</h1>
-        <p className="text-sm text-muted-foreground">Track spiritual growth, stages, and follow-up.</p>
+        <h1 className="font-display text-2xl font-semibold text-foreground">{t("discipleshipPage.title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("discipleshipPage.subtitle")}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Members" value={String(members.length)} icon={Users} />
-        <StatCard title="New Believers" value={String(stageCounts.new_believer)} icon={Sprout} />
-        <StatCard title="Progressing" value={String(alerts.progressing.length)} icon={TrendingUp} />
-        <StatCard title="Stuck 30+ days" value={String(alerts.stuck.length)} icon={AlertTriangle} />
+        <StatCard title={t("discipleshipPage.totalMembers")} value={String(members.length)} icon={Users} />
+        <StatCard title={t("discipleshipPage.newBelievers")} value={String(stageCounts.new_believer)} icon={Sprout} />
+        <StatCard title={t("discipleshipPage.progressing")} value={String(alerts.progressing.length)} icon={TrendingUp} />
+        <StatCard title={t("discipleshipPage.stuck")} value={String(alerts.stuck.length)} icon={AlertTriangle} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <AlertList title="Stuck in stage 30+ days" items={alerts.stuck} onSelect={setSelectedId} />
-        <AlertList title="New believer no leader" items={alerts.newBelieverNoFollow} onSelect={setSelectedId} />
-        <AlertList title="Not baptized after 60+ days" items={alerts.notBaptized} onSelect={setSelectedId} />
+        <AlertList title={t("discipleshipPage.stuckTitle")} items={alerts.stuck} onSelect={setSelectedId} stageBadge={stageBadge} emptyText={t("discipleshipPage.allClear")} />
+        <AlertList title={t("discipleshipPage.newBelieverNoLeader")} items={alerts.newBelieverNoFollow} onSelect={setSelectedId} stageBadge={stageBadge} emptyText={t("discipleshipPage.allClear")} />
+        <AlertList title={t("discipleshipPage.notBaptized")} items={alerts.notBaptized} onSelect={setSelectedId} stageBadge={stageBadge} emptyText={t("discipleshipPage.allClear")} />
       </div>
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Members by Stage</CardTitle>
+          <CardTitle className="text-base">{t("discipleshipPage.membersByStage")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
             {STAGE_ORDER.map((s) => (
               <button key={s} onClick={() => setStageFilter(s)} className={`rounded-lg border p-3 text-left transition-colors hover:border-primary ${stageFilter === s ? "border-primary bg-accent" : ""}`}>
-                <div className="text-xs text-muted-foreground">{STAGE_LABEL[s]}</div>
+                <div className="text-xs text-muted-foreground">{stageLabel(s)}</div>
                 <div className="text-xl font-semibold">{stageCounts[s]}</div>
               </button>
             ))}
@@ -212,33 +210,33 @@ function DiscipleshipPage() {
 
       <Card>
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-base">Members</CardTitle>
+          <CardTitle className="text-base">{t("discipleshipPage.members")}</CardTitle>
           <div className="flex flex-wrap items-center gap-2">
-            <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-9 w-48" />
+            <Input placeholder={t("discipleshipPage.search")} value={search} onChange={(e) => setSearch(e.target.value)} className="h-9 w-48" />
             <Select value={stageFilter} onValueChange={(v) => setStageFilter(v as Stage | "all")}>
               <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All stages</SelectItem>
-                {STAGE_ORDER.map((s) => <SelectItem key={s} value={s}>{STAGE_LABEL[s]}</SelectItem>)}
+                <SelectItem value="all">{t("discipleshipPage.allStages")}</SelectItem>
+                {STAGE_ORDER.map((s) => <SelectItem key={s} value={s}>{stageLabel(s)}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? <p className="py-8 text-center text-sm text-muted-foreground">Loading…</p> : (
+          {loading ? <p className="py-8 text-center text-sm text-muted-foreground">{t("discipleshipPage.loading")}</p> : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Stage</TableHead>
-                  <TableHead>Steps</TableHead>
-                  <TableHead>Days in stage</TableHead>
+                  <TableHead>{t("discipleshipPage.name")}</TableHead>
+                  <TableHead>{t("discipleshipPage.stage")}</TableHead>
+                  <TableHead>{t("discipleshipPage.steps")}</TableHead>
+                  <TableHead>{t("discipleshipPage.daysInStage")}</TableHead>
                   <TableHead className="w-[40px]" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((m) => {
-                  const completed = STEPS.filter((s) => m[s.key]).length;
+                  const completed = STEP_KEYS.filter((k) => m[k]).length;
                   return (
                     <TableRow key={m.id} className="cursor-pointer" onClick={() => setSelectedId(m.id)}>
                       <TableCell>
@@ -246,7 +244,7 @@ function DiscipleshipPage() {
                         <div className="text-xs text-muted-foreground">{m.email ?? "—"}</div>
                       </TableCell>
                       <TableCell>{stageBadge(m.discipleship_stage)}</TableCell>
-                      <TableCell className="text-sm">{completed}/{STEPS.length}</TableCell>
+                      <TableCell className="text-sm">{completed}/{STEP_KEYS.length}</TableCell>
                       <TableCell className="text-sm">{daysSince(m.stage_updated_at)}d</TableCell>
                       <TableCell><ChevronRight className="h-4 w-4 text-muted-foreground" /></TableCell>
                     </TableRow>
@@ -266,25 +264,25 @@ function DiscipleshipPage() {
                 <DialogTitle className="flex items-center gap-3">
                   {selected.name} {stageBadge(selected.discipleship_stage)}
                 </DialogTitle>
-                <p className="text-sm text-muted-foreground">{selected.email ?? "No email"}</p>
+                <p className="text-sm text-muted-foreground">{selected.email ?? t("discipleshipPage.noEmail")}</p>
               </DialogHeader>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Stage (suggested: {STAGE_LABEL[suggestStage(selected)]})</label>
+                <label className="text-sm font-medium">{t("discipleshipPage.stageSuggested", { name: stageLabel(suggestStage(selected)) })}</label>
                 <Select value={selected.discipleship_stage} onValueChange={(v) => updateMember(selected.id, { discipleship_stage: v as Stage })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {STAGE_ORDER.map((s) => <SelectItem key={s} value={s}>{STAGE_LABEL[s]}</SelectItem>)}
+                    {STAGE_ORDER.map((s) => <SelectItem key={s} value={s}>{stageLabel(s)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Assigned Leader</label>
+                <label className="text-sm font-medium">{t("discipleshipPage.assignedLeader")}</label>
                 <Select value={selected.assigned_leader_id ?? "none"} onValueChange={(v) => updateMember(selected.id, { assigned_leader_id: v === "none" ? null : v })}>
-                  <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t("discipleshipPage.none")} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">— None —</SelectItem>
+                    <SelectItem value="none">{t("discipleshipPage.noneOption")}</SelectItem>
                     {members.filter((x) => x.id !== selected.id && (x.discipleship_stage === "leader" || x.discipleship_stage === "serving")).map((x) => (
                       <SelectItem key={x.id} value={x.id}>{x.name}</SelectItem>
                     ))}
@@ -293,31 +291,31 @@ function DiscipleshipPage() {
               </div>
 
               <div>
-                <h3 className="mb-2 text-sm font-medium">Discipleship Steps</h3>
+                <h3 className="mb-2 text-sm font-medium">{t("discipleshipPage.discipleshipSteps")}</h3>
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {STEPS.map((s) => (
-                    <label key={s.key} className="flex items-center gap-2 rounded-lg border p-2 text-sm">
-                      <Checkbox checked={selected[s.key]} onCheckedChange={(v) => updateMember(selected.id, { [s.key]: !!v } as Partial<MemberRow>)} />
-                      {s.label}
+                  {STEP_KEYS.map((k) => (
+                    <label key={k} className="flex items-center gap-2 rounded-lg border p-2 text-sm">
+                      <Checkbox checked={selected[k]} onCheckedChange={(v) => updateMember(selected.id, { [k]: !!v } as Partial<MemberRow>)} />
+                      {stepLabel(k)}
                     </label>
                   ))}
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">Next step: <span className="font-medium text-foreground">{nextStep(selected)}</span></p>
+                <p className="mt-2 text-xs text-muted-foreground">{t("discipleshipPage.nextStep")} <span className="font-medium text-foreground">{nextStepLabel(selected)}</span></p>
               </div>
 
               <div>
-                <h3 className="mb-2 text-sm font-medium">Notes (admin only)</h3>
+                <h3 className="mb-2 text-sm font-medium">{t("discipleshipPage.notesAdminOnly")}</h3>
                 <div className="space-y-2">
-                  <Textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Write a note..." rows={2} />
-                  <Button size="sm" onClick={addNote} disabled={!newNote.trim()}>Add Note</Button>
+                  <Textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder={t("discipleshipPage.writeNote")} rows={2} />
+                  <Button size="sm" onClick={addNote} disabled={!newNote.trim()}>{t("discipleshipPage.addNote")}</Button>
                 </div>
                 <div className="mt-3 max-h-48 space-y-2 overflow-y-auto">
                   {selectedNotes.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No notes yet.</p>
+                    <p className="text-sm text-muted-foreground">{t("discipleshipPage.noNotes")}</p>
                   ) : selectedNotes.map((n) => (
                     <div key={n.id} className="rounded-lg border p-2 text-sm">
                       <p>{n.message}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{new Date(n.created_at).toLocaleString("en-US")}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(n.created_at)}</p>
                     </div>
                   ))}
                 </div>
@@ -330,7 +328,7 @@ function DiscipleshipPage() {
   );
 }
 
-function AlertList({ title, items, onSelect }: { title: string; items: MemberRow[]; onSelect: (id: string) => void }) {
+function AlertList({ title, items, onSelect, stageBadge, emptyText }: { title: string; items: MemberRow[]; onSelect: (id: string) => void; stageBadge: (s: Stage) => React.ReactNode; emptyText: string }) {
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -341,7 +339,7 @@ function AlertList({ title, items, onSelect }: { title: string; items: MemberRow
       </CardHeader>
       <CardContent>
         {items.length === 0 ? (
-          <p className="py-3 text-center text-sm text-muted-foreground">All clear 🙌</p>
+          <p className="py-3 text-center text-sm text-muted-foreground">{emptyText}</p>
         ) : (
           <ul className="space-y-1">
             {items.slice(0, 6).map((m) => (

@@ -201,13 +201,13 @@ function AdminPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
                         {u.status !== "active" && (
-                          <button onClick={() => updateStatus(u.user_id, "active")} title="Aprovar"
+                          <button onClick={() => updateStatus(u.user_id, "active")} title={t("admin.approve")}
                             className="p-1.5 rounded-md hover:bg-primary/10 text-primary">
                             <UserCheck className="h-4 w-4" />
                           </button>
                         )}
                         {u.status !== "suspended" && (
-                          <button onClick={() => updateStatus(u.user_id, "suspended")} title="Suspender"
+                          <button onClick={() => updateStatus(u.user_id, "suspended")} title={t("admin.suspend")}
                             className="p-1.5 rounded-md hover:bg-muted text-muted-foreground">
                             <UserX className="h-4 w-4" />
                           </button>
@@ -215,16 +215,16 @@ function AdminPage() {
                         <button
                           onClick={() => resendAccess(u.email)}
                           disabled={sendingAccessFor === u.email}
-                          title="Enviar email de acesso (magic link)"
+                          title={t("admin.sendAccessEmail")}
                           className="p-1.5 rounded-md hover:bg-primary/10 text-primary disabled:opacity-50"
                         >
                           <Mail className="h-4 w-4" />
                         </button>
-                        <button onClick={() => requestRecovery(u.email)} title="Gerar link de redefinição de senha"
+                        <button onClick={() => requestRecovery(u.email)} title={t("admin.generateRecoveryLink")}
                           className="p-1.5 rounded-md hover:bg-primary/10 text-primary">
                           <KeyRound className="h-4 w-4" />
                         </button>
-                        <button onClick={() => deleteUser(u.user_id)} title="Excluir"
+                        <button onClick={() => deleteUser(u.user_id)} title={t("admin.deleteAccount")}
                           className="p-1.5 rounded-md hover:bg-destructive/10 text-destructive">
                           <Trash2 className="h-4 w-4" />
                         </button>

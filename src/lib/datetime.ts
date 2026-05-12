@@ -74,8 +74,7 @@ export function formatLocalDateOnly(value: string | Date | null | undefined): st
   const lang = getLang();
   // Construct as local-noon Date to avoid any DST edge.
   const dt = new Date(y, m - 1, d, 12, 0, 0);
-  const pattern = lang === "en" ? "MM/dd/yyyy" : "dd/MM/yyyy";
-  return format(dt, pattern, { locale: LOCALES[lang] });
+  return format(dt, "MM/dd/yyyy", { locale: enUS });
 }
 
 /** Convert any Date to a NYC zoned Date (useful for UI date pickers anchored to NYC). */

@@ -94,7 +94,7 @@ export function NewSignupsBanner() {
         <button
           onClick={() => setDismissed(true)}
           className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
-          aria-label="Dismiss"
+          aria-label={t("common.dismiss")}
         >
           <X className="h-4 w-4" />
         </button>

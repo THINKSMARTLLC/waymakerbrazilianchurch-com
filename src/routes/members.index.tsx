@@ -8,6 +8,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { inactivateMember, reactivateMember } from "@/lib/memberLifecycle";
 import { logActivity, logError } from "@/lib/activityLog";
 import { useState, useEffect, useMemo, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import {
@@ -67,6 +68,7 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
 };
 
 function MembersPage() {
+  const { t } = useTranslation();
   const { status: statusParam, lifecycle: lifecycleParam } = Route.useSearch();
   const [search, setSearch] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
@@ -428,8 +430,8 @@ function MembersPage() {
                               {(() => {
                                 const bi = getBirthdayInfo(member.date_of_birth);
                                 return bi?.daysUntil === 0 ? (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary" title="Aniversário hoje">
-                                    <Cake className="h-3 w-3" /> Hoje
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary" title={t("birthdays.today")}>
+                                    <Cake className="h-3 w-3" /> {t("birthdays.today")}
                                   </span>
                                 ) : null;
                               })()}

@@ -22,8 +22,8 @@ export const Route = createFileRoute("/reports")({
   }),
   head: () => ({
     meta: [
-      { title: "Relatórios — Way Maker Church" },
-      { name: "description", content: "Relatórios financeiros e doações" },
+      { title: "Reports — Way Maker Church" },
+      { name: "description", content: "Financial reports and donations" },
     ],
   }),
   component: ReportsPage,

@@ -21,7 +21,7 @@ import { RecordPaymentModal } from "@/components/RecordPaymentModal";
 import { ContributionsModal } from "@/components/ContributionsModal";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, FREQUENCY_LABEL, type MemberPaymentStatus, type ContributionFrequency } from "@/lib/memberStatus";
 import { formatPhoneDisplay } from "@/lib/phone";
-import { findDuplicates, findDuplicateGroups, generateTempAccessCode, type DuplicateMatch, type DuplicateGroup } from "@/lib/duplicates";
+import { findDuplicates, findDuplicateGroups, generateTempAccessCode, loadDismissedGroupKeys, type DuplicateMatch, type DuplicateGroup } from "@/lib/duplicates";
 import { DuplicateWarning } from "@/components/DuplicateWarning";
 import { MergeMembersModal } from "@/components/MergeMembersModal";
 import { DuplicateResolutionModal } from "@/components/DuplicateResolutionModal";

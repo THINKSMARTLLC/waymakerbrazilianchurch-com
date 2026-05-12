@@ -111,7 +111,7 @@ function ChurchSettingsPage() {
   if (!isSuperAdmin) {
     return (
       <div className="py-20 text-center">
-        <p className="text-muted-foreground">Apenas Super Admin pode acessar esta página.</p>
+        <p className="text-muted-foreground">{t("settingsPage.onlySuperAdmin")}</p>
       </div>
     );
   }
@@ -119,15 +119,15 @@ function ChurchSettingsPage() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h2 className="font-display text-2xl font-semibold text-foreground">Configurações da Igreja</h2>
+        <h2 className="font-display text-2xl font-semibold text-foreground">{t("settingsPage.title")}</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Defina a localização para validar check-ins e o limite de inatividade dos membros.
+          {t("settingsPage.subtitle")}
         </p>
       </div>
 
       <form onSubmit={handleSave} className="card-elevated p-6 space-y-5">
         <div>
-          <label className="text-sm font-medium text-foreground mb-1 block">Nome da igreja</label>
+          <label className="text-sm font-medium text-foreground mb-1 block">{t("settingsPage.churchName")}</label>
           <input
             type="text"
             value={name}
@@ -138,13 +138,13 @@ function ChurchSettingsPage() {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-foreground mb-1 block">Endereço</label>
+          <label className="text-sm font-medium text-foreground mb-1 block">{t("settingsPage.address")}</label>
           <input
             type="text"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-            placeholder="Rua, número, cidade..."
+            placeholder={t("settingsPage.addressPlaceholder")}
           />
         </div>
 

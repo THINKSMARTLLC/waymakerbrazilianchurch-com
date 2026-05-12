@@ -175,7 +175,8 @@ function MembersPage() {
     });
 
     setMembers(withStatus);
-    setDuplicateGroups(findDuplicateGroups(list));
+    const dismissed = await loadDismissedGroupKeys();
+    setDuplicateGroups(findDuplicateGroups(list).filter((g) => !dismissed.has(g.key)));
     setLoading(false);
   };
 

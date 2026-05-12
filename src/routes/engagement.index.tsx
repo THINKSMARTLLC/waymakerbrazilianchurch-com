@@ -236,19 +236,19 @@ function EngagementDashboard() {
           onClick={() => setCardFilter(cardFilter === "checkins7" ? "all" : "checkins7")}
         />
         <StatCard
-          title="Atividades (30 dias)"
+          title={t("engagementPage.activitiesMonth")}
           value={String(totalCheckinsMonth)}
           icon={Activity}
           onClick={() => setCardFilter(cardFilter === "activities30" ? "all" : "activities30")}
         />
         <StatCard
-          title="Membros Ativos"
+          title={t("engagementPage.activeMembers")}
           value={String(activeCount)}
           icon={Users}
           onClick={() => setCardFilter(cardFilter === "active" ? "all" : "active")}
         />
         <StatCard
-          title="Sem Atividade"
+          title={t("engagementPage.noActivity")}
           value={String(inactiveCount)}
           icon={AlertCircle}
           onClick={() => setCardFilter(cardFilter === "inactive" ? "all" : "inactive")}

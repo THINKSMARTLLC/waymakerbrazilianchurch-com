@@ -503,7 +503,7 @@ function EngagementDashboard() {
                       <button
                         onClick={() => setEditing(a)}
                         className="text-muted-foreground hover:text-primary p-1 rounded"
-                        aria-label="Editar"
+                        aria-label={t("engagementPage.edit")}
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>

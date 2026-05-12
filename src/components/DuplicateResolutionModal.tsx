@@ -3,10 +3,10 @@
 // data + recent activity), and launches the existing MergeMembersModal for
 // safe field-by-field merging. No data is deleted automatically.
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Crown, GitMerge, X } from "lucide-react";
+import { AlertTriangle, Archive, Crown, GitMerge, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Member } from "@/lib/duplicates";
-import { mergeMembers, dismissDuplicateGroup } from "@/lib/duplicates";
+import { mergeMembers, dismissDuplicateGroup, archiveMember } from "@/lib/duplicates";
 import { formatUSD, toTitleCase } from "@/lib/format";
 import { formatPhoneDisplay } from "@/lib/phone";
 

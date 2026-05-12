@@ -110,7 +110,8 @@ function MembersPage() {
       .select("*")
       .order("created_at", { ascending: false });
 
-    const list = membersData || [];
+    // Hide archived (merged/trashed) members from the main list.
+    const list = (membersData || []).filter((m) => !(m as { archived?: boolean }).archived);
     const ids = list.map((m) => m.id);
 
     let lastByMember = new Map<string, { payment_date: string; payment_method: string }>();

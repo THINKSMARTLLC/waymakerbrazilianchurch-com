@@ -40,12 +40,23 @@ function ArchivePage() {
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<InactiveRow | null>(null);
 
+  const [mergeHistory, setMergeHistory] = useState<Array<{
+    id: string;
+    original_member_id: string;
+    merged_into_member_id: string;
+    merge_date: string;
+    restored: boolean;
+    snapshot_data: { member?: { name?: string; email?: string | null } } | null;
+    winner_name?: string;
+  }>>([]);
+
   const load = async () => {
     setLoading(true);
+    // Include both legacy "status=inactive" rows AND newly archived (merged) members.
     const { data: members } = await supabase
       .from("members")
       .select("*")
-      .eq("status", "inactive")
+      .or("status.eq.inactive,archived.eq.true")
       .order("inactivated_at", { ascending: false, nullsFirst: false });
 
     const list = (members ?? []) as Member[];
@@ -75,6 +86,24 @@ function ArchivePage() {
         payment_count: countByMember.get(m.id) ?? 0,
       })),
     );
+
+    // Load merge history (most recent 50, not yet restored).
+    const { data: mh } = await supabase
+      .from("member_merge_history" as never)
+      .select("id, original_member_id, merged_into_member_id, merge_date, restored, snapshot_data")
+      .order("merge_date", { ascending: false })
+      .limit(50);
+    const winnerIds = Array.from(new Set((mh ?? []).map((r: { merged_into_member_id: string }) => r.merged_into_member_id)));
+    const winnerNames = new Map<string, string>();
+    if (winnerIds.length > 0) {
+      const { data: wm } = await supabase.from("members").select("id, name").in("id", winnerIds);
+      for (const w of wm ?? []) winnerNames.set(w.id, toTitleCase(w.name));
+    }
+    setMergeHistory(((mh ?? []) as Array<{ id: string; original_member_id: string; merged_into_member_id: string; merge_date: string; restored: boolean; snapshot_data: { member?: { name?: string } } | null }>).map((r) => ({
+      ...r,
+      winner_name: winnerNames.get(r.merged_into_member_id) ?? "—",
+    })));
+
     setLoading(false);
   };
 
@@ -106,6 +135,16 @@ function ArchivePage() {
     // Re-check count just-in-time in case payments changed.
     const live = await countMemberPayments(m.id);
     setConfirmDelete({ ...m, payment_count: live });
+  };
+
+  const handleUndoMerge = async (historyId: string) => {
+    if (!confirm("Undo this merge? The original member will be restored and its payments/activities moved back.")) return;
+    setBusyId(historyId);
+    setError(null);
+    const { error: rpcErr } = await supabase.rpc("undo_merge" as never, { _history_id: historyId } as never);
+    setBusyId(null);
+    if (rpcErr) setError(rpcErr.message);
+    else load();
   };
 
   return (
@@ -217,6 +256,66 @@ function ArchivePage() {
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Merge history */}
+      <div>
+        <h2 className="font-display text-xl font-semibold text-foreground">Merge History</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Every merge is saved with a full snapshot. You can undo a merge to restore the original record and move its history back.
+        </p>
+      </div>
+      <div className="card-elevated overflow-hidden">
+        {mergeHistory.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">No merges recorded.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="table-header px-5 py-3 text-left">Original member</th>
+                  <th className="table-header px-5 py-3 text-left">Merged into</th>
+                  <th className="table-header px-5 py-3 text-left">Date</th>
+                  <th className="table-header px-5 py-3 text-left">Status</th>
+                  <th className="table-header px-5 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mergeHistory.map((h) => {
+                  const snapName = h.snapshot_data?.member?.name ? toTitleCase(String(h.snapshot_data.member.name)) : "—";
+                  const snapEmail = h.snapshot_data?.member?.email ?? null;
+                  return (
+                    <tr key={h.id} className="border-b border-border last:border-0">
+                      <td className="px-5 py-3 text-sm">
+                        <div className="font-medium text-foreground">{snapName}</div>
+                        {snapEmail && <div className="text-xs text-muted-foreground">{snapEmail}</div>}
+                      </td>
+                      <td className="px-5 py-3 text-sm text-foreground">{h.winner_name}</td>
+                      <td className="px-5 py-3 text-sm text-muted-foreground">{formatDate(h.merge_date)}</td>
+                      <td className="px-5 py-3 text-sm">
+                        {h.restored ? (
+                          <span className="status-badge status-active">Restored</span>
+                        ) : (
+                          <span className="status-badge status-inactive">Merged</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <button
+                          onClick={() => handleUndoMerge(h.id)}
+                          disabled={h.restored || busyId === h.id}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-input bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <UserCheck className="h-3.5 w-3.5" />
+                          {h.restored ? "Already restored" : "Undo merge"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

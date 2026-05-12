@@ -518,6 +518,42 @@ export type Database = {
           },
         ]
       }
+      member_merge_history: {
+        Row: {
+          id: string
+          merge_date: string
+          merged_by: string | null
+          merged_into_member_id: string
+          original_member_id: string
+          restored: boolean
+          restored_at: string | null
+          restored_by: string | null
+          snapshot_data: Json
+        }
+        Insert: {
+          id?: string
+          merge_date?: string
+          merged_by?: string | null
+          merged_into_member_id: string
+          original_member_id: string
+          restored?: boolean
+          restored_at?: string | null
+          restored_by?: string | null
+          snapshot_data: Json
+        }
+        Update: {
+          id?: string
+          merge_date?: string
+          merged_by?: string | null
+          merged_into_member_id?: string
+          original_member_id?: string
+          restored?: boolean
+          restored_at?: string | null
+          restored_by?: string | null
+          snapshot_data?: Json
+        }
+        Relationships: []
+      }
       member_visits: {
         Row: {
           assigned_to: string | null
@@ -569,6 +605,9 @@ export type Database = {
         Row: {
           accepted_jesus: boolean
           address: string | null
+          archived: boolean
+          archived_at: string | null
+          archived_reason: string | null
           assigned_leader_id: string | null
           attending_regularly: boolean
           baptized: boolean
@@ -605,6 +644,9 @@ export type Database = {
         Insert: {
           accepted_jesus?: boolean
           address?: string | null
+          archived?: boolean
+          archived_at?: string | null
+          archived_reason?: string | null
           assigned_leader_id?: string | null
           attending_regularly?: boolean
           baptized?: boolean
@@ -641,6 +683,9 @@ export type Database = {
         Update: {
           accepted_jesus?: boolean
           address?: string | null
+          archived?: boolean
+          archived_at?: string | null
+          archived_reason?: string | null
           assigned_leader_id?: string | null
           attending_regularly?: boolean
           baptized?: boolean
@@ -1032,6 +1077,8 @@ export type Database = {
           read_ct: number
         }[]
       }
+      restore_archived_member: { Args: { _member_id: string }; Returns: string }
+      undo_merge: { Args: { _history_id: string }; Returns: string }
     }
     Enums: {
       account_status: "pending" | "active" | "suspended"

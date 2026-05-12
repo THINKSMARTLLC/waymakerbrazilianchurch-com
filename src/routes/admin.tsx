@@ -129,7 +129,7 @@ function AdminPage() {
   };
 
   const deleteUser = async (userId: string) => {
-    if (!confirm("Excluir esta conta? Esta ação remove o perfil e as funções, mas o login no auth permanece. Confirme apenas se tiver certeza.")) return;
+    if (!confirm(t("admin.confirmDelete"))) return;
     await supabase.from("user_roles").delete().eq("user_id", userId);
     await supabase.from("user_profiles").delete().eq("user_id", userId);
     await logActivity("user_deleted", { target_user: userId });

@@ -135,15 +135,40 @@ export function DuplicateResolutionModal({
     }
     setMerging(true);
     setError("");
-    const { error: mErr } = await mergeMembers({
-      winnerId: winner.member.id,
-      loserId: loser.member.id,
-      winnerUpdates: buildBestUpdates(),
-    });
-    setMerging(false);
-    if (mErr) {
-      setError(mErr);
+    try {
+      const { error: mErr } = await mergeMembers({
+        winnerId: winner.member.id,
+        loserId: loser.member.id,
+        winnerUpdates: buildBestUpdates(),
+      });
+      if (mErr) {
+        setError(mErr);
+        setConfirmDelete(false);
+        return;
+      }
+      // Best-effort: also clear any prior dismissal for this group key.
+      if (groupKey) await dismissDuplicateGroup(groupKey).catch(() => {});
+      alert("Members merged successfully.");
+      onResolved();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Merge failed");
       setConfirmDelete(false);
+    } finally {
+      setMerging(false);
+    }
+  };
+
+  const handleDismiss = async () => {
+    if (!groupKey) {
+      onClose();
+      return;
+    }
+    setMerging(true);
+    setError("");
+    const { error: dErr } = await dismissDuplicateGroup(groupKey);
+    setMerging(false);
+    if (dErr) {
+      setError(dErr);
       return;
     }
     onResolved();

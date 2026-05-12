@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { X, FileSpreadsheet, AlertTriangle, CheckCircle2, Users, Loader2, Upload } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   parseImportFile,
   classifyImportRows,
@@ -27,6 +28,7 @@ interface ImportPreviewModalProps {
 }
 
 export function ImportPreviewModal({ open, onClose, onImported }: ImportPreviewModalProps) {
+  const { t } = useTranslation();
   const [stage, setStage] = useState<Stage>("select");
   const [fileName, setFileName] = useState("");
   const [classification, setClassification] = useState<ImportClassification | null>(null);
@@ -57,20 +59,19 @@ export function ImportPreviewModal({ open, onClose, onImported }: ImportPreviewM
     try {
       const parsed = await parseImportFile(file);
       if (parsed.length === 0) {
-        setError("File is empty or has no recognizable rows.");
+        setError(t("importPreview.emptyFile"));
         setStage("select");
         return;
       }
       const cls = await classifyImportRows(parsed);
       setClassification(cls);
-      // Default actions: skip duplicates, import new
       const da: Record<number, DupAction> = {};
       for (const d of cls.duplicateRows) da[d.rowIndex] = "skip";
       setDupActions(da);
       setSkipNew({});
       setStage("preview");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to parse file");
+      setError(e instanceof Error ? e.message : t("importPreview.parseError"));
       setStage("select");
     }
   };
@@ -122,8 +123,8 @@ export function ImportPreviewModal({ open, onClose, onImported }: ImportPreviewM
               <Upload className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h2 className="font-display text-lg font-semibold">Import Members</h2>
-              <p className="text-xs text-muted-foreground">Upload CSV or Excel — preview before saving</p>
+              <h2 className="font-display text-lg font-semibold">{t("importPreview.title")}</h2>
+              <p className="text-xs text-muted-foreground">{t("importPreview.subtitle")}</p>
             </div>
           </div>
           <button onClick={close} className="text-muted-foreground hover:text-foreground p-1">
@@ -132,13 +133,11 @@ export function ImportPreviewModal({ open, onClose, onImported }: ImportPreviewM
         </div>
 
         <div className="flex-1 overflow-y-auto p-5">
-          {stage === "select" && (
-            <SelectStage onFile={onFile} error={error} />
-          )}
+          {stage === "select" && <SelectStage onFile={onFile} error={error} />}
           {stage === "parsing" && (
             <div className="py-16 text-center text-muted-foreground">
               <Loader2 className="h-8 w-8 mx-auto animate-spin mb-3 text-primary" />
-              <p>Reading and checking duplicates…</p>
+              <p>{t("importPreview.reading")}</p>
             </div>
           )}
           {stage === "preview" && classification && (
@@ -154,31 +153,29 @@ export function ImportPreviewModal({ open, onClose, onImported }: ImportPreviewM
           {stage === "importing" && (
             <div className="py-16 text-center text-muted-foreground">
               <Loader2 className="h-8 w-8 mx-auto animate-spin mb-3 text-primary" />
-              <p>Importing members…</p>
+              <p>{t("importPreview.importing")}</p>
             </div>
           )}
-          {stage === "done" && result && (
-            <DoneStage result={result} />
-          )}
+          {stage === "done" && result && <DoneStage result={result} />}
         </div>
 
         {stage === "preview" && (
           <div className="border-t border-border px-5 py-4 flex items-center justify-between gap-3 bg-muted/30">
             <div className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{counts.willCreate}</span> create ·
-              {" "}<span className="font-medium text-foreground">{counts.willUpdate}</span> update ·
-              {" "}<span className="font-medium text-foreground">{counts.willSkip}</span> skip
+              <span className="font-medium text-foreground">{counts.willCreate}</span> {t("importPreview.create")} ·
+              {" "}<span className="font-medium text-foreground">{counts.willUpdate}</span> {t("importPreview.update")} ·
+              {" "}<span className="font-medium text-foreground">{counts.willSkip}</span> {t("importPreview.skipAction")}
             </div>
             <div className="flex gap-2">
               <button onClick={reset} className="px-4 py-2 rounded-xl border border-input bg-background hover:bg-muted text-sm">
-                Cancel
+                {t("importPreview.cancel")}
               </button>
               <button
                 onClick={runImport}
                 disabled={counts.willCreate + counts.willUpdate === 0}
                 className="btn-google disabled:opacity-50 disabled:pointer-events-none"
               >
-                Confirm Import
+                {t("importPreview.confirmImport")}
               </button>
             </div>
           </div>
@@ -186,9 +183,9 @@ export function ImportPreviewModal({ open, onClose, onImported }: ImportPreviewM
         {stage === "done" && (
           <div className="border-t border-border px-5 py-4 flex justify-end gap-2 bg-muted/30">
             <button onClick={reset} className="px-4 py-2 rounded-xl border border-input bg-background hover:bg-muted text-sm">
-              Import Another
+              {t("importPreview.importAnother")}
             </button>
-            <button onClick={close} className="btn-google">Done</button>
+            <button onClick={close} className="btn-google">{t("importPreview.done")}</button>
           </div>
         )}
       </div>
@@ -197,6 +194,7 @@ export function ImportPreviewModal({ open, onClose, onImported }: ImportPreviewM
 }
 
 function SelectStage({ onFile, error }: { onFile: (f: File) => void; error: string | null }) {
+  const { t } = useTranslation();
   const handle = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (f) onFile(f);
@@ -205,18 +203,18 @@ function SelectStage({ onFile, error }: { onFile: (f: File) => void; error: stri
     <div>
       <label className="block border-2 border-dashed border-border rounded-2xl p-10 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors">
         <FileSpreadsheet className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-        <p className="font-medium text-foreground mb-1">Click to choose a file</p>
-        <p className="text-xs text-muted-foreground">CSV, XLSX or XLS — exported from your phone, Google Contacts, Excel, etc.</p>
+        <p className="font-medium text-foreground mb-1">{t("importPreview.chooseFile")}</p>
+        <p className="text-xs text-muted-foreground">{t("importPreview.fileTypes")}</p>
         <input type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handle} />
       </label>
       <div className="mt-6 rounded-xl bg-muted/50 p-4 text-sm">
-        <p className="font-medium mb-2">Recognized columns (case-insensitive):</p>
+        <p className="font-medium mb-2">{t("importPreview.recognizedColumns")}</p>
         <ul className="space-y-1 text-muted-foreground">
-          <li>• <strong className="text-foreground">Name</strong> — name, full name, nome</li>
-          <li>• <strong className="text-foreground">Email</strong> — email, e-mail, mail</li>
-          <li>• <strong className="text-foreground">Phone</strong> — phone, telefone, celular, mobile</li>
+          <li>• <strong className="text-foreground">{t("importPreview.colName")}</strong> — {t("importPreview.colNameAliases")}</li>
+          <li>• <strong className="text-foreground">{t("importPreview.colEmail")}</strong> — {t("importPreview.colEmailAliases")}</li>
+          <li>• <strong className="text-foreground">{t("importPreview.colPhone")}</strong> — {t("importPreview.colPhoneAliases")}</li>
         </ul>
-        <p className="mt-3 text-xs text-muted-foreground">Each row needs at least an email or phone, plus a name.</p>
+        <p className="mt-3 text-xs text-muted-foreground">{t("importPreview.rowRequirement")}</p>
       </div>
       {error && (
         <div className="mt-4 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive flex items-start gap-2">
@@ -243,30 +241,33 @@ function PreviewStage({
   skipNew: Record<number, boolean>;
   setSkipNew: (v: Record<number, boolean>) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-5">
       <div className="text-sm text-muted-foreground">
-        File: <span className="text-foreground font-medium">{fileName}</span>
+        {t("importPreview.file")} <span className="text-foreground font-medium">{fileName}</span>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <SummaryTile color="primary" icon={<Users className="h-4 w-4" />} label="New" count={classification.newRows.length} />
-        <SummaryTile color="amber" icon={<AlertTriangle className="h-4 w-4" />} label="Duplicates" count={classification.duplicateRows.length} />
-        <SummaryTile color="destructive" icon={<X className="h-4 w-4" />} label="Invalid" count={classification.invalidRows.length} />
+        <SummaryTile color="primary" icon={<Users className="h-4 w-4" />} label={t("importPreview.new")} count={classification.newRows.length} />
+        <SummaryTile color="amber" icon={<AlertTriangle className="h-4 w-4" />} label={t("importPreview.duplicates")} count={classification.duplicateRows.length} />
+        <SummaryTile color="destructive" icon={<X className="h-4 w-4" />} label={t("importPreview.invalid")} count={classification.invalidRows.length} />
       </div>
 
       {classification.duplicateRows.length > 0 && (
-        <Section title="Duplicates — choose action per row">
+        <Section title={t("importPreview.duplicatesTitle")}>
           <div className="space-y-2">
-            {classification.duplicateRows.map((r) => (
+            {classification.duplicateRows.map((r: DuplicateRow) => (
               <div key={r.rowIndex} className="rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-700/60 dark:bg-amber-950/30 px-4 py-3 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{r.name || <em className="text-muted-foreground">(no name)</em>}</div>
+                  <div className="font-medium truncate">{r.name || <em className="text-muted-foreground">{t("importPreview.noName")}</em>}</div>
                   <div className="text-xs text-muted-foreground truncate">
                     {r.email || "—"} · {r.phone || "—"}
                   </div>
                   <div className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                    Matches existing member: <strong>{r.matchedName}</strong> (by {r.matchedBy.join(" + ")})
+                    {t("importPreview.matchesExisting", { name: r.matchedName, by: r.matchedBy.join(" + ") }).split(/<1>|<\/1>/).map((part, i) =>
+                      i === 1 ? <strong key={i}>{part}</strong> : <span key={i}>{part}</span>
+                    )}
                   </div>
                 </div>
                 <select
@@ -274,8 +275,8 @@ function PreviewStage({
                   onChange={(e) => setDupActions({ ...dupActions, [r.rowIndex]: e.target.value as DupAction })}
                   className="rounded-lg border border-input bg-background px-2 py-1.5 text-xs"
                 >
-                  <option value="skip">Skip</option>
-                  <option value="update">Update existing</option>
+                  <option value="skip">{t("importPreview.skip")}</option>
+                  <option value="update">{t("importPreview.updateExisting")}</option>
                 </select>
               </div>
             ))}
@@ -284,15 +285,15 @@ function PreviewStage({
       )}
 
       {classification.newRows.length > 0 && (
-        <Section title={`New members (${classification.newRows.length})`}>
+        <Section title={t("importPreview.newMembersTitle", { count: classification.newRows.length })}>
           <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full text-sm">
               <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
                 <tr>
-                  <th className="text-left px-3 py-2 w-12">Skip</th>
-                  <th className="text-left px-3 py-2">Name</th>
-                  <th className="text-left px-3 py-2">Email</th>
-                  <th className="text-left px-3 py-2">Phone</th>
+                  <th className="text-left px-3 py-2 w-12">{t("importPreview.skip")}</th>
+                  <th className="text-left px-3 py-2">{t("importPreview.name")}</th>
+                  <th className="text-left px-3 py-2">{t("importPreview.email")}</th>
+                  <th className="text-left px-3 py-2">{t("importPreview.phone")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -318,12 +319,12 @@ function PreviewStage({
       )}
 
       {classification.invalidRows.length > 0 && (
-        <Section title={`Invalid rows (${classification.invalidRows.length}) — will be skipped`}>
+        <Section title={t("importPreview.invalidRowsTitle", { count: classification.invalidRows.length })}>
           <div className="space-y-2">
             {classification.invalidRows.map((r) => (
               <div key={r.rowIndex} className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2 text-sm">
-                <span className="text-muted-foreground">Row {r.rowIndex}: </span>
-                <span className="font-medium">{r.name || "(no name)"}</span>
+                <span className="text-muted-foreground">{t("importPreview.row", { n: r.rowIndex })}</span>
+                <span className="font-medium">{r.name || t("importPreview.noName")}</span>
                 <span className="text-destructive"> — {r.errors.join(", ")}</span>
               </div>
             ))}
@@ -335,22 +336,23 @@ function PreviewStage({
 }
 
 function DoneStage({ result }: { result: ImportResult }) {
+  const { t } = useTranslation();
   return (
     <div className="py-8 text-center">
       <CheckCircle2 className="h-12 w-12 mx-auto text-primary mb-3" />
-      <h3 className="font-display text-xl font-semibold mb-1">Import complete</h3>
-      <p className="text-sm text-muted-foreground mb-6">Your member list has been updated.</p>
+      <h3 className="font-display text-xl font-semibold mb-1">{t("importPreview.complete")}</h3>
+      <p className="text-sm text-muted-foreground mb-6">{t("importPreview.completeDesc")}</p>
       <div className="grid grid-cols-3 gap-3 max-w-md mx-auto">
-        <Stat label="Created" value={result.created} tone="primary" />
-        <Stat label="Updated" value={result.updated} tone="primary" />
-        <Stat label="Skipped" value={result.skipped} tone="muted" />
+        <Stat label={t("importPreview.created")} value={result.created} tone="primary" />
+        <Stat label={t("importPreview.updated")} value={result.updated} tone="primary" />
+        <Stat label={t("importPreview.skipped")} value={result.skipped} tone="muted" />
       </div>
       {result.failed.length > 0 && (
         <div className="mt-4 max-w-md mx-auto rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-left text-sm">
-          <p className="font-medium text-destructive mb-2">{result.failed.length} failed:</p>
+          <p className="font-medium text-destructive mb-2">{t("importPreview.failed", { count: result.failed.length })}</p>
           <ul className="space-y-1 text-xs text-muted-foreground max-h-32 overflow-y-auto">
             {result.failed.map((f, i) => (
-              <li key={i}>{f.row.name || "(no name)"} — {f.error}</li>
+              <li key={i}>{f.row.name || t("importPreview.noName")} — {f.error}</li>
             ))}
           </ul>
         </div>

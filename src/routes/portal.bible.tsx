@@ -1735,7 +1735,7 @@ function ProgressHistory({
                   </div>
                 </div>
                 <span className="text-xs text-muted-foreground whitespace-nowrap">
-                  {new Date(c.completed_date + "T12:00:00").toLocaleDateString()}
+                  {new Date(c.completed_date + "T12:00:00").toLocaleDateString("en-US")}
                 </span>
               </div>
             </button>
@@ -1756,7 +1756,7 @@ function ProgressHistory({
                   {r.devotionals?.title || "Reflexão"}
                 </div>
                 <span className="text-xs text-muted-foreground whitespace-nowrap">
-                  {new Date(r.updated_at).toLocaleDateString()}
+                  {new Date(r.updated_at).toLocaleDateString("en-US")}
                 </span>
               </div>
               {r.learned_text && (
@@ -1781,7 +1781,7 @@ function ProgressHistory({
             <div key={r.id} className="card-elevated p-3 flex items-center justify-between">
               <div className="text-sm font-medium text-foreground">{r.book} {r.chapter}</div>
               <span className="text-xs text-muted-foreground">
-                {new Date(r.read_date + "T12:00:00").toLocaleDateString()}
+                {new Date(r.read_date + "T12:00:00").toLocaleDateString("en-US")}
               </span>
             </div>
           ))}
@@ -1851,7 +1851,7 @@ function PastDevotionalViewer({ devotionalId, onBack }: { devotionalId: string; 
         <article className="card-elevated p-6 md:p-8 space-y-5">
           <div>
             <div className="text-xs font-medium text-primary uppercase tracking-wider">
-              📅 {new Date(dev.devotional_date + "T12:00:00").toLocaleDateString()}
+              📅 {new Date(dev.devotional_date + "T12:00:00").toLocaleDateString("en-US")}
             </div>
             <h3 className="font-display text-2xl md:text-3xl font-semibold text-foreground mt-1 leading-tight">{dev.title}</h3>
             <p className="text-sm text-muted-foreground mt-1">{dev.bible_reference}</p>

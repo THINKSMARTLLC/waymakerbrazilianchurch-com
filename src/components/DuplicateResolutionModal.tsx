@@ -32,12 +32,14 @@ export function DuplicateResolutionModal({
   members,
   reasons,
   severity = "duplicate",
+  groupKey,
   onClose,
   onResolved,
 }: {
   members: Member[];
   reasons: ("email" | "phone" | "name")[];
   severity?: "duplicate" | "warning";
+  groupKey?: string;
   onClose: () => void;
   onResolved: () => void;
 }) {

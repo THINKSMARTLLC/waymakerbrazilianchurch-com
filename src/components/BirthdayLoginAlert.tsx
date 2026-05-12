@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Cake, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { getBirthdayInfo } from "@/lib/birthday";
 import { toTitleCase } from "@/lib/format";
@@ -7,6 +8,7 @@ import { toTitleCase } from "@/lib/format";
 const SESSION_KEY = "birthday_alert_dismissed_date";
 
 export function BirthdayLoginAlert() {
+  const { t } = useTranslation();
   const [names, setNames] = useState<string[]>([]);
   const [dismissed, setDismissed] = useState(false);
 
@@ -44,13 +46,13 @@ export function BirthdayLoginAlert() {
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
           <Cake className="h-3.5 w-3.5" />
-          {names.length === 1 ? "1 aniversariante hoje!" : `${names.length} aniversariantes hoje!`}
+          {t("birthdays.todayCount", { count: names.length })}
         </p>
         <p className="text-xs text-muted-foreground mt-0.5 truncate">
-          {names.slice(0, 4).join(", ")}{names.length > 4 ? ` e mais ${names.length - 4}...` : ""}
+          {names.slice(0, 4).join(", ")}{names.length > 4 ? `…` : ""}
         </p>
       </div>
-      <button onClick={dismiss} className="text-muted-foreground hover:text-foreground" title="Dispensar">
+      <button onClick={dismiss} className="text-muted-foreground hover:text-foreground" title={t("common.dismiss")}>
         <X className="h-4 w-4" />
       </button>
     </div>

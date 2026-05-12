@@ -325,7 +325,7 @@ export function WhatsAppMessageModal({ open, onOpenChange, member }: WhatsAppMes
                       type="button"
                       onClick={() => handleDeleteCustom(t.id)}
                       className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      title="Excluir mensagem"
+                      title={t("whatsapp.deleteMessage")}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

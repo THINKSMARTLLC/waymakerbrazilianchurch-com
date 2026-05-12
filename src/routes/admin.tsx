@@ -307,6 +307,7 @@ type LogRow = {
 };
 
 function ActivityLogSection() {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [filter, setFilter] = useState<"all" | "errors" | "stripe" | "members">("all");
   const [expanded, setExpanded] = useState<string | null>(null);

@@ -253,11 +253,21 @@ export function DuplicateResolutionModal({
             </div>
             <div>
               <h2 className="font-display text-lg font-semibold text-foreground">
-                {isWarning ? "Shared phone number detected" : "This member appears duplicated"}
+                {archiveMode
+                  ? "Archive a duplicate record"
+                  : overrideMerge
+                  ? "Merge anyway (admin override)"
+                  : isWarning
+                  ? "These members may belong to different people"
+                  : "This member appears duplicated"}
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
-                {isWarning
-                  ? `${members.length} members share the same phone number but have different names/emails. They likely live together (e.g. family) — both records can coexist. No merge is offered.`
+                {archiveMode
+                  ? "Choose which record to archive. Archived records keep all payments, activities, devotionals and engagement and can be restored later."
+                  : overrideMerge
+                  ? `${members.length} records share a phone number but have different names/emails. Only proceed if you have confirmed they are the same person.`
+                  : isWarning
+                  ? `${members.length} members share the same phone number but have different names/emails. They may live together (e.g. family) — or this may still be the same person under two records. Choose how to resolve.`
                   : `${members.length} records match by ${reasons.join(" + ") || "similar data"}. Pick which to keep and which to merge into it. No data is deleted until you confirm.`}
               </p>
             </div>

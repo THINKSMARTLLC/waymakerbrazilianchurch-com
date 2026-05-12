@@ -15,6 +15,7 @@ interface Row {
 }
 
 export function UpcomingBirthdays() {
+  const { t } = useTranslation();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"today" | "week" | "month">("week");

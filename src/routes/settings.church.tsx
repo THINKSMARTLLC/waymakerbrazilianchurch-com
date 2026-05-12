@@ -24,6 +24,7 @@ interface Settings {
 }
 
 function ChurchSettingsPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { isSuperAdmin, loading: roleLoading } = useUserRole();
   const [settings, setSettings] = useState<Settings | null>(null);

@@ -421,11 +421,11 @@ function EngagementDashboard() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="table-header px-5 py-3 text-left">Membro</th>
+                  <th className="table-header px-5 py-3 text-left">{t("engagementPage.memberColumn")}</th>
                   <th className="table-header px-5 py-3 text-left">Engajamento</th>
                   <th className="table-header px-5 py-3 text-left">Última atividade</th>
                   <th className="table-header px-5 py-3 text-left">Total / Pontos</th>
-                  <th className="table-header px-5 py-3 text-right">Ações</th>
+                  <th className="table-header px-5 py-3 text-right">{t("common.actions")}</th>
                 </tr>
               </thead>
               <tbody>

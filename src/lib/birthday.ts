@@ -1,4 +1,5 @@
 // Birthday helpers — all date math is done in local time to avoid TZ shifts.
+import i18n from "i18next";
 
 export interface BirthdayInfo {
   /** Days until next birthday (0 = today). */

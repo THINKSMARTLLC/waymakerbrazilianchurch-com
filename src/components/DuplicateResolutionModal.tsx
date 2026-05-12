@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Crown, GitMerge, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Member } from "@/lib/duplicates";
-import { mergeMembers } from "@/lib/duplicates";
+import { mergeMembers, dismissDuplicateGroup } from "@/lib/duplicates";
 import { formatUSD, toTitleCase } from "@/lib/format";
 import { formatPhoneDisplay } from "@/lib/phone";
 

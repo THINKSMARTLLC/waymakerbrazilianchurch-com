@@ -93,10 +93,10 @@ function ChurchSettingsPage() {
       .eq("id", settings.id);
     setSaving(false);
     if (error) {
-      setMessage(`Erro: ${error.message}`);
+      setMessage(`${t("settingsPage.errorPrefix")}: ${error.message}`);
       return;
     }
-    setMessage("Configurações salvas!");
+    setMessage(t("settingsPage.saved"));
     setTimeout(() => setMessage(""), 3000);
   };
 

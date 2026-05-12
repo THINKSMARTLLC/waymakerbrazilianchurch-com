@@ -55,5 +55,5 @@ export function formatBirthdayLabel(info: BirthdayInfo): string {
   if (info.daysUntil === 0) return "Hoje 🎂";
   if (info.daysUntil === 1) return "Amanhã";
   if (info.daysUntil <= 7) return `Em ${info.daysUntil} dias`;
-  return info.nextDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+  return info.nextDate.toLocaleDateString("en-US", { day: "2-digit", month: "short" });
 }

@@ -30,17 +30,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Way Maker Church — Um lugar para viver o Evangelho de verdade" },
+      { title: "Way Maker Church — A place to live the Gospel for real" },
       {
         name: "description",
         content:
-          "Uma comunidade centrada em Cristo, onde vidas são transformadas, famílias são restauradas e o propósito em Deus se torna real.",
+          "A Christ-centered community where lives are transformed, families are restored, and purpose in God becomes real.",
       },
-      { property: "og:title", content: "Way Maker Church — Um lugar para viver o Evangelho de verdade" },
+      { property: "og:title", content: "Way Maker Church — A place to live the Gospel for real" },
       {
         property: "og:description",
         content:
-          "Uma comunidade centrada em Cristo, onde vidas são transformadas, famílias são restauradas e o propósito em Deus se torna real.",
+          "A Christ-centered community where lives are transformed, families are restored, and purpose in God becomes real.",
       },
       { property: "og:type", content: "website" },
     ],
@@ -48,31 +48,18 @@ export const Route = createFileRoute("/")({
   component: LandingPage,
 });
 
-// 🔁 A/B Variations (estruturadas para teste — não exibidas ao usuário final)
-const AB_VARIATIONS = {
-  headlines: [
-    "Mais do que uma igreja. Um recomeço com Deus.",
-    "Se você busca algo real com Deus, você acabou de encontrar.",
-    "Um lugar onde o Evangelho é vivido — não apenas falado.",
-  ],
-  ctas: ["Quero dar o primeiro passo", "Quero conhecer essa igreja", "Quero viver isso"],
-};
-
 const WHATSAPP_URL =
-  'https://wa.me/18622362964?text=Olá%2C%20vim%20através%20da%20rede%20social%20e%20gostaria%20de%20maiores%20informações%20sobre%20a%20Way%20Maker';
+  "https://wa.me/18622362964?text=Hello%2C%20I%20came%20through%20social%20media%20and%20would%20like%20more%20information%20about%20Way%20Maker";
 
 const ACTIVE_DONATION_URL = "https://buy.stripe.com/6oU9AVdhw6mJgBg3jD8og01";
 
 function LandingPage() {
   const { t } = useTranslation();
 
-  // Smooth scroll
   useEffect(() => {
     const root = document.documentElement;
     const previous = root.style.scrollBehavior;
     root.style.scrollBehavior = "smooth";
-    // Expose A/B data on window for analytics scripts (no UI side effects).
-    (window as unknown as { __WMC_AB__?: typeof AB_VARIATIONS }).__WMC_AB__ = AB_VARIATIONS;
     return () => {
       root.style.scrollBehavior = previous;
     };
@@ -128,6 +115,29 @@ function LandingPage() {
     window.open(ACTIVE_DONATION_URL, "_blank", "noopener,noreferrer");
   };
 
+  const feelings = ["noPurpose", "disappointed", "wounded", "missing", "shallow"] as const;
+  const values: Array<{ icon: typeof Cross; key: "christCentered" | "biblical" | "transformation" | "community" | "care" }> = [
+    { icon: Cross, key: "christCentered" },
+    { icon: BookOpen, key: "biblical" },
+    { icon: Sparkles, key: "transformation" },
+    { icon: UsersRound, key: "community" },
+    { icon: HandHeart, key: "care" },
+  ];
+  const pillars: Array<{ icon: typeof BookOpen; key: "teaching" | "discipleship" | "relationships" | "impact" }> = [
+    { icon: BookOpen, key: "teaching" },
+    { icon: Users, key: "discipleship" },
+    { icon: Heart, key: "relationships" },
+    { icon: Sparkles, key: "impact" },
+  ];
+  const findItems: Array<{ icon: typeof BookOpen; key: "biblical" | "welcoming" | "real" | "support" | "fellowship" | "growServe" }> = [
+    { icon: BookOpen, key: "biblical" },
+    { icon: HandHeart, key: "welcoming" },
+    { icon: Users, key: "real" },
+    { icon: Heart, key: "support" },
+    { icon: UsersRound, key: "fellowship" },
+    { icon: Sparkles, key: "growServe" },
+  ];
+
   return (
     <div className="min-h-screen bg-[oklch(0.99_0.003_85)] text-[oklch(0.18_0.01_60)] antialiased">
       {/* Top nav */}
@@ -143,7 +153,7 @@ function LandingPage() {
             to="/login"
             className="inline-block rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md transition hover:bg-white/20 md:px-4 md:py-2 md:text-sm"
           >
-            Área do membro
+            {t("landingPage.memberArea")}
           </Link>
         </div>
       </header>
@@ -153,7 +163,7 @@ function LandingPage() {
         <div className="absolute inset-0 -z-10">
           <img
             src={heroImage}
-            alt="Comunidade em momento de adoração"
+            alt={t("landingPage.communityWorshipAlt")}
             width={1920}
             height={1080}
             className="h-full w-full object-cover"
@@ -164,23 +174,23 @@ function LandingPage() {
         <div className="mx-auto flex min-h-[100svh] max-w-5xl flex-col items-center justify-center px-6 py-32 text-center text-white md:px-10">
           <span className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.2em] text-white/90 backdrop-blur-md">
             <Sparkles className="h-3.5 w-3.5" style={{ color: "oklch(0.82 0.13 85)" }} />
-            Way Maker Church
+            {t("landingPage.heroBadge")}
           </span>
 
           <h1 className="font-display text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-            Um lugar para quem não quer
+            {t("landingPage.heroTitle1")}
             <br className="hidden sm:block" />
             <span className="italic font-normal" style={{ color: "oklch(0.85 0.12 85)" }}>
-              {" "}apenas ir à igreja…
+              {t("landingPage.heroTitle2")}
             </span>
             <br />
-            mas viver o Evangelho de verdade.
+            {t("landingPage.heroTitle3")}
           </h1>
 
           <p className="mt-8 max-w-2xl text-base leading-relaxed text-white/85 sm:text-lg">
-            Aqui você encontra uma comunidade centrada em Cristo,
-            <br className="hidden sm:block" /> onde vidas são transformadas, famílias são restauradas
-            <br className="hidden sm:block" /> e o propósito em Deus se torna real.
+            {t("landingPage.heroLead1")}
+            <br className="hidden sm:block" /> {t("landingPage.heroLead2")}
+            <br className="hidden sm:block" /> {t("landingPage.heroLead3")}
           </p>
 
           <div className="mt-12 flex flex-col items-center gap-4 sm:flex-row">
@@ -192,7 +202,7 @@ function LandingPage() {
               }}
               className="group inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-sm font-semibold text-black shadow-xl shadow-black/30 transition hover:scale-[1.02] hover:bg-white/95"
             >
-              Quero conhecer mais sobre a Way Maker Church
+              {t("landingPage.heroCta")}
               <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
             </a>
           </div>
@@ -201,33 +211,27 @@ function LandingPage() {
             href="#conexao"
             className="mt-20 text-xs uppercase tracking-[0.3em] text-white/60 transition hover:text-white/90"
           >
-            ↓ Continue
+            {t("landingPage.continue")}
           </a>
         </div>
       </section>
 
-      {/* CONEXÃO / IDENTIFICAÇÃO */}
+      {/* CONNECTION / IDENTIFICATION */}
       <section id="conexao" className="relative px-6 py-24 md:py-32 md:px-10">
         <div className="mx-auto max-w-3xl">
           <div className="mb-12 text-center">
             <span className="text-xs uppercase tracking-[0.25em] text-[oklch(0.55_0.06_60)]">
-              Identificação
+              {t("landingPage.identification")}
             </span>
             <h2 className="mt-4 font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl md:text-5xl">
-              Se você sente que…
+              {t("landingPage.ifYouFeel")}
             </h2>
           </div>
 
           <ul className="space-y-5">
-            {[
-              "Está vivendo sem direção ou propósito",
-              "Já se decepcionou com religião vazia",
-              "Carrega feridas emocionais ou espirituais",
-              "Sente falta de algo verdadeiro com Deus",
-              "Quer fazer parte de algo real, não superficial",
-            ].map((item) => (
+            {feelings.map((key) => (
               <li
-                key={item}
+                key={key}
                 className="flex items-start gap-4 rounded-2xl border border-black/5 bg-white px-6 py-5 shadow-sm"
               >
                 <span
@@ -237,93 +241,81 @@ function LandingPage() {
                   <Check className="h-4 w-4" style={{ color: "oklch(0.55 0.12 110)" }} />
                 </span>
                 <span className="text-base leading-relaxed text-[oklch(0.28_0.02_60)] sm:text-lg">
-                  {item}
+                  {t(`landingPage.feelings.${key}`)}
                 </span>
               </li>
             ))}
           </ul>
 
           <p className="mt-12 text-center font-display text-xl font-medium text-[oklch(0.25_0.02_60)] sm:text-2xl">
-            👉 Você não está sozinho. <span className="italic">E existe um caminho.</span>
+            {t("landingPage.notAlone")} <span className="italic">{t("landingPage.thereIsAWay")}</span>
           </p>
         </div>
       </section>
 
-      {/* POSICIONAMENTO */}
+      {/* POSITIONING */}
       <section className="relative bg-[oklch(0.16_0.01_60)] px-6 py-24 text-white md:py-32 md:px-10">
         <div className="mx-auto max-w-4xl">
           <div className="mb-14 text-center">
             <span className="text-xs uppercase tracking-[0.25em] text-white/50">
-              ✝️ Posicionamento
+              {t("landingPage.positioning")}
             </span>
             <h2 className="mt-4 font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl md:text-5xl">
-              Na Way Maker Church, não focamos em
+              {t("landingPage.positioningTitle1")}
               <span className="italic font-normal" style={{ color: "oklch(0.85 0.12 85)" }}>
-                {" "}aparência, performance ou entretenimento.
+                {t("landingPage.positioningTitle2")}
               </span>
             </h2>
           </div>
 
-          <p className="mb-10 text-center text-lg text-white/70">Somos uma igreja:</p>
+          <p className="mb-10 text-center text-lg text-white/70">{t("landingPage.weAreChurch")}</p>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            {[
-              { icon: Cross, text: "Centrada em Cristo e na cruz" },
-              { icon: BookOpen, text: "Baseada na verdade bíblica" },
-              { icon: Sparkles, text: "Focada em transformação real, não apenas frequência" },
-              { icon: UsersRound, text: "Construída sobre comunhão verdadeira e pertencimento" },
-              { icon: HandHeart, text: "Comprometida com cuidar de pessoas de forma prática" },
-            ].map(({ icon: Icon, text }) => (
+            {values.map(({ icon: Icon, key }) => (
               <div
-                key={text}
+                key={key}
                 className="flex items-start gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-5 backdrop-blur-sm"
               >
                 <Icon className="h-5 w-5 shrink-0 mt-0.5" style={{ color: "oklch(0.85 0.12 85)" }} />
-                <span className="text-base leading-relaxed text-white/90">{text}</span>
+                <span className="text-base leading-relaxed text-white/90">{t(`landingPage.values.${key}`)}</span>
               </div>
             ))}
           </div>
 
           <div className="mt-14 text-center">
             <p className="font-display text-2xl font-medium leading-snug sm:text-3xl">
-              Aqui, você não é mais um.
+              {t("landingPage.notJustOne")}
               <br />
               <span className="italic" style={{ color: "oklch(0.85 0.12 85)" }}>
-                Você faz parte de uma família.
+                {t("landingPage.youAreFamily")}
               </span>
             </p>
           </div>
         </div>
       </section>
 
-      {/* HISTÓRIA / AUTORIDADE */}
+      {/* OUR STORY */}
       <section className="px-6 py-24 md:py-32 md:px-10">
         <div className="mx-auto grid max-w-6xl gap-16 md:grid-cols-2 md:items-center">
           <div>
             <span className="text-xs uppercase tracking-[0.25em] text-[oklch(0.55_0.06_60)]">
-              💬 Nossa história
+              {t("landingPage.ourStoryTag")}
             </span>
             <h2 className="mt-4 font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl md:text-5xl">
-              A Way Maker Church nasceu com uma visão clara:
+              {t("landingPage.ourStoryTitle1")}
               <span className="italic font-normal" style={{ color: "oklch(0.55 0.12 110)" }}>
-                {" "}romper com o superficial e voltar ao essencial — Cristo.
+                {t("landingPage.ourStoryTitle2")}
               </span>
             </h2>
             <p className="mt-6 text-lg leading-relaxed text-[oklch(0.4_0.02_60)]">
-              Com mais de 15 anos de experiência ministerial, nosso pastor lidera uma comunidade
-              que cresce com base em:
+              {t("landingPage.ourStoryLead")}
             </p>
           </div>
 
           <ul className="space-y-4">
-            {[
-              { icon: BookOpen, text: "Ensino bíblico sólido" },
-              { icon: Users, text: "Discipulado intencional" },
-              { icon: Heart, text: "Relacionamentos verdadeiros" },
-              { icon: Sparkles, text: "Impacto real na vida das pessoas" },
-            ].map(({ icon: Icon, text }) => (
+            {pillars.map(({ icon: Icon, key }) => (
               <li
-                key={text}
+                key={key}
                 className="flex items-center gap-4 rounded-2xl border border-black/5 bg-white px-6 py-5 shadow-sm"
               >
                 <span
@@ -333,7 +325,7 @@ function LandingPage() {
                   <Icon className="h-5 w-5" style={{ color: "oklch(0.55 0.12 110)" }} />
                 </span>
                 <span className="text-base font-medium text-[oklch(0.25_0.02_60)] sm:text-lg">
-                  {text}
+                  {t(`landingPage.pillars.${key}`)}
                 </span>
               </li>
             ))}
@@ -342,16 +334,16 @@ function LandingPage() {
 
         <div className="mx-auto mt-16 max-w-3xl text-center">
           <p className="font-display text-2xl font-medium italic text-[oklch(0.25_0.02_60)] sm:text-3xl">
-            Não somos sobre eventos.
+            {t("landingPage.notEvents")}
             <br />
             <span className="not-italic font-semibold" style={{ color: "oklch(0.45 0.13 110)" }}>
-              Somos sobre transformação.
+              {t("landingPage.transformation")}
             </span>
           </p>
         </div>
       </section>
 
-      {/* O QUE VOCÊ VAI ENCONTRAR */}
+      {/* WHAT YOU'LL FIND */}
       <section
         className="px-6 py-24 md:py-32 md:px-10"
         style={{ backgroundColor: "oklch(0.97 0.01 90)" }}
@@ -359,25 +351,18 @@ function LandingPage() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-16 text-center">
             <span className="text-xs uppercase tracking-[0.25em] text-[oklch(0.55_0.06_60)]">
-              🌱 O que você vai encontrar aqui
+              {t("landingPage.findHereTag")}
             </span>
             <h2 className="mt-4 font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl md:text-5xl">
-              Tudo o que sua alma busca,
-              <br className="hidden sm:block" /> em um só lugar.
+              {t("landingPage.findHereTitle1")}
+              <br className="hidden sm:block" /> {t("landingPage.findHereTitle2")}
             </h2>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              { icon: BookOpen, text: "Uma palavra bíblica que confronta e transforma" },
-              { icon: HandHeart, text: "Um ambiente simples, acolhedor e sem julgamentos" },
-              { icon: Users, text: "Pessoas reais, vivendo processos reais" },
-              { icon: Heart, text: "Apoio espiritual e emocional" },
-              { icon: UsersRound, text: "Comunhão verdadeira" },
-              { icon: Sparkles, text: "Oportunidade de crescer e servir" },
-            ].map(({ icon: Icon, text }) => (
+            {findItems.map(({ icon: Icon, key }) => (
               <div
-                key={text}
+                key={key}
                 className="group rounded-3xl border border-black/5 bg-white p-8 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
               >
                 <span
@@ -387,7 +372,7 @@ function LandingPage() {
                   <Icon className="h-6 w-6" style={{ color: "oklch(0.5 0.12 110)" }} />
                 </span>
                 <p className="text-base leading-relaxed text-[oklch(0.28_0.02_60)] sm:text-lg">
-                  {text}
+                  {t(`landingPage.find.${key}`)}
                 </p>
               </div>
             ))}
@@ -395,23 +380,23 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* PRÓXIMOS PASSOS */}
+      {/* NEXT STEPS */}
       <section id="comecar" className="px-6 py-24 md:py-32 md:px-10">
         <div className="mx-auto max-w-5xl">
           <div className="mb-16 text-center">
             <span className="text-xs uppercase tracking-[0.25em] text-[oklch(0.55_0.06_60)]">
-              🚪 Como você pode começar
+              {t("landingPage.howStartTag")}
             </span>
             <h2 className="mt-4 font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl md:text-5xl">
-              Você pode dar o próximo passo
+              {t("landingPage.yourTimeTitle1")}
               <br className="hidden sm:block" />
               <span className="italic font-normal" style={{ color: "oklch(0.5 0.12 110)" }}>
-                {" "}no seu tempo 👇
+                {t("landingPage.yourTimeTitle2")}
               </span>
             </h2>
           </div>
 
-          {/* DIAS DE CULTO + ENDEREÇO + MAPA */}
+          {/* SCHEDULE + ADDRESS */}
           <div className="mb-16 grid gap-6 lg:grid-cols-2">
             <div className="rounded-3xl border border-black/5 bg-white p-8 shadow-sm">
               <div className="flex items-center gap-3">
@@ -423,56 +408,56 @@ function LandingPage() {
                 </span>
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[oklch(0.5_0.12_110)]">
-                    Programação oficial
+                    {t("landingPage.officialSchedule")}
                   </p>
                   <h3 className="font-display text-xl font-semibold text-[oklch(0.18_0.01_60)]">
-                    Dias de culto
+                    {t("landingPage.serviceDays")}
                   </h3>
                 </div>
               </div>
 
               <div className="mt-6 space-y-5 text-[oklch(0.3_0.02_60)]">
                 <div className="animate-fade-in">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.18_0.01_60)]">Domingo</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.18_0.01_60)]">{t("landingPage.sunday")}</p>
                   <ul className="mt-2 space-y-1.5 text-base leading-relaxed">
-                    <li className="flex gap-2"><span>☕</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">9:30 AM</span> — Café Colonial <span className="text-sm text-[oklch(0.5_0.02_60)]">(Membros & Visitantes)</span></span></li>
-                    <li className="flex gap-2"><span>🙌</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">10:30 AM</span> — Culto de Adoração</span></li>
+                    <li className="flex gap-2"><span>☕</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">9:30 AM</span> — {t("landingPage.colonialBreakfast")} <span className="text-sm text-[oklch(0.5_0.02_60)]">{t("landingPage.membersAndVisitors")}</span></span></li>
+                    <li className="flex gap-2"><span>🙌</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">10:30 AM</span> — {t("landingPage.worshipService")}</span></li>
                   </ul>
                 </div>
 
                 <div className="animate-fade-in">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.18_0.01_60)]">Segunda-feira</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.18_0.01_60)]">{t("landingPage.mondayDay")}</p>
                   <ul className="mt-2 space-y-1.5 text-base leading-relaxed">
-                    <li className="flex gap-2"><span>📖</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">8:00 PM</span> — Ensino Bíblico <span className="text-sm text-[oklch(0.5_0.02_60)]">(Obrigatório para todos os líderes)</span></span></li>
+                    <li className="flex gap-2"><span>📖</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">8:00 PM</span> — {t("landingPage.biblicalTeaching")} <span className="text-sm text-[oklch(0.5_0.02_60)]">{t("landingPage.biblicalTeachingNote")}</span></span></li>
                   </ul>
                 </div>
 
                 <div className="animate-fade-in">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.18_0.01_60)]">Quarta-feira</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.18_0.01_60)]">{t("landingPage.wednesday")}</p>
                   <ul className="mt-2 space-y-1.5 text-base leading-relaxed">
-                    <li className="flex gap-2"><span>🔥</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">8:00 PM</span> — Culto de Resgate</span></li>
+                    <li className="flex gap-2"><span>🔥</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">8:00 PM</span> — {t("landingPage.rescueService")}</span></li>
                   </ul>
                 </div>
 
                 <div className="animate-fade-in">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.18_0.01_60)]">Sexta-feira</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[oklch(0.18_0.01_60)]">{t("landingPage.friday")}</p>
                   <ul className="mt-2 space-y-1.5 text-base leading-relaxed">
-                    <li className="flex gap-2"><span>⚡</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">8:00 PM</span> — Culto de Jovens · Flow Ministry</span></li>
+                    <li className="flex gap-2"><span>⚡</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">8:00 PM</span> — {t("landingPage.youthService")}</span></li>
                   </ul>
                 </div>
 
                 <div className="border-t border-black/5 pt-4 space-y-2 text-sm leading-relaxed">
-                  <p className="flex gap-2"><span>🍞</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">Santa Ceia</span> — sempre no primeiro domingo do mês.</span></p>
-                  <p className="flex gap-2"><span>🌸</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">Ella's Ministry</span> — Reunião de Mulheres, última sexta-feira de cada mês.</span></p>
+                  <p className="flex gap-2"><span>🍞</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">{t("landingPage.communion")}</span> {t("landingPage.communionNote")}</span></p>
+                  <p className="flex gap-2"><span>🌸</span><span><span className="font-medium text-[oklch(0.18_0.01_60)]">{t("landingPage.ellaMinistry")}</span> {t("landingPage.ellaNote")}</span></p>
                 </div>
               </div>
 
               <div className="mt-8 rounded-2xl bg-[oklch(0.16_0.01_60)] p-6 text-center animate-fade-in">
                 <p className="font-display text-lg font-medium leading-snug text-white sm:text-xl">
-                  "Jesus ainda continua restaurando vidas."
+                  {t("landingPage.jesusRestores")}
                 </p>
                 <p className="mt-2 text-sm text-[oklch(0.75_0.04_90)]">
-                  Todas as vidas são valiosas pra nós.
+                  {t("landingPage.allLivesPrecious")}
                 </p>
               </div>
             </div>
@@ -486,15 +471,15 @@ function LandingPage() {
                   <MapPin className="h-5 w-5" style={{ color: "oklch(0.5 0.12 110)" }} />
                 </span>
                 <h3 className="font-display text-xl font-semibold text-[oklch(0.18_0.01_60)]">
-                  📍 Endereço
+                  {t("landingPage.addressTitle")}
                 </h3>
               </div>
               <p className="mt-6 text-base leading-relaxed text-[oklch(0.3_0.02_60)]">
-                110 Paris St 2FL, Newark, New Jersey
+                {t("landingPage.addressLine")}
               </p>
               <div className="mt-6 overflow-hidden rounded-2xl border border-black/5">
                 <iframe
-                  title="Mapa Way Maker Church"
+                  title={t("landingPage.mapTitle")}
                   src="https://www.google.com/maps?q=110+Paris+St+2FL,+Newark,+New+Jersey&output=embed"
                   width="100%"
                   height="260"
@@ -511,31 +496,21 @@ function LandingPage() {
                 className="mt-6 inline-flex items-center justify-center gap-2 self-start rounded-full bg-[oklch(0.16_0.01_60)] px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:scale-[1.02] hover:bg-[oklch(0.22_0.01_60)]"
               >
                 <Navigation className="h-4 w-4" />
-                Como chegar
+                {t("landingPage.directions")}
               </a>
             </div>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
             {[
-              {
-                icon: MessageCircle,
-                title: "Falar com alguém da nossa equipe",
-                desc: "Se você prefere conversar antes, estamos aqui para te ouvir.",
-                href: WHATSAPP_URL,
-              },
-              {
-                icon: UsersRound,
-                title: "Fazer parte de um grupo / célula",
-                desc: "Cresça em um ambiente mais próximo, com acompanhamento real.",
-                href: WHATSAPP_URL,
-              },
-            ].map(({ icon: Icon, title, desc, href }) => (
+              { icon: MessageCircle, titleKey: "talkToTeam", descKey: "talkToTeamDesc" },
+              { icon: UsersRound, titleKey: "joinGroup", descKey: "joinGroupDesc" },
+            ].map(({ icon: Icon, titleKey, descKey }) => (
               <a
-                key={title}
-                href={href}
-                target={href.startsWith("http") ? "_blank" : undefined}
-                rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+                key={titleKey}
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="group relative flex flex-col rounded-3xl border border-black/5 bg-white p-8 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
               >
                 <span
@@ -545,13 +520,13 @@ function LandingPage() {
                   <Icon className="h-5 w-5 text-white" />
                 </span>
                 <h3 className="font-display text-xl font-semibold leading-tight text-[oklch(0.18_0.01_60)]">
-                  {title}
+                  {t(`landingPage.${titleKey}`)}
                 </h3>
                 <p className="mt-3 flex-1 text-sm leading-relaxed text-[oklch(0.45_0.02_60)]">
-                  {desc}
+                  {t(`landingPage.${descKey}`)}
                 </p>
                 <span className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[oklch(0.18_0.01_60)]">
-                  Dar este passo
+                  {t("landingPage.takeThisStep")}
                   <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
                 </span>
               </a>
@@ -560,17 +535,17 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* REDES SOCIAIS */}
+      {/* SOCIAL */}
       <section className="px-6 py-20 md:px-10" style={{ backgroundColor: "oklch(0.16 0.01 60)" }}>
         <div className="mx-auto max-w-3xl text-center text-white">
           <span className="text-xs uppercase tracking-[0.25em] text-white/50">
-            📲 Acompanhe e se conecte
+            {t("landingPage.followTag")}
           </span>
           <h2 className="mt-4 font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
-            Siga a Way Maker Church no Instagram
+            {t("landingPage.followTitle1")}
             <br className="hidden sm:block" />
             <span className="italic font-normal" style={{ color: "oklch(0.85 0.12 85)" }}>
-              {" "}e acompanhe tudo que está acontecendo.
+              {t("landingPage.followTitle2")}
             </span>
           </h2>
           <div className="mt-10 flex justify-center">
@@ -581,39 +556,39 @@ function LandingPage() {
               className="inline-flex items-center gap-3 rounded-full bg-white px-8 py-4 text-sm font-semibold text-black shadow-xl shadow-black/30 transition hover:scale-[1.02]"
             >
               <Instagram className="h-5 w-5" />
-              Seguir no Instagram
+              {t("landingPage.followInstagram")}
             </a>
           </div>
         </div>
       </section>
 
-      {/* ACOLHIMENTO */}
+      {/* WELCOME */}
       <section
         className="px-6 py-24 md:py-32 md:px-10"
         style={{ backgroundColor: "oklch(0.96 0.02 95)" }}
       >
         <div className="mx-auto max-w-3xl text-center">
           <span className="text-xs uppercase tracking-[0.25em] text-[oklch(0.45_0.08_75)]">
-            💛 Acolhimento
+            {t("landingPage.welcomeTag")}
           </span>
           <p className="mt-6 font-display text-3xl font-medium leading-tight tracking-tight text-[oklch(0.2_0.02_60)] sm:text-4xl md:text-5xl">
-            Não importa como você chega.
+            {t("landingPage.welcomeTitle1")}
             <br />
             <span className="italic" style={{ color: "oklch(0.45 0.13 110)" }}>
-              O que importa é que você encontrou um lugar para recomeçar.
+              {t("landingPage.welcomeTitle2")}
             </span>
           </p>
         </div>
       </section>
 
-      {/* CTAs SECUNDÁRIOS */}
+      {/* SECONDARY CTAs */}
       <section id="ctas" className="px-6 py-24 md:py-32 md:px-10">
         <div className="mx-auto max-w-4xl text-center">
           <span className="text-xs uppercase tracking-[0.25em] text-[oklch(0.55_0.06_60)]">
-            🔘 Próximo passo
+            {t("landingPage.nextStepTag")}
           </span>
           <h2 className="mt-4 font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl md:text-5xl">
-            Escolha como quer começar
+            {t("landingPage.chooseHowStart")}
           </h2>
 
           <div className="mt-12 flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:flex-wrap">
@@ -623,7 +598,7 @@ function LandingPage() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-full bg-[oklch(0.18_0.01_60)] px-8 py-4 text-sm font-semibold text-white shadow-lg transition hover:scale-[1.02]"
             >
-              Quero participar de um culto
+              {t("landingPage.joinService")}
               <ArrowRight className="h-4 w-4" />
             </a>
             <a
@@ -632,7 +607,7 @@ function LandingPage() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-full border-2 border-[oklch(0.18_0.01_60)] bg-white px-8 py-4 text-sm font-semibold text-[oklch(0.18_0.01_60)] transition hover:bg-[oklch(0.18_0.01_60)] hover:text-white"
             >
-              Quero falar com alguém
+              {t("landingPage.talkToSomeone")}
               <MessageCircle className="h-4 w-4" />
             </a>
             <a
@@ -642,44 +617,44 @@ function LandingPage() {
               className="inline-flex items-center gap-2 rounded-full px-8 py-4 text-sm font-semibold text-white shadow-lg transition hover:scale-[1.02]"
               style={{ backgroundColor: "oklch(0.5 0.13 110)" }}
             >
-              Quero entrar em um grupo
+              {t("landingPage.joinAGroup")}
               <UsersRound className="h-4 w-4" />
             </a>
           </div>
         </div>
       </section>
 
-      {/* QUEBRA DE OBJEÇÃO */}
+      {/* OBJECTION */}
       <section className="bg-[oklch(0.16_0.01_60)] px-6 py-24 text-white md:py-32 md:px-10">
         <div className="mx-auto max-w-3xl text-center">
           <span className="text-xs uppercase tracking-[0.25em] text-white/50">
-            ⏳ Talvez você esteja pensando…
+            {t("landingPage.objectionTag")}
           </span>
           <blockquote className="mt-8 font-display text-3xl font-medium italic leading-tight tracking-tight sm:text-4xl md:text-5xl">
-            “E se eu nunca fui em uma igreja assim?”
+            {t("landingPage.objection")}
           </blockquote>
           <div className="mt-10 inline-flex items-center gap-3 rounded-full bg-white/10 px-6 py-3 text-sm font-semibold uppercase tracking-wide backdrop-blur-md">
             <Compass className="h-4 w-4" style={{ color: "oklch(0.85 0.12 85)" }} />
-            Sem problema.
+            {t("landingPage.noProblem")}
           </div>
           <p className="mx-auto mt-8 max-w-xl text-lg leading-relaxed text-white/80">
-            Você será recebido com respeito,
-            <br className="hidden sm:block" /> sem pressão e sem expectativas irreais.
+            {t("landingPage.objectionLead1")}
+            <br className="hidden sm:block" /> {t("landingPage.objectionLead2")}
           </p>
         </div>
       </section>
 
-      {/* FECHAMENTO */}
+      {/* CLOSING */}
       <section className="px-6 py-28 md:py-40 md:px-10">
         <div className="mx-auto max-w-3xl text-center">
           <span className="mb-8 inline-flex h-16 w-16 items-center justify-center rounded-full bg-[oklch(0.95_0.04_95)]">
             <Cross className="h-7 w-7" style={{ color: "oklch(0.5 0.12 110)" }} />
           </span>
           <h2 className="font-display text-4xl font-semibold leading-tight tracking-tight sm:text-5xl md:text-6xl">
-            Existe um caminho.
+            {t("landingPage.thereIsWay")}
             <br />
             <span className="italic font-normal" style={{ color: "oklch(0.45 0.13 110)" }}>
-              E talvez esse seja o seu momento de começar.
+              {t("landingPage.yourMomentTitle")}
             </span>
           </h2>
 
@@ -690,7 +665,7 @@ function LandingPage() {
               rel="noopener noreferrer"
               className="group inline-flex items-center gap-2 rounded-full bg-[oklch(0.18_0.01_60)] px-10 py-5 text-base font-semibold text-white shadow-2xl shadow-black/20 transition hover:scale-[1.02]"
             >
-              Quero dar o primeiro passo
+              {t("landingPage.firstStep")}
               <ArrowRight className="h-5 w-5 transition group-hover:translate-x-1" />
             </a>
           </div>
@@ -707,10 +682,10 @@ function LandingPage() {
             </span>
           </div>
           <p className="text-xs">
-            © {new Date().getFullYear()} Way Maker Church. Todos os direitos reservados.
+            © {new Date().getFullYear()} Way Maker Church. {t("landingPage.rightsReserved")}
           </p>
           <Link to="/login" className="text-xs font-medium hover:text-[oklch(0.2_0.02_60)]">
-            Área do membro →
+            {t("landingPage.memberArea")} →
           </Link>
         </div>
       </footer>
@@ -791,7 +766,7 @@ function LandingPage() {
           href={WHATSAPP_URL}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="Fale conosco no WhatsApp"
+          aria-label={t("landingPage.whatsappAria")}
           className="flex h-12 w-12 items-center justify-center rounded-full transition hover:scale-110 sm:h-14 sm:w-14 lg:h-16 lg:w-16"
           style={{ animation: "wmc-pulse 2.4s ease-in-out infinite", filter: "drop-shadow(0 6px 12px rgba(0,0,0,0.25))" }}
         >

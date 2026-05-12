@@ -53,7 +53,7 @@ export function NewSignupsBanner() {
           </div>
           <div>
             <h3 className="font-display text-sm font-semibold text-foreground">
-              {rows.length} new member{rows.length === 1 ? "" : "s"} registered (last 24h)
+              {t("signupsBanner.title", { count: rows.length })}
             </h3>
             <ul className="mt-2 space-y-1">
               {rows.slice(0, 5).map((r) => {

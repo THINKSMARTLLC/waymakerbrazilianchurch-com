@@ -54,20 +54,20 @@ export function UpcomingBirthdays() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Cake className="h-4 w-4 text-primary" />
-          <h3 className="font-display text-base font-medium text-foreground">Próximos Aniversariantes</h3>
+          <h3 className="font-display text-base font-medium text-foreground">{t("birthdays.title")}</h3>
         </div>
       </div>
 
       <div className="flex gap-1 mb-4 rounded-xl bg-muted p-1 text-xs">
-        <TabBtn active={tab === "today"} onClick={() => setTab("today")} label={`Hoje (${todayCount})`} />
-        <TabBtn active={tab === "week"} onClick={() => setTab("week")} label={`7 dias (${weekCount})`} />
-        <TabBtn active={tab === "month"} onClick={() => setTab("month")} label={`30 dias (${monthCount})`} />
+        <TabBtn active={tab === "today"} onClick={() => setTab("today")} label={`${t("birthdays.today")} (${todayCount})`} />
+        <TabBtn active={tab === "week"} onClick={() => setTab("week")} label={`${t("birthdays.in7days")} (${weekCount})`} />
+        <TabBtn active={tab === "month"} onClick={() => setTab("month")} label={`${t("birthdays.in30days")} (${monthCount})`} />
       </div>
 
       {loading ? (
-        <div className="py-6 text-center text-xs text-muted-foreground">Carregando...</div>
+        <div className="py-6 text-center text-xs text-muted-foreground">{t("common.loading")}</div>
       ) : filtered.length === 0 ? (
-        <div className="py-6 text-center text-xs text-muted-foreground">Nenhum aniversariante neste período.</div>
+        <div className="py-6 text-center text-xs text-muted-foreground">{t("birthdays.none")}</div>
       ) : (
         <ul className="space-y-2 max-h-[280px] overflow-y-auto">
           {filtered.map((r) => (

@@ -176,12 +176,12 @@ function ChurchSettingsPage() {
           onClick={useMyLocation}
           className="inline-flex items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm hover:bg-muted"
         >
-          <Crosshair className="h-4 w-4" /> Usar minha localização atual
+          <Crosshair className="h-4 w-4" /> {t("settingsPage.useMyLocation")}
         </button>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-sm font-medium text-foreground mb-1 block">Raio do check-in (metros)</label>
+            <label className="text-sm font-medium text-foreground mb-1 block">{t("settingsPage.checkinRadius")}</label>
             <input
               type="number"
               value={radius}
@@ -192,7 +192,7 @@ function ChurchSettingsPage() {
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-foreground mb-1 block">Dias para inatividade</label>
+            <label className="text-sm font-medium text-foreground mb-1 block">{t("settingsPage.inactivityDays")}</label>
             <input
               type="number"
               value={inactivity}

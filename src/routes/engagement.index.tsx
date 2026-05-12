@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Activity, Users, AlertCircle, Plus, MapPin, Calendar, Settings2, Pencil, X, Check, XCircle, Clock } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -63,6 +64,7 @@ type CardFilter = "all" | "checkins7" | "activities30" | "active" | "inactive";
 type LevelFilter = "all" | "high" | "medium" | "low" | "inactive";
 
 function EngagementDashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [activities, setActivities] = useState<ActivityRow[]>([]);
@@ -234,19 +236,19 @@ function EngagementDashboard() {
           onClick={() => setCardFilter(cardFilter === "checkins7" ? "all" : "checkins7")}
         />
         <StatCard
-          title="Atividades (30 dias)"
+          title={t("engagementPage.activitiesMonth")}
           value={String(totalCheckinsMonth)}
           icon={Activity}
           onClick={() => setCardFilter(cardFilter === "activities30" ? "all" : "activities30")}
         />
         <StatCard
-          title="Membros Ativos"
+          title={t("engagementPage.activeMembers")}
           value={String(activeCount)}
           icon={Users}
           onClick={() => setCardFilter(cardFilter === "active" ? "all" : "active")}
         />
         <StatCard
-          title="Sem Atividade"
+          title={t("engagementPage.noActivity")}
           value={String(inactiveCount)}
           icon={AlertCircle}
           onClick={() => setCardFilter(cardFilter === "inactive" ? "all" : "inactive")}
@@ -259,10 +261,10 @@ function EngagementDashboard() {
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-warning" />
               <h3 className="font-display text-base font-medium text-foreground">
-                Atividades Pendentes ({pendingActivities.length})
+                {t("engagementPage.pendingActivities", { count: pendingActivities.length })}
               </h3>
             </div>
-            <p className="text-xs text-muted-foreground">Aprovar adiciona pontos automaticamente.</p>
+            <p className="text-xs text-muted-foreground">{t("engagementPage.approveAddsPoints")}</p>
           </div>
           <ul className="space-y-2">
             {pendingActivities.slice(0, 10).map((a) => {
@@ -284,20 +286,20 @@ function EngagementDashboard() {
                   <div className="flex items-center gap-2 shrink-0">
                     {a.photo_url && (
                       <a href={a.photo_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
-                        Foto
+                        {t("engagementPage.photo")}
                       </a>
                     )}
                     <button
                       onClick={() => reviewActivity(a.id, "approved")}
                       className="inline-flex items-center gap-1 rounded-lg bg-success/15 text-success px-2 py-1 text-xs font-medium hover:bg-success/25"
                     >
-                      <Check className="h-3 w-3" /> Aprovar
+                      <Check className="h-3 w-3" /> {t("engagementPage.approve")}
                     </button>
                     <button
                       onClick={() => reviewActivity(a.id, "rejected")}
                       className="inline-flex items-center gap-1 rounded-lg bg-destructive/15 text-destructive px-2 py-1 text-xs font-medium hover:bg-destructive/25"
                     >
-                      <XCircle className="h-3 w-3" /> Rejeitar
+                      <XCircle className="h-3 w-3" /> {t("engagementPage.reject")}
                     </button>
                   </div>
                 </li>
@@ -309,12 +311,12 @@ function EngagementDashboard() {
 
       {cardFilter !== "all" && (
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-muted-foreground">Filtro ativo:</span>
+          <span className="text-muted-foreground">{t("engagementPage.activeFilterLabel")}</span>
           <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-1 font-medium">
-            {cardFilter === "checkins7" && "Com check-in nos últimos 7 dias"}
-            {cardFilter === "activities30" && "Com atividade nos últimos 30 dias"}
-            {cardFilter === "active" && "Membros ativos"}
-            {cardFilter === "inactive" && "Sem atividade"}
+            {cardFilter === "checkins7" && t("engagementPage.checkins7")}
+            {cardFilter === "activities30" && t("engagementPage.activities30")}
+            {cardFilter === "active" && t("engagementPage.activeFilter")}
+            {cardFilter === "inactive" && t("engagementPage.inactiveFilter")}
             <button onClick={() => setCardFilter("all")} className="hover:opacity-70">
               <X className="h-3 w-3" />
             </button>
@@ -396,13 +398,13 @@ function EngagementDashboard() {
 
       <div className="card-elevated overflow-hidden">
         <div className="p-5 border-b border-border flex flex-wrap items-center gap-3">
-          <h3 className="font-display text-base font-medium text-foreground">Membros</h3>
+          <h3 className="font-display text-base font-medium text-foreground">{t("engagementPage.membersList")}</h3>
           <div className="ml-auto">
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nome ou email..."
+              placeholder={t("engagementPage.searchPlaceholder")}
               className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm w-64"
             />
           </div>
@@ -413,17 +415,17 @@ function EngagementDashboard() {
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
         ) : filteredMembers.length === 0 ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">Nenhum membro encontrado.</div>
+          <div className="py-8 text-center text-sm text-muted-foreground">{t("engagementPage.noMembersFound")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="table-header px-5 py-3 text-left">Membro</th>
+                  <th className="table-header px-5 py-3 text-left">{t("engagementPage.memberColumn")}</th>
                   <th className="table-header px-5 py-3 text-left">Engajamento</th>
                   <th className="table-header px-5 py-3 text-left">Última atividade</th>
                   <th className="table-header px-5 py-3 text-left">Total / Pontos</th>
-                  <th className="table-header px-5 py-3 text-right">Ações</th>
+                  <th className="table-header px-5 py-3 text-right">{t("common.actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -501,7 +503,7 @@ function EngagementDashboard() {
                       <button
                         onClick={() => setEditing(a)}
                         className="text-muted-foreground hover:text-primary p-1 rounded"
-                        aria-label="Editar"
+                        aria-label={t("engagementPage.edit")}
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>

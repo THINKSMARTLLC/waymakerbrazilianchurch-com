@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const PAYMENT_URL =
   "https://shop.beacons.ai/waymakerflow/421d52ec-7b1a-4301-bcc0-5c14511fd612";
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/oferta")({
 });
 
 function OfertaPage() {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<"loading" | "embedded" | "redirecting">("loading");
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const loadedRef = useRef(false);
@@ -62,8 +64,8 @@ function OfertaPage() {
             <div className="mx-auto mb-6 h-10 w-10 animate-spin rounded-full border-2 border-[oklch(0.5_0.12_110)] border-t-transparent" />
             <p className="font-display text-lg text-[oklch(0.25_0.02_60)]">
               {status === "redirecting"
-                ? "Redirecionando para o ambiente seguro de contribuição…"
-                : "Carregando ambiente seguro de contribuição…"}
+                ? t("donate.redirecting")
+                : t("donate.loadingSecure")}
             </p>
           </div>
         </div>

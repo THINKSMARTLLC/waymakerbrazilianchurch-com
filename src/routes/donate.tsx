@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 const PAYMENT_URL =
   "https://shop.beacons.ai/waymakerflow/421d52ec-7b1a-4301-bcc0-5c14511fd612";
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/donate")({
 });
 
 function DonatePage() {
+  const { t } = useTranslation();
   useEffect(() => {
     try {
       (window as unknown as { dataLayer?: unknown[] }).dataLayer?.push?.({
@@ -40,7 +42,7 @@ function DonatePage() {
       <div>
         <div className="mx-auto mb-6 h-10 w-10 animate-spin rounded-full border-2 border-[oklch(0.5_0.12_110)] border-t-transparent" />
         <p className="font-display text-lg text-[oklch(0.25_0.02_60)]">
-          Redirecionando para o ambiente seguro de doação…
+          {t("donate.redirectingDonation")}
         </p>
       </div>
     </div>

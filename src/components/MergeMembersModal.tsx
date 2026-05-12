@@ -2,6 +2,7 @@
 // candidate member, then payments are reassigned and the loser is deleted.
 import { useMemo, useState } from "react";
 import { AlertTriangle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Member } from "@/lib/duplicates";
 import { mergeMembers } from "@/lib/duplicates";
 import { toTitleCase } from "@/lib/format";
@@ -10,16 +11,6 @@ import { formatPhoneDisplay } from "@/lib/phone";
 // SAFE MERGE: email and id are intentionally excluded — the existing
 // record's email is the unique identifier and must never be overwritten.
 type FieldKey = "name" | "phone" | "address" | "emergency_contact" | "date_of_birth" | "member_role" | "department";
-
-const FIELD_LABEL: Record<FieldKey, string> = {
-  name: "Name",
-  phone: "Phone",
-  address: "Address",
-  emergency_contact: "Emergency Contact",
-  date_of_birth: "Date of Birth",
-  member_role: "Role",
-  department: "Department",
-};
 
 const FIELDS: FieldKey[] = ["name", "phone", "address", "emergency_contact", "date_of_birth", "member_role", "department"];
 
@@ -44,6 +35,7 @@ export function MergeMembersModal({
   onClose: () => void;
   onMerged: (keptMemberId: string) => void;
 }) {
+  const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   // For each field, true = keep existing's value, false = take candidate's value.
@@ -80,8 +72,8 @@ export function MergeMembersModal({
 
   const handleConfirm = async () => {
     const msg = candidateMemberId
-      ? "Merge will move all payments to the kept record and delete the duplicate. Continue?"
-      : "Merge will update the existing record with the new values. Continue?";
+      ? t("mergeMembers.confirmMergeWithDelete")
+      : t("mergeMembers.confirmMergeUpdate");
     if (!confirm(msg)) return;
     setSaving(true);
     setError("");
@@ -124,9 +116,9 @@ export function MergeMembersModal({
             <AlertTriangle className="h-5 w-5 text-amber-600" />
           </div>
           <div>
-            <h2 className="font-display text-lg font-semibold text-foreground">Merge with Existing Member</h2>
+            <h2 className="font-display text-lg font-semibold text-foreground">{t("mergeMembers.title")}</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Choose which value to keep for each field. Payments and history will be preserved on the kept record.
+              {t("mergeMembers.subtitle")}
             </p>
           </div>
         </div>
@@ -135,9 +127,9 @@ export function MergeMembersModal({
 
         <div className="space-y-3">
           <div className="grid grid-cols-[140px_1fr_1fr] gap-3 items-center text-xs font-semibold text-muted-foreground uppercase tracking-wide pb-2 border-b border-border">
-            <div>Field</div>
-            <div>Existing record</div>
-            <div>New input</div>
+            <div>{t("mergeMembers.field")}</div>
+            <div>{t("mergeMembers.existingRecord")}</div>
+            <div>{t("mergeMembers.newInput")}</div>
           </div>
           {FIELDS.map((f) => {
             const exVal = (existing as Record<string, unknown>)[f];
@@ -146,7 +138,7 @@ export function MergeMembersModal({
             const cdMissing = cdVal === null || cdVal === undefined || cdVal === "";
             return (
               <div key={f} className="grid grid-cols-[140px_1fr_1fr] gap-3 items-start text-sm py-2 border-b border-border/50 last:border-0">
-                <div className="text-muted-foreground font-medium pt-2">{FIELD_LABEL[f]}</div>
+                <div className="text-muted-foreground font-medium pt-2">{t(`mergeMembers.fields.${f}`)}</div>
                 <button
                   type="button"
                   onClick={() => setKeepExisting((s) => ({ ...s, [f]: true }))}
@@ -184,7 +176,7 @@ export function MergeMembersModal({
             onClick={onClose}
             className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
           >
-            Cancel
+            {t("mergeMembers.cancel")}
           </button>
           <button
             type="button"
@@ -192,7 +184,7 @@ export function MergeMembersModal({
             disabled={saving}
             className="btn-google flex-1 disabled:opacity-50"
           >
-            {saving ? "Merging..." : "Confirm Merge"}
+            {saving ? t("mergeMembers.merging") : t("mergeMembers.confirm")}
           </button>
         </div>
       </div>

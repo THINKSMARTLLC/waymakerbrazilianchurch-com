@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { UserPlus, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -12,6 +13,7 @@ interface SignupRow {
 }
 
 export function NewSignupsBanner() {
+  const { t } = useTranslation();
   const { isSuperAdmin, loading } = useUserRole();
   const [rows, setRows] = useState<SignupRow[]>([]);
   const [dismissed, setDismissed] = useState(false);

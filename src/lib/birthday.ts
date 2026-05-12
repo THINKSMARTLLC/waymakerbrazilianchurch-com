@@ -53,12 +53,8 @@ export function isInWindow(info: BirthdayInfo, window: BirthdayWindow): boolean 
 }
 
 export function formatBirthdayLabel(info: BirthdayInfo): string {
-  // Lazy import to avoid circular i18n init
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const i18n = (require("i18next") as { default?: { t: (k: string, o?: Record<string, unknown>) => string }; t?: (k: string, o?: Record<string, unknown>) => string });
-  const t = i18n.default?.t ?? i18n.t;
-  if (info.daysUntil === 0) return (t ? t("birthdays.today") : "Today") + " 🎂";
-  if (info.daysUntil === 1) return t ? t("birthdays.tomorrow") : "Tomorrow";
-  if (info.daysUntil <= 7) return t ? t("birthdays.in", { days: info.daysUntil }) : `In ${info.daysUntil} days`;
+  if (info.daysUntil === 0) return i18n.t("birthdays.today") + " 🎂";
+  if (info.daysUntil === 1) return i18n.t("birthdays.tomorrow");
+  if (info.daysUntil <= 7) return i18n.t("birthdays.in", { days: info.daysUntil });
   return info.nextDate.toLocaleDateString("en-US", { day: "2-digit", month: "short" });
 }

@@ -243,7 +243,7 @@ export function DuplicateResolutionModal({
               {/* For groups of >2, let admin pick winner from a select */}
               {[
                 { id: "winner", label: "Keep (winner)", value: winnerId, onChange: setWinnerId, badge: <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary"><Crown className="h-3 w-3" /> Recommended</span> },
-                { id: "loser", label: "Merge from (loser)", value: loserId, onChange: setLoserId, badge: <span className="text-xs text-muted-foreground">Will be deleted after merge</span> },
+                { id: "loser", label: "Merge from", value: loserId, onChange: setLoserId, badge: <span className="text-xs text-muted-foreground">Will be archived (recoverable)</span> },
               ].map((side) => {
                 const s = stats.find((x) => x.member.id === side.value);
                 return (

@@ -261,10 +261,10 @@ function EngagementDashboard() {
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-warning" />
               <h3 className="font-display text-base font-medium text-foreground">
-                Atividades Pendentes ({pendingActivities.length})
+                {t("engagementPage.pendingActivities", { count: pendingActivities.length })}
               </h3>
             </div>
-            <p className="text-xs text-muted-foreground">Aprovar adiciona pontos automaticamente.</p>
+            <p className="text-xs text-muted-foreground">{t("engagementPage.approveAddsPoints")}</p>
           </div>
           <ul className="space-y-2">
             {pendingActivities.slice(0, 10).map((a) => {

@@ -319,19 +319,28 @@ export function DuplicateResolutionModal({
               </div>
             )}
 
-            <div className="flex gap-3 pt-5">
+            <div className="flex flex-wrap gap-3 pt-5">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                className="flex-1 min-w-[120px] rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="button"
+                onClick={handleDismiss}
+                disabled={merging}
+                className="flex-1 min-w-[180px] rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                title="Mark as not a duplicate — both records remain active and the alert is dismissed."
+              >
+                Keep Both (Not Duplicate)
+              </button>
+              <button
+                type="button"
                 onClick={handleMerge}
                 disabled={!winner || !loser || winner.member.id === loser.member.id || merging}
-                className="btn-google flex-1 inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                className="btn-google flex-1 min-w-[200px] inline-flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <GitMerge className="h-4 w-4" />
                 {merging ? "Merging..." : confirmDelete ? "Confirm merge & archive duplicate" : "Merge Records"}

@@ -48,7 +48,7 @@ export function AppLayout() {
 
     const onInsert = (payload: { new: { status?: string } }) => {
       if (payload.new?.status === "pending") {
-        toast("New activity awaiting approval");
+        toast(t("signupsBanner.newActivity"));
       }
       refresh();
     };

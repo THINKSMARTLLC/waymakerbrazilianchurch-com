@@ -296,7 +296,7 @@ export function WhatsAppMessageModal({ open, onOpenChange, member }: WhatsAppMes
             WhatsApp — {member?.name ?? ""}
           </DialogTitle>
           <DialogDescription>
-            Selecione uma mensagem e edite livremente antes de enviar. Variáveis como {"{name}"} e {"{due_date}"} são substituídas automaticamente.
+            {t("whatsapp.selectAndEdit")}
           </DialogDescription>
         </DialogHeader>
 

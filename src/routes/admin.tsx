@@ -143,36 +143,36 @@ function AdminPage() {
           <Shield className="h-5 w-5 text-primary" />
         </div>
         <div className="flex-1">
-          <h1 className="text-2xl font-semibold font-display">Painel Super Admin</h1>
-          <p className="text-sm text-muted-foreground">Gerencie usuários, funções e status do sistema</p>
+          <h1 className="text-2xl font-semibold font-display">{t("admin.panelTitle")}</h1>
+          <p className="text-sm text-muted-foreground">{t("admin.panelSubtitle")}</p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
           className="btn-google inline-flex items-center gap-2"
         >
           <UserPlus className="h-4 w-4" />
-          Criar Usuário
+          {t("admin.createUser")}
         </button>
       </div>
 
       <div className="card-elevated overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
-          <h2 className="font-semibold">Usuários ({users.length})</h2>
+          <h2 className="font-semibold">{t("admin.users")} ({users.length})</h2>
         </div>
         {loading ? (
-          <div className="p-8 text-center text-muted-foreground">Carregando usuários...</div>
+          <div className="p-8 text-center text-muted-foreground">{t("admin.loadingUsers")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
                 <tr>
-                  <th className="text-left px-4 py-3">Nome</th>
-                  <th className="text-left px-4 py-3">Email</th>
-                  <th className="text-left px-4 py-3">Função</th>
-                  <th className="text-left px-4 py-3">Status</th>
-                  <th className="text-left px-4 py-3">Cadastro</th>
-                  <th className="text-left px-4 py-3">Último login</th>
-                  <th className="text-right px-4 py-3">Ações</th>
+                  <th className="text-left px-4 py-3">{t("common.name")}</th>
+                  <th className="text-left px-4 py-3">{t("common.email")}</th>
+                  <th className="text-left px-4 py-3">{t("modals.role") || "Role"}</th>
+                  <th className="text-left px-4 py-3">{t("common.status")}</th>
+                  <th className="text-left px-4 py-3">{t("admin.registered")}</th>
+                  <th className="text-left px-4 py-3">{t("admin.lastLogin")}</th>
+                  <th className="text-right px-4 py-3">{t("common.actions")}</th>
                 </tr>
               </thead>
               <tbody>

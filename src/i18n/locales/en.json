@@ -541,5 +541,117 @@
     "shareMoment": "Share your moment",
     "shareOptional": "Optional — choose where you want to share.",
     "somethingWrong": "Something went wrong."
+  },
+  "admin": {
+    "panelTitle": "Super Admin Panel",
+    "panelSubtitle": "Manage users, roles, and system status",
+    "createUser": "Create User",
+    "users": "Users",
+    "loadingUsers": "Loading users...",
+    "registered": "Registered",
+    "lastLogin": "Last login",
+    "approve": "Approve",
+    "suspend": "Suspend",
+    "sendAccessEmail": "Send access email (magic link)",
+    "generateRecoveryLink": "Generate password reset link",
+    "deleteAccount": "Delete",
+    "confirmDelete": "Delete this account? This action removes the profile and roles, but the auth login remains. Confirm only if you are sure.",
+    "deleteFailed": "Failed to delete",
+    "generateLinkFailed": "Failed to generate link",
+    "sendEmailFailed": "Failed to send email",
+    "accessEmailResent": "Access email resent to {{email}}",
+    "restrictedTitle": "Restricted access",
+    "restrictedBody": "Only Super Admins can access this panel.",
+    "recoveryTitle": "Password reset link",
+    "recoveryBody": "Send this link to {{email}}. It allows setting a new password.",
+    "generatingLink": "Generating link...",
+    "copy": "Copy",
+    "copied": "Copied",
+    "close": "Close",
+    "systemLogs": "System Logs",
+    "filterAll": "all",
+    "filterErrors": "errors",
+    "filterStripe": "stripe",
+    "filterMembers": "members",
+    "refresh": "Refresh",
+    "noLogs": "No logs found.",
+    "status": {
+      "active": "Active",
+      "pending": "Pending",
+      "suspended": "Suspended"
+    },
+    "roles": {
+      "super_admin": "Super Admin",
+      "church_admin": "Church Admin",
+      "admin": "Admin",
+      "finance_manager": "Finance",
+      "member": "Member"
+    },
+    "actions": {
+      "login": "Login",
+      "logout": "Logout",
+      "signup": "Signup",
+      "member_created": "Member created",
+      "member_updated": "Member updated",
+      "member_deleted": "Member deleted",
+      "member_status_changed": "Member status changed",
+      "payment_added": "Payment added",
+      "subscription_created": "Subscription created",
+      "cash_donation_added": "Cash donation",
+      "user_role_changed": "Role changed",
+      "user_status_changed": "User status changed",
+      "user_deleted": "User deleted",
+      "user_created_by_admin": "User created by admin",
+      "error": "Error",
+      "admin_alert": "🚨 System alert",
+      "stripe_payment_matched": "Stripe · payment recorded",
+      "stripe_payment_unmatched": "Stripe · payment without member",
+      "stripe_payment_duplicate_ignored": "Stripe · duplicate ignored",
+      "stripe_payment_failed": "Stripe · payment failed",
+      "stripe_member_not_found": "Stripe · member not found",
+      "stripe_event_duplicate_ignored": "Stripe · duplicate event"
+    }
+  },
+  "settingsPage": {
+    "title": "Church Settings",
+    "metaTitle": "Church Settings — Way Maker Church",
+    "churchName": "Church name",
+    "address": "Address",
+    "saved": "Settings saved!",
+    "errorPrefix": "Error",
+    "saveSettings": "Save settings"
+  },
+  "engagementPage": {
+    "activeMembers": "Active Members",
+    "pendingActivities": "Pending Activities ({{count}})",
+    "membersList": "Members",
+    "searchPlaceholder": "Search by name or email...",
+    "memberColumn": "Member",
+    "edit": "Edit",
+    "cancelVisit": "Cancel this visit?",
+    "cancel": "Cancel"
+  },
+  "importExport": {
+    "exportTitle": "Export Members",
+    "exportDescription": "Includes name, email, phone, weekly/monthly contribution, status, last payment, role.",
+    "importTitle": "Import Members",
+    "importDescription": "Upload a CSV or Excel file. The system detects duplicates (email/phone) and shows a preview before saving."
+  },
+  "rootApp": {
+    "loginRequired": "You need to sign in to access the system."
+  },
+  "whatsapp": {
+    "selectAndEdit": "Select a message and edit freely before sending. Variables like {name} and {due_date} are replaced automatically.",
+    "deleteMessage": "Delete message",
+    "confirmDelete": "Delete the message \"{{title}}\"?",
+    "createNew": "Create new message",
+    "messageTitle": "Message title",
+    "messageBody": "Message text (use {name}, {due_date}, {today})",
+    "preview": "Preview (editable)",
+    "noPhone": "This member has no valid phone number.",
+    "send": "Send via WhatsApp"
+  },
+  "donate": {
+    "loadingSecure": "Loading secure contribution environment…"
   }
 }

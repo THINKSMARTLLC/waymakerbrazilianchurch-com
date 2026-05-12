@@ -102,7 +102,7 @@ export function EditPaymentModal({ payment, onClose, onSaved }: Props) {
             <label className="block text-sm font-medium text-foreground mb-1.5">{t("editPaymentModal.paymentMethod")}</label>
             <select name="payment_method" defaultValue={payment.payment_method === "stripe" ? "card" : payment.payment_method} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
               {PAYMENT_METHODS.map((m) => (
-                <option key={m.value} value={m.value}>{t(`paymentMethods.${m.labelKey}`, { defaultValue: m.value })}</option>
+                <option key={m.value} value={m.value}>{m.label}</option>
               ))}
             </select>
           </div>
@@ -111,7 +111,7 @@ export function EditPaymentModal({ payment, onClose, onSaved }: Props) {
             <label className="block text-sm font-medium text-foreground mb-1.5">{t("editPaymentModal.contributionType")}</label>
             <select name="contribution_type" defaultValue={payment.contribution_type} className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
               {CONTRIBUTION_TYPES.map((tp) => (
-                <option key={tp.value} value={tp.value}>{t(`contributionTypes.${tp.labelKey}`, { defaultValue: tp.value })}</option>
+                <option key={tp.value} value={tp.value}>{tp.label}</option>
               ))}
             </select>
           </div>

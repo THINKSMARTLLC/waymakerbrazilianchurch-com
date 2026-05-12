@@ -99,7 +99,7 @@ export function UpcomingBirthdays() {
                     target="_blank"
                     rel="noreferrer"
                     className="rounded-lg p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
-                    title="Enviar mensagem"
+                    title={t("birthdays.message")}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MessageCircle className="h-4 w-4" />

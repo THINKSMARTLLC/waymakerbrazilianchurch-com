@@ -341,18 +341,18 @@ export function WhatsAppMessageModal({ open, onOpenChange, member }: WhatsAppMes
                 className="w-full text-left rounded-lg border border-dashed border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground flex items-center gap-2"
               >
                 <Plus className="h-4 w-4" />
-                Criar nova mensagem
+                {tr("whatsapp.createNew")}
               </button>
             ) : (
               <div className="rounded-lg border border-border p-2 space-y-2 bg-muted/20">
                 <Input
-                  placeholder="Título da mensagem"
+                  placeholder={tr("whatsapp.messageTitle")}
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   className="h-8 text-sm"
                 />
                 <Textarea
-                  placeholder="Texto da mensagem (use {name}, {due_date}, {today})"
+                  placeholder={tr("whatsapp.messageBody")}
                   value={newBody}
                   onChange={(e) => setNewBody(e.target.value)}
                   className="text-sm min-h-[80px]"
@@ -367,14 +367,14 @@ export function WhatsAppMessageModal({ open, onOpenChange, member }: WhatsAppMes
                       setNewBody("");
                     }}
                   >
-                    Cancelar
+                    {tr("common.cancel")}
                   </Button>
                   <Button
                     size="sm"
                     onClick={handleSaveCustom}
                     disabled={!newTitle.trim() || !newBody.trim()}
                   >
-                    Salvar
+                    {tr("common.save")}
                   </Button>
                 </div>
               </div>
@@ -383,7 +383,7 @@ export function WhatsAppMessageModal({ open, onOpenChange, member }: WhatsAppMes
 
           <div className="flex flex-col overflow-hidden">
             <label className="text-xs font-medium text-muted-foreground mb-1.5">
-              Pré-visualização (editável)
+              {tr("whatsapp.preview")}
             </label>
             <Textarea
               value={editedBody}
@@ -392,7 +392,7 @@ export function WhatsAppMessageModal({ open, onOpenChange, member }: WhatsAppMes
             />
             {!phone && (
               <p className="mt-2 text-xs text-destructive">
-                Este membro não possui número de telefone válido.
+                {tr("whatsapp.noPhone")}
               </p>
             )}
           </div>
@@ -400,7 +400,7 @@ export function WhatsAppMessageModal({ open, onOpenChange, member }: WhatsAppMes
 
         <div className="flex justify-end gap-2 pt-2 border-t border-border">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
+            {tr("common.cancel")}
           </Button>
           <Button
             onClick={handleSend}
@@ -408,7 +408,7 @@ export function WhatsAppMessageModal({ open, onOpenChange, member }: WhatsAppMes
             className="bg-emerald-600 hover:bg-emerald-700 text-white"
           >
             <MessageCircle className="h-4 w-4" />
-            Enviar via WhatsApp
+            {tr("whatsapp.send")}
           </Button>
         </div>
       </DialogContent>

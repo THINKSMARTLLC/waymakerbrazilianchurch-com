@@ -355,6 +355,10 @@ function RecordCard({ s }: { s: MemberStats }) {
       <Row label="Payments" value={String(s.paymentCount)} />
       <Row label="Total paid" value={formatUSD(s.totalPaid)} />
       <Row label="Last payment" value={s.lastPaymentDate ? new Date(s.lastPaymentDate).toLocaleDateString("en-US") : "—"} muted={!s.lastPaymentDate} />
+      <Row label="Activities" value={String(s.activityCount)} />
+      <Row label="Last activity" value={s.lastActivityDate ? new Date(s.lastActivityDate).toLocaleDateString("en-US") : "—"} muted={!s.lastActivityDate} />
+      <Row label="Engagement" value={String(s.engagementCount)} />
+      <Row label="Devotionals" value={String(s.devotionalCount)} />
       <Row label="Completeness" value={`${s.completeness}/5 fields`} />
     </div>
   );

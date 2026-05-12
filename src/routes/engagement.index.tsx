@@ -311,12 +311,12 @@ function EngagementDashboard() {
 
       {cardFilter !== "all" && (
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-muted-foreground">Filtro ativo:</span>
+          <span className="text-muted-foreground">{t("engagementPage.activeFilterLabel")}</span>
           <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-1 font-medium">
-            {cardFilter === "checkins7" && "Com check-in nos últimos 7 dias"}
-            {cardFilter === "activities30" && "Com atividade nos últimos 30 dias"}
-            {cardFilter === "active" && "Membros ativos"}
-            {cardFilter === "inactive" && "Sem atividade"}
+            {cardFilter === "checkins7" && t("engagementPage.checkins7")}
+            {cardFilter === "activities30" && t("engagementPage.activities30")}
+            {cardFilter === "active" && t("engagementPage.activeFilter")}
+            {cardFilter === "inactive" && t("engagementPage.inactiveFilter")}
             <button onClick={() => setCardFilter("all")} className="hover:opacity-70">
               <X className="h-3 w-3" />
             </button>

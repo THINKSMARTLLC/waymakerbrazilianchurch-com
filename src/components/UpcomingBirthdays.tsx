@@ -89,7 +89,7 @@ export function UpcomingBirthdays() {
                   <a
                     href={`tel:${r.phone}`}
                     className="rounded-lg p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
-                    title="Ligar"
+                    title={t("birthdays.call")}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Phone className="h-4 w-4" />

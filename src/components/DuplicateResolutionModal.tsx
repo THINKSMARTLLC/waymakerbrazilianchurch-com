@@ -16,6 +16,10 @@ interface MemberStats {
   totalPaid: number;
   lastPaymentDate: string | null;
   completeness: number; // 0..5
+  activityCount: number;
+  lastActivityDate: string | null;
+  engagementCount: number;
+  devotionalCount: number;
 }
 
 const completenessOf = (m: Member): number => {

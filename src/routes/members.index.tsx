@@ -560,6 +560,7 @@ function MembersPage() {
             .filter((m): m is MemberWithStatus => !!m)}
           reasons={activeDupGroup.reason}
           severity={activeDupGroup.severity}
+          groupKey={activeDupGroup.key}
           onClose={() => setActiveDupGroup(null)}
           onResolved={() => {
             setActiveDupGroup(null);

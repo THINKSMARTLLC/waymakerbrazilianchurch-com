@@ -642,10 +642,23 @@
     "cancel": "Cancel"
   },
   "importExport": {
+    "metaTitle": "Import & Export Data — Way Maker Church",
+    "pageTitle": "Import & Export Data",
+    "pageSubtitle": "Total control of your data — export, import, and back up",
+    "restricted": "Only Super Admins can access Import/Export.",
     "exportTitle": "Export Members",
     "exportDescription": "Includes name, email, phone, weekly/monthly contribution, status, last payment, role.",
+    "exportPaymentsTitle": "Export Payments",
+    "exportPaymentsDescription": "Includes member, date, amount, method, type (tithe, offering, etc.) and reference month.",
+    "fullBackupTitle": "Full Backup",
+    "fullBackupDescription": "ZIP with all tables (members, payments, contributions, subscriptions, profiles) + manifest.json metadata.",
+    "downloadBackup": "Download Backup (.zip)",
     "importTitle": "Import Members",
-    "importDescription": "Upload a CSV or Excel file. The system detects duplicates (email/phone) and shows a preview before saving."
+    "importDescription": "Upload a CSV or Excel file. The system detects duplicates (email/phone) and shows a preview before saving.",
+    "chooseFile": "Choose file",
+    "exportedRecords": "Exported {{count}} record(s).",
+    "backupReady": "Backup ready — {{members}} members, {{payments}} payments, {{contributions}} contributions, {{subscriptions}} subscriptions, {{profiles}} profiles.",
+    "exportFailed": "Failed to export"
   },
   "rootApp": {
     "loginRequired": "You need to sign in to access the system."

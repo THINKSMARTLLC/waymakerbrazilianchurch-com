@@ -1,17 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { Church } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
 
 export const Route = createFileRoute("/forgot-password")({
   head: () => ({
-    meta: [{ title: "Recuperar Senha — Way Maker Church" }],
+    meta: [{ title: "Recover Password — Way Maker Church" }],
   }),
   component: ForgotPasswordPage,
 });
 
 function ForgotPasswordPage() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -41,9 +42,9 @@ function ForgotPasswordPage() {
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
             />
           </div>
-          <h1 className="font-display text-2xl font-semibold text-foreground">Recuperar Senha</h1>
+          <h1 className="font-display text-2xl font-semibold text-foreground">{t("auth.forgotTitle")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Enviaremos um link para redefinir sua senha do Way Maker Church
+            {t("auth.forgotSubtitle")}
           </p>
         </div>
 
@@ -53,13 +54,12 @@ function ForgotPasswordPage() {
           )}
           {sent ? (
             <div className="rounded-xl bg-primary/10 px-4 py-3 text-sm text-foreground">
-              Se existir uma conta com este email, você receberá um link de recuperação.
-              O link expira em 30 minutos.
+              {t("auth.forgotSent")}
             </div>
           ) : (
             <>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Email</label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">{t("common.email")}</label>
                 <input
                   type="email"
                   required
@@ -69,13 +69,13 @@ function ForgotPasswordPage() {
                 />
               </div>
               <button type="submit" disabled={loading} className="btn-google w-full disabled:opacity-50">
-                {loading ? "Enviando..." : "Enviar link"}
+                {loading ? t("auth.sending") : t("auth.sendLink")}
               </button>
             </>
           )}
           <p className="text-center text-sm text-muted-foreground">
             <Link to="/login" className="text-primary font-medium hover:underline">
-              Voltar para login
+              {t("auth.backToLogin")}
             </Link>
           </p>
         </form>

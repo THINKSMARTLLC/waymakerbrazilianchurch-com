@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/unsubscribe")({
-  head: () => ({ meta: [{ title: "Cancelar inscrição — Way Maker Church" }] }),
+  head: () => ({ meta: [{ title: "Unsubscribe — Way Maker Church" }] }),
   component: UnsubscribePage,
 });
 
@@ -16,18 +17,19 @@ type State =
   | { kind: "error"; message: string };
 
 function UnsubscribePage() {
+  const { t } = useTranslation();
   const [state, setState] = useState<State>({ kind: "loading" });
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const t = params.get("token");
-    if (!t) {
+    const tk = params.get("token");
+    if (!tk) {
       setState({ kind: "invalid" });
       return;
     }
-    setToken(t);
-    fetch(`/email/unsubscribe?token=${encodeURIComponent(t)}`)
+    setToken(tk);
+    fetch(`/email/unsubscribe?token=${encodeURIComponent(tk)}`)
       .then(async (r) => {
         const j = await r.json().catch(() => ({}));
         if (!r.ok) {
@@ -52,48 +54,48 @@ function UnsubscribePage() {
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) {
-        setState({ kind: "error", message: j.error || "Falha ao processar" });
+        setState({ kind: "error", message: j.error || t("unsubscribe.failed") });
         return;
       }
       if (j.success || j.reason === "already_unsubscribed") setState({ kind: "done" });
-      else setState({ kind: "error", message: "Falha ao processar" });
+      else setState({ kind: "error", message: t("unsubscribe.failed") });
     } catch (e) {
-      setState({ kind: "error", message: e instanceof Error ? e.message : "Erro" });
+      setState({ kind: "error", message: e instanceof Error ? e.message : t("unsubscribe.error") });
     }
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-sm text-center">
-        <h1 className="font-display text-2xl font-semibold mb-3">Cancelar inscrição</h1>
+        <h1 className="font-display text-2xl font-semibold mb-3">{t("unsubscribe.title")}</h1>
         {state.kind === "loading" && (
-          <p className="text-muted-foreground">Validando link...</p>
+          <p className="text-muted-foreground">{t("unsubscribe.validating")}</p>
         )}
         {state.kind === "ready" && (
           <>
             <p className="text-muted-foreground mb-6">
-              Confirma que deseja parar de receber emails do Way Maker Church?
+              {t("unsubscribe.prompt")}
             </p>
             <button onClick={confirm} className="btn-google w-full">
-              Confirmar cancelamento
+              {t("unsubscribe.confirmCancel")}
             </button>
           </>
         )}
         {state.kind === "submitting" && (
-          <p className="text-muted-foreground">Processando...</p>
+          <p className="text-muted-foreground">{t("unsubscribe.processing")}</p>
         )}
         {state.kind === "done" && (
           <p className="text-foreground">
-            Pronto. Você não receberá mais emails deste tipo.
+            {t("unsubscribe.done")}
           </p>
         )}
         {state.kind === "already" && (
           <p className="text-muted-foreground">
-            Este endereço já está cancelado.
+            {t("unsubscribe.alreadyDone")}
           </p>
         )}
         {state.kind === "invalid" && (
-          <p className="text-destructive">Link inválido ou expirado.</p>
+          <p className="text-destructive">{t("unsubscribe.invalid")}</p>
         )}
         {state.kind === "error" && (
           <p className="text-destructive">{state.message}</p>

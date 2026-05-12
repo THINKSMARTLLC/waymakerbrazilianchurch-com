@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { DollarSign, TrendingUp, Heart, MapPin, CheckCircle2, Wallet, HandCoins, CircleDollarSign, ChevronRight, Plus, Clock, XCircle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useTranslation } from "react-i18next";
 import { StatCard } from "@/components/StatCard";
 import { JourneyPath } from "@/components/JourneyPath";
 import { CheckInModal } from "@/components/CheckInModal";
@@ -15,7 +16,7 @@ import { ACTIVITY_ICON, ACTIVITY_LABEL, calculatePoints, type ActivityType } fro
 import { toast } from "sonner";
 import { createSubscriptionSession } from "@/lib/stripe-subscriptions.functions";
 
-const MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 interface Payment {
   id: string;
   amount: number;
@@ -76,6 +77,7 @@ const contributionOptions = [
 
 function MemberDashboard() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [memberId, setMemberId] = useState<string | null>(null);
   const [memberName, setMemberName] = useState<string>("");
   const [billingStatus, setBillingStatus] = useState<MemberBillingStatus | null>(null);
@@ -183,8 +185,8 @@ function MemberDashboard() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("payment") !== "success") return;
 
-    toast.success("Payment received successfully");
-  }, []);
+    toast.success(t("portal.paymentSuccess"));
+  }, [t]);
 
   const points = calculatePoints(activities.filter((a) => a.status === "approved"));
 
@@ -219,10 +221,10 @@ function MemberDashboard() {
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h2 className="font-display text-2xl font-semibold text-foreground">
-            Olá{memberName ? `, ${memberName}` : ""} 👋
+            {t("portal.hello")}{memberName ? `, ${memberName}` : ""} 👋
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Acompanhe sua jornada, contribuições e mantenha seu perfil atualizado.
+            {t("portal.subtitle")}
           </p>
         </div>
         {memberId && (
@@ -232,14 +234,14 @@ function MemberDashboard() {
               className="inline-flex items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-muted"
             >
               <Plus className="h-4 w-4" />
-              Registrar Atividade
+              {t("portal.registerActivity")}
             </button>
             <button
               onClick={() => setShowCheckIn(true)}
               className="btn-google inline-flex items-center gap-2"
             >
               <MapPin className="h-4 w-4" />
-              Check-in na Igreja
+              {t("portal.checkIn")}
             </button>
           </div>
         )}
@@ -248,13 +250,13 @@ function MemberDashboard() {
       {memberId && <JourneyPath points={points} />}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <StatCard title="Coletado Esta Semana" value={formatUSD(weekTotal)} icon={DollarSign} />
-        <StatCard title="Doações Este Mês" value={formatUSD(monthTotal)} icon={TrendingUp} />
+        <StatCard title={t("portal.weekTotal")} value={formatUSD(weekTotal)} icon={DollarSign} />
+        <StatCard title={t("portal.monthTotal")} value={formatUSD(monthTotal)} icon={TrendingUp} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 card-elevated p-5">
-          <h3 className="font-display text-base font-medium text-foreground mb-4">Suas Doações Mensais</h3>
+          <h3 className="font-display text-base font-medium text-foreground mb-4">{t("portal.yourMonthlyDonations")}</h3>
           <div className="h-72">
             {loading ? (
               <div className="flex h-full items-center justify-center">
@@ -262,7 +264,7 @@ function MemberDashboard() {
               </div>
             ) : !memberId ? (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                Sua conta ainda não está vinculada a um registro de membro.
+                {t("portal.noMemberLink")}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -271,7 +273,7 @@ function MemberDashboard() {
                   <XAxis dataKey="month" tick={{ fontSize: 12, fill: "oklch(0.55 0.02 260)" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: "oklch(0.55 0.02 260)" }} axisLine={false} tickLine={false}
                     tickFormatter={(v) => `$${v >= 1000 ? `${Math.round(v / 1000)}k` : v}`} />
-                  <Tooltip formatter={(v: number) => [formatUSD(v), "Doações"]} contentStyle={{ borderRadius: "12px", border: "1px solid oklch(0.92 0.005 240)", fontSize: "13px" }} />
+                  <Tooltip formatter={(v: number) => [formatUSD(v), t("portal.donations")]} contentStyle={{ borderRadius: "12px", border: "1px solid oklch(0.92 0.005 240)", fontSize: "13px" }} />
                   <Bar dataKey="amount" fill="oklch(0.55 0.19 260)" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -280,7 +282,7 @@ function MemberDashboard() {
         </div>
 
         <div className="card-elevated p-5">
-          <h3 className="font-display text-base font-medium text-foreground mb-4">Suas Contribuições</h3>
+          <h3 className="font-display text-base font-medium text-foreground mb-4">{t("portal.yourContributions")}</h3>
           <div className="space-y-3">
             {contributionOptions.map((option) => {
               const Icon = option.icon;
@@ -326,7 +328,7 @@ function MemberDashboard() {
                         {isPaid && (
                           <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-foreground">
                             <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                            ✔ Contribution up to date
+                            ✔ {t("portal.paidUpToDate")}
                           </div>
                         )}
                       </div>
@@ -346,15 +348,15 @@ function MemberDashboard() {
                 onClick={handleSubscribe}
                 className="flex w-full items-center justify-center rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {billingStatus?.subscription_active ? "Active" : subscribing ? "Redirecting..." : "Subscribe $20/week"}
+                {billingStatus?.subscription_active ? t("portal.subscriptionActive") : subscribing ? t("portal.redirecting") : t("portal.subscribeWeekly")}
               </button>
             </div>
 
             <p className="mt-3 text-xs text-muted-foreground">
-              Secure payment powered by Stripe
+              {t("portal.securePayment")}
             </p>
             <p className="mt-2 text-xs text-muted-foreground">
-              Pastor Salary · {billingStatus?.status_payment ?? "Pending"}
+              {t("portal.pastorSalary")} · {billingStatus?.status_payment ?? t("portal.subscriptionPending")}
             </p>
           </div>
         </div>
@@ -364,10 +366,10 @@ function MemberDashboard() {
 
       {memberId && (
         <div className="card-elevated p-5">
-          <h3 className="font-display text-base font-medium text-foreground mb-4">Minhas Atividades</h3>
+          <h3 className="font-display text-base font-medium text-foreground mb-4">{t("portal.myActivities")}</h3>
           {activities.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Nenhuma atividade registrada ainda. Faça seu primeiro check-in ou registre uma atividade!
+              {t("portal.noActivitiesYet")}
             </p>
           ) : (
             <ul className="space-y-2">
@@ -375,10 +377,10 @@ function MemberDashboard() {
                 const status = a.status ?? "approved";
                 const badge =
                   status === "approved"
-                    ? { label: "Aprovada", cls: "bg-success/15 text-success", Icon: CheckCircle2 }
+                    ? { label: t("portal.approved"), cls: "bg-success/15 text-success", Icon: CheckCircle2 }
                     : status === "rejected"
-                    ? { label: "Rejeitada", cls: "bg-destructive/15 text-destructive", Icon: XCircle }
-                    : { label: "Pendente", cls: "bg-warning/15 text-warning-foreground", Icon: Clock };
+                    ? { label: t("portal.rejected"), cls: "bg-destructive/15 text-destructive", Icon: XCircle }
+                    : { label: t("portal.pending"), cls: "bg-warning/15 text-warning-foreground", Icon: Clock };
                 const BadgeIcon = badge.Icon;
                 return (
                   <li key={a.id} className="flex items-center justify-between text-sm border-b border-border pb-2 last:border-0 gap-3">
@@ -388,7 +390,7 @@ function MemberDashboard() {
                         <p className="font-medium text-foreground truncate">{ACTIVITY_LABEL[a.activity_type]}</p>
                         <p className="text-xs text-muted-foreground">
                           {formatLocalDateOnly(a.activity_date)} ·{" "}
-                          {a.source === "self_checkin" ? "Auto-registrada" : "Registrada pela liderança"}
+                          {a.source === "self_checkin" ? t("portal.selfCheckin") : t("portal.leadershipRecord")}
                         </p>
                       </div>
                     </div>

@@ -97,7 +97,7 @@ function statusBadge(h: HealthStatus) {
 
 function fmtDate(d: string | null) {
   if (!d) return "—";
-  return new Date(d).toLocaleDateString();
+  return new Date(d).toLocaleDateString("en-US");
 }
 
 function PastoralDashboard() {

@@ -317,7 +317,7 @@ function DiscipleshipPage() {
                   ) : selectedNotes.map((n) => (
                     <div key={n.id} className="rounded-lg border p-2 text-sm">
                       <p>{n.message}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{new Date(n.created_at).toLocaleString()}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{new Date(n.created_at).toLocaleString("en-US")}</p>
                     </div>
                   ))}
                 </div>

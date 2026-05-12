@@ -25,24 +25,22 @@ function uses24h(lang: Lang): boolean {
   return lang !== "en";
 }
 
-/** Format a TIMESTAMP (ISO string, Date, or null) in NYC TZ — date only (MM/DD/YYYY in EN). */
+/** Format a TIMESTAMP (ISO string, Date, or null) in NYC TZ — always US format MM/DD/YYYY. */
 export function formatDate(value: string | Date | null | undefined): string {
   if (!value) return "";
   const date = typeof value === "string" ? parseISO(value) : value;
   if (isNaN(date.getTime())) return "";
-  const lang = getLang();
-  const pattern = lang === "en" ? "MM/dd/yyyy" : "dd/MM/yyyy";
-  return formatInTimeZone(date, APP_TIMEZONE, pattern, { locale: LOCALES[lang] });
+  return formatInTimeZone(date, APP_TIMEZONE, "MM/dd/yyyy", { locale: enUS });
 }
 
-/** Format a TIMESTAMP in NYC TZ — date + time (12h AM/PM in EN, 24h in PT/ES). */
+/** Format a TIMESTAMP in NYC TZ — US format MM/DD/YYYY + time (12h AM/PM EN, 24h PT/ES). */
 export function formatDateTime(value: string | Date | null | undefined): string {
   if (!value) return "";
   const date = typeof value === "string" ? parseISO(value) : value;
   if (isNaN(date.getTime())) return "";
   const lang = getLang();
-  const pattern = lang === "en" ? "MM/dd/yyyy hh:mm a" : "dd/MM/yyyy HH:mm";
-  return formatInTimeZone(date, APP_TIMEZONE, pattern, { locale: LOCALES[lang] });
+  const pattern = uses24h(lang) ? "MM/dd/yyyy HH:mm" : "MM/dd/yyyy hh:mm a";
+  return formatInTimeZone(date, APP_TIMEZONE, pattern, { locale: enUS });
 }
 
 /** Format a TIMESTAMP in NYC TZ — time only. */
@@ -76,8 +74,7 @@ export function formatLocalDateOnly(value: string | Date | null | undefined): st
   const lang = getLang();
   // Construct as local-noon Date to avoid any DST edge.
   const dt = new Date(y, m - 1, d, 12, 0, 0);
-  const pattern = lang === "en" ? "MM/dd/yyyy" : "dd/MM/yyyy";
-  return format(dt, pattern, { locale: LOCALES[lang] });
+  return format(dt, "MM/dd/yyyy", { locale: enUS });
 }
 
 /** Convert any Date to a NYC zoned Date (useful for UI date pickers anchored to NYC). */

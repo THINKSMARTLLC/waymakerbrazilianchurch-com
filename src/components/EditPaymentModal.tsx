@@ -6,21 +6,21 @@ import type { Database } from "@/integrations/supabase/types";
 type Payment = Database["public"]["Tables"]["payments"]["Row"];
 
 const CONTRIBUTION_TYPES = [
-  { value: "tithe", labelKey: "tithe" },
-  { value: "offering", labelKey: "offering" },
-  { value: "pastor_salary", labelKey: "pastorSalary" },
-  { value: "special_donation", labelKey: "specialDonation" },
-  { value: "event_contribution", labelKey: "eventContribution" },
-  { value: "other", labelKey: "other" },
+  { value: "tithe", label: "Tithe" },
+  { value: "offering", label: "Offering" },
+  { value: "pastor_salary", label: "Pastor Salary" },
+  { value: "special_donation", label: "Special Donation" },
+  { value: "event_contribution", label: "Event Contribution" },
+  { value: "other", label: "Other" },
 ] as const;
 
 const PAYMENT_METHODS = [
-  { value: "cash", labelKey: "cash" },
-  { value: "zelle", labelKey: "zelle" },
-  { value: "venmo", labelKey: "venmo" },
-  { value: "card", labelKey: "card" },
-  { value: "paypal", labelKey: "paypal" },
-  { value: "other", labelKey: "other" },
+  { value: "cash", label: "Cash" },
+  { value: "zelle", label: "Zelle" },
+  { value: "venmo", label: "Venmo" },
+  { value: "card", label: "Card" },
+  { value: "paypal", label: "PayPal" },
+  { value: "other", label: "Other" },
 ] as const;
 
 type PaymentMethod = (typeof PAYMENT_METHODS)[number]["value"];

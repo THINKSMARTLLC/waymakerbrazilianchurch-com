@@ -619,7 +619,17 @@
     "address": "Address",
     "saved": "Settings saved!",
     "errorPrefix": "Error",
-    "saveSettings": "Save settings"
+    "saveSettings": "Save settings",
+    "subtitle": "Set the location to validate check-ins and the member inactivity threshold.",
+    "addressPlaceholder": "Street, number, city...",
+    "useMyLocation": "Use my current location",
+    "checkinRadius": "Check-in radius (meters)",
+    "inactivityDays": "Days until inactive",
+    "coordinatesSet": "Coordinates configured",
+    "viewOnGoogleMaps": "View on Google Maps ↗",
+    "geolocationNotSupported": "Geolocation not supported.",
+    "errorPrefixLabel": "Error",
+    "onlySuperAdmin": "Only Super Admin can access this page."
   },
   "engagementPage": {
     "activeMembers": "Active Members",

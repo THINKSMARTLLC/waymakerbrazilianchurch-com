@@ -398,13 +398,13 @@ function EngagementDashboard() {
 
       <div className="card-elevated overflow-hidden">
         <div className="p-5 border-b border-border flex flex-wrap items-center gap-3">
-          <h3 className="font-display text-base font-medium text-foreground">Membros</h3>
+          <h3 className="font-display text-base font-medium text-foreground">{t("engagementPage.membersList")}</h3>
           <div className="ml-auto">
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nome ou email..."
+              placeholder={t("engagementPage.searchPlaceholder")}
               className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm w-64"
             />
           </div>
@@ -415,8 +415,7 @@ function EngagementDashboard() {
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
         ) : filteredMembers.length === 0 ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">Nenhum membro encontrado.</div>
-        ) : (
+          <div className="py-8 text-center text-sm text-muted-foreground">{t("engagementPage.noMembersFound")}</div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>

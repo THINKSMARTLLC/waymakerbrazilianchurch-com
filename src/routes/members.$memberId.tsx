@@ -401,6 +401,47 @@ function MemberProfilePage() {
         );
       })()}
 
+      {mergedRecords.length > 0 && (
+        <div className="card-elevated overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowMerged((v) => !v)}
+            className="w-full p-5 border-b border-border flex items-center justify-between text-left hover:bg-muted/30 transition-colors"
+          >
+            <div>
+              <h3 className="font-display text-base font-medium text-foreground">Merged Records</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {mergedRecords.length} record{mergedRecords.length === 1 ? "" : "s"} merged into this profile.
+              </p>
+            </div>
+            <span className="text-xs text-muted-foreground">{showMerged ? "Hide" : "Show"}</span>
+          </button>
+          {showMerged && (
+            <div className="divide-y divide-border">
+              {mergedRecords.map((mr) => {
+                const snap = mr.snapshot_data?.member;
+                return (
+                  <div key={mr.id} className="px-5 py-3 text-sm">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div>
+                        <div className="font-medium text-foreground">{snap?.name ? toTitleCase(String(snap.name)) : "—"}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {snap?.email || "—"} · {snap?.phone || "—"}
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Merged {new Date(mr.merge_date).toLocaleDateString("en-US")}
+                        {mr.restored && <span className="ml-2 status-badge status-active">Restored</span>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="card-elevated overflow-hidden">
         <div className="p-5 border-b border-border">
           <h3 className="font-display text-base font-medium text-foreground">{t("memberProfile.paymentHistory")}</h3>

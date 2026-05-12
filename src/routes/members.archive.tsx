@@ -262,6 +262,66 @@ function ArchivePage() {
         )}
       </div>
 
+      {/* Merge history */}
+      <div>
+        <h2 className="font-display text-xl font-semibold text-foreground">Merge History</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Every merge is saved with a full snapshot. You can undo a merge to restore the original record and move its history back.
+        </p>
+      </div>
+      <div className="card-elevated overflow-hidden">
+        {mergeHistory.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">No merges recorded.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="table-header px-5 py-3 text-left">Original member</th>
+                  <th className="table-header px-5 py-3 text-left">Merged into</th>
+                  <th className="table-header px-5 py-3 text-left">Date</th>
+                  <th className="table-header px-5 py-3 text-left">Status</th>
+                  <th className="table-header px-5 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mergeHistory.map((h) => {
+                  const snapName = h.snapshot_data?.member?.name ? toTitleCase(String(h.snapshot_data.member.name)) : "—";
+                  const snapEmail = h.snapshot_data?.member?.email ?? null;
+                  return (
+                    <tr key={h.id} className="border-b border-border last:border-0">
+                      <td className="px-5 py-3 text-sm">
+                        <div className="font-medium text-foreground">{snapName}</div>
+                        {snapEmail && <div className="text-xs text-muted-foreground">{snapEmail}</div>}
+                      </td>
+                      <td className="px-5 py-3 text-sm text-foreground">{h.winner_name}</td>
+                      <td className="px-5 py-3 text-sm text-muted-foreground">{formatDate(h.merge_date)}</td>
+                      <td className="px-5 py-3 text-sm">
+                        {h.restored ? (
+                          <span className="status-badge status-active">Restored</span>
+                        ) : (
+                          <span className="status-badge status-inactive">Merged</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <button
+                          onClick={() => handleUndoMerge(h.id)}
+                          disabled={h.restored || busyId === h.id}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-input bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <UserCheck className="h-3.5 w-3.5" />
+                          {h.restored ? "Already restored" : "Undo merge"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-4">
           <div className="card-elevated w-full max-w-md p-6">

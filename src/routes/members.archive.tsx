@@ -137,6 +137,16 @@ function ArchivePage() {
     setConfirmDelete({ ...m, payment_count: live });
   };
 
+  const handleUndoMerge = async (historyId: string) => {
+    if (!confirm("Undo this merge? The original member will be restored and its payments/activities moved back.")) return;
+    setBusyId(historyId);
+    setError(null);
+    const { error: rpcErr } = await supabase.rpc("undo_merge" as never, { _history_id: historyId } as never);
+    setBusyId(null);
+    if (rpcErr) setError(rpcErr.message);
+    else load();
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

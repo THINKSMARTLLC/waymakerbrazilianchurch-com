@@ -61,34 +61,54 @@ export function DuplicateResolutionModal({
     let cancelled = false;
     (async () => {
       const ids = members.map((m) => m.id);
-      const { data: payments } = await supabase
-        .from("payments")
-        .select("member_id, amount, payment_date")
-        .in("member_id", ids)
-        .order("payment_date", { ascending: false });
+      const [paymentsRes, activitiesRes, engagementsRes, devotionalsRes] = await Promise.all([
+        supabase.from("payments").select("member_id, amount, payment_date").in("member_id", ids).order("payment_date", { ascending: false }),
+        supabase.from("member_activities").select("member_id, activity_date").in("member_id", ids).order("activity_date", { ascending: false }),
+        supabase.from("social_engagements").select("member_id").in("member_id", ids),
+        supabase.from("devotional_completions").select("member_id").in("member_id", ids),
+      ]);
 
       const counts = new Map<string, number>();
       const totals = new Map<string, number>();
       const lasts = new Map<string, string>();
-      for (const p of payments ?? []) {
+      for (const p of paymentsRes.data ?? []) {
         counts.set(p.member_id, (counts.get(p.member_id) ?? 0) + 1);
         totals.set(p.member_id, (totals.get(p.member_id) ?? 0) + Number(p.amount || 0));
         if (!lasts.has(p.member_id)) lasts.set(p.member_id, p.payment_date);
       }
+      const actCounts = new Map<string, number>();
+      const lastAct = new Map<string, string>();
+      for (const a of activitiesRes.data ?? []) {
+        actCounts.set(a.member_id, (actCounts.get(a.member_id) ?? 0) + 1);
+        if (!lastAct.has(a.member_id)) lastAct.set(a.member_id, a.activity_date);
+      }
+      const engCounts = new Map<string, number>();
+      for (const e of engagementsRes.data ?? []) engCounts.set(e.member_id, (engCounts.get(e.member_id) ?? 0) + 1);
+      const devCounts = new Map<string, number>();
+      for (const d of devotionalsRes.data ?? []) devCounts.set(d.member_id, (devCounts.get(d.member_id) ?? 0) + 1);
+
       const result: MemberStats[] = members.map((m) => ({
         member: m,
         paymentCount: counts.get(m.id) ?? 0,
         totalPaid: totals.get(m.id) ?? 0,
         lastPaymentDate: lasts.get(m.id) ?? null,
         completeness: completenessOf(m),
+        activityCount: actCounts.get(m.id) ?? 0,
+        lastActivityDate: lastAct.get(m.id) ?? null,
+        engagementCount: engCounts.get(m.id) ?? 0,
+        devotionalCount: devCounts.get(m.id) ?? 0,
       }));
       if (cancelled) return;
       setStats(result);
 
-      // Recommended = highest score: payments > completeness > recency.
+      // Recommended winner = highest score across history dimensions.
       const score = (s: MemberStats) =>
         s.paymentCount * 1000 +
+        s.activityCount * 200 +
+        s.engagementCount * 100 +
+        s.devotionalCount * 100 +
         s.completeness * 50 +
+        (s.lastActivityDate ? new Date(s.lastActivityDate).getTime() / 1e10 : 0) +
         (s.lastPaymentDate ? new Date(s.lastPaymentDate).getTime() / 1e10 : 0);
       const sorted = [...result].sort((a, b) => score(b) - score(a));
       setWinnerId(sorted[0].member.id);

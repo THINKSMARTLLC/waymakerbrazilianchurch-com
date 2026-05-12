@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { PortalLayout } from "@/components/PortalLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,8 +9,8 @@ import { AlertTriangle, LogOut } from "lucide-react";
 export const Route = createFileRoute("/portal")({
   head: () => ({
     meta: [
-      { title: "Portal do Membro — Way Maker Church" },
-      { name: "description", content: "Seu portal pessoal de contribuições" },
+      { title: "Member Portal — Way Maker Church" },
+      { name: "description", content: "Your personal contributions portal" },
     ],
   }),
   component: PortalGate,
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/portal")({
 
 function PortalGate() {
   const { user, signOut, loading } = useAuth();
+  const { t } = useTranslation();
   const [memberStatus, setMemberStatus] = useState<"active" | "inactive" | "unknown" | "loading">("loading");
 
   useEffect(() => {
@@ -57,11 +59,10 @@ function PortalGate() {
             <AlertTriangle className="h-6 w-6 text-destructive" />
           </div>
           <h1 className="font-display text-xl font-semibold text-foreground">
-            Conta inativa
+            {t("portal.accountInactiveTitle")}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sua conta de membro foi desativada e o acesso ao portal está bloqueado.
-            Entre em contato com a administração da igreja para mais informações.
+            {t("portal.accountInactiveDesc")}
           </p>
           <div className="mt-5 flex flex-col gap-2">
             <button
@@ -69,13 +70,13 @@ function PortalGate() {
               className="btn-google inline-flex items-center justify-center gap-2"
             >
               <LogOut className="h-4 w-4" />
-              Sair
+              {t("common.signOut")}
             </button>
             <Link
               to="/login"
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
-              Voltar para o login
+              {t("portal.backToLogin")}
             </Link>
           </div>
         </div>

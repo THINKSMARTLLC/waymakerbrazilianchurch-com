@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { Church, Eye, EyeOff } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activityLog";
 import { EmergencyContactFields } from "@/components/EmergencyContactFields";
@@ -11,45 +12,21 @@ import { formatUSPhoneInput } from "@/lib/phone";
 export const Route = createFileRoute("/signup")({
   head: () => ({
     meta: [
-      { title: "Criar Conta — Way Maker Church" },
-      { name: "description", content: "Crie sua conta no Way Maker Church" },
+      { title: "Create Account — Way Maker Church" },
+      { name: "description", content: "Create your Way Maker Church account" },
     ],
   }),
   component: SignupPage,
 });
 
-const ROLES = [
-  { value: "member", label: "Membro" },
-  { value: "deacon", label: "Diácono" },
-  { value: "worker", label: "Obreiro" },
-  { value: "intercessor", label: "Intercessor" },
-  { value: "treasurer", label: "Tesoureiro" },
-  { value: "singer", label: "Cantor" },
-  { value: "musician", label: "Músico" },
-  { value: "other", label: "Outro" },
-] as const;
+const ROLE_KEYS = ["member", "deacon", "worker", "intercessor", "treasurer", "singer", "musician", "other"] as const;
+const DEPT_KEYS = ["kids", "youth", "finance", "worship", "cleaning", "kitchen", "other"] as const;
 
-const DEPARTMENTS = [
-  { value: "kids", label: "Kids" },
-  { value: "youth", label: "Jovens" },
-  { value: "finance", label: "Financeiro" },
-  { value: "worship", label: "Louvor" },
-  { value: "cleaning", label: "Limpeza" },
-  { value: "kitchen", label: "Cozinha" },
-  { value: "other", label: "Outro" },
-] as const;
-
-const COUNTRIES = [
-  { value: "+1", label: "🇺🇸 United States (+1)" },
-  { value: "+55", label: "🇧🇷 Brasil (+55)" },
-  { value: "other", label: "Outro (código manual)" },
-] as const;
-
-// Roles that grant staff/admin access — these still need the existing requested_role mapping
-const STAFF_ROLE_REQUEST = "member"; // signup form only creates members; staff are provisioned by admins
+const STAFF_ROLE_REQUEST = "member";
 
 function SignupPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -71,6 +48,12 @@ function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  const COUNTRIES = [
+    { value: "+1", label: "🇺🇸 United States (+1)" },
+    { value: "+55", label: "🇧🇷 Brasil (+55)" },
+    { value: "other", label: t("auth.countryOther") },
+  ];
+
   const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm({ ...form, [k]: e.target.value });
 
@@ -79,31 +62,28 @@ function SignupPage() {
     setError("");
 
     if (form.password.length < 8) {
-      setError("A senha deve ter no mínimo 8 caracteres.");
+      setError(t("auth.errors.passwordMin"));
       return;
     }
     if (form.password !== form.confirmPassword) {
-      setError("As senhas não coincidem.");
+      setError(t("auth.errors.passwordMismatch"));
       return;
     }
 
     const phoneDigits = form.phone.replace(/\D/g, "");
     if (phoneDigits.length !== 10) {
-      setError("Telefone inválido. Use 10 dígitos: (XXX) XXX-XXXX.");
+      setError(t("auth.errors.phoneInvalid"));
       return;
     }
     const fullPhone = formatUSPhoneInput(form.phone);
 
     setLoading(true);
 
-    // Block registration only on TRUE duplicates (same email, or same name +
-    // phone). Shared-phone matches alone (different name) are allowed —
-    // multiple people in a household may legitimately share a phone number.
     const { findDuplicates } = await import("@/lib/duplicates");
     const dupes = await findDuplicates({ email: form.email, phone: fullPhone, name: form.fullName });
     const blocking = dupes.filter((d) => d.severity === "duplicate");
     if (blocking.length > 0) {
-      setError("Esta conta já existe. Por favor, faça login ou redefina sua senha.");
+      setError(t("auth.errors.accountExists"));
       setLoading(false);
       return;
     }
@@ -163,7 +143,7 @@ function SignupPage() {
           </div>
           <h1 className="font-display text-2xl font-semibold text-foreground">Way Maker Church</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Criar conta — comece a gerenciar sua igreja em minutos
+            {t("auth.signupSubtitle")}
           </p>
         </div>
 
@@ -174,14 +154,14 @@ function SignupPage() {
             </div>
           )}
 
-          <Field label="Nome Completo">
+          <Field label={t("auth.fullName")}>
             <input required value={form.fullName} onChange={update("fullName")} className={fieldCls} />
           </Field>
-          <Field label="Email">
+          <Field label={t("common.email")}>
             <input type="email" required value={form.email} onChange={update("email")} className={fieldCls} />
           </Field>
 
-          <Field label="Telefone">
+          <Field label={t("auth.phone")}>
             <div className="flex gap-2">
               <select
                 value={form.countryCode}
@@ -208,60 +188,60 @@ function SignupPage() {
                 required
                 value={form.customCountryCode}
                 onChange={update("customCountryCode")}
-                placeholder="Código do país (ex: +351)"
+                placeholder={t("auth.countryCodePlaceholder")}
                 className={`${fieldCls} mt-2`}
               />
             )}
           </Field>
 
-          <Field label="Data de Nascimento">
+          <Field label={t("auth.dateOfBirth")}>
             <input type="date" required value={form.dateOfBirth} onChange={update("dateOfBirth")} className={fieldCls} />
           </Field>
 
-          <Field label="Endereço">
-            <input required value={form.address} onChange={update("address")} className={fieldCls} placeholder="Rua, número, cidade" />
+          <Field label={t("auth.address")}>
+            <input required value={form.address} onChange={update("address")} className={fieldCls} placeholder={t("auth.addressPlaceholder")} />
           </Field>
 
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">Contato de Emergência <span className="text-destructive">*</span></label>
+            <label className="block text-sm font-semibold text-foreground mb-2">{t("auth.emergencyContact")} <span className="text-destructive">*</span></label>
             <EmergencyContactFields value={emergency} onChange={setEmergency} required />
           </div>
 
-          <Field label="Nome da Igreja">
+          <Field label={t("auth.churchName")}>
             <input required value={form.churchName} onChange={update("churchName")} className={fieldCls} />
           </Field>
 
-          <Field label="Cargo">
+          <Field label={t("auth.role")}>
             <select value={form.role} onChange={update("role")} className={fieldCls}>
-              {ROLES.map((r) => (
-                <option key={r.value} value={r.value}>{r.label}</option>
+              {ROLE_KEYS.map((r) => (
+                <option key={r} value={r}>{t(`roles.${r}`)}</option>
               ))}
             </select>
           </Field>
 
-          <Field label="Departamento">
+          <Field label={t("auth.department")}>
             <select value={form.department} onChange={update("department")} className={fieldCls}>
-              {DEPARTMENTS.map((d) => (
-                <option key={d.value} value={d.value}>{d.label}</option>
+              {DEPT_KEYS.map((d) => (
+                <option key={d} value={d}>{t(`departments.${d}`)}</option>
               ))}
             </select>
           </Field>
 
-          <Field label="Senha (mín. 8 caracteres)">
+          <Field label={t("auth.passwordHint")}>
             <div className="relative">
               <input type={showPassword ? "text" : "password"} required minLength={8} value={form.password} onChange={update("password")} className={`${fieldCls} pr-11`} />
               <button type="button" onClick={() => setShowPassword((v) => !v)} tabIndex={-1}
-                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                 className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground">
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </Field>
-          <Field label="Confirmar Senha">
+          <Field label={t("auth.confirmPassword")}>
             <div className="relative">
               <input type={showConfirm ? "text" : "password"} required minLength={8} value={form.confirmPassword} onChange={update("confirmPassword")} className={`${fieldCls} pr-11`} />
               <button type="button" onClick={() => setShowConfirm((v) => !v)} tabIndex={-1}
-                aria-label={showConfirm ? "Ocultar senha" : "Mostrar senha"}
+                aria-label={showConfirm ? t("auth.hidePassword") : t("auth.showPassword")}
                 className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground">
                 {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -269,13 +249,13 @@ function SignupPage() {
           </Field>
 
           <button type="submit" disabled={loading} className="btn-google w-full disabled:opacity-50">
-            {loading ? "Criando conta..." : "Criar Conta"}
+            {loading ? t("auth.creatingAccount") : t("auth.signUp")}
           </button>
 
           <p className="text-center text-sm text-muted-foreground">
-            Já tem uma conta?{" "}
+            {t("auth.alreadyHaveAccount")}{" "}
             <Link to="/login" className="text-primary font-medium hover:underline">
-              Entrar
+              {t("auth.signIn")}
             </Link>
           </p>
         </form>

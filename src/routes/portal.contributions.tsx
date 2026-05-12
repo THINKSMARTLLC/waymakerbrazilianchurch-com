@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatUSD } from "@/lib/format";
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/portal/contributions")({
 
 function ContributionsHistory() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -55,9 +57,9 @@ function ContributionsHistory() {
   return (
     <div className="space-y-6">
       <div className="card-elevated p-5">
-        <p className="text-sm text-muted-foreground">Total contribuído</p>
+        <p className="text-sm text-muted-foreground">{t("portal.totalContributed")}</p>
         <p className="font-display text-3xl font-semibold text-foreground mt-1">{formatUSD(total)}</p>
-        <p className="text-xs text-muted-foreground mt-1">{payments.length} contribuição(ões) registrada(s)</p>
+        <p className="text-xs text-muted-foreground mt-1">{t("portal.contributionsCount", { count: payments.length })}</p>
       </div>
 
       <div className="card-elevated overflow-hidden">
@@ -67,17 +69,17 @@ function ContributionsHistory() {
           </div>
         ) : payments.length === 0 ? (
           <p className="p-6 text-sm text-muted-foreground text-center">
-            Você ainda não tem contribuições registradas.
+            {t("portal.noContributionsHistory")}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
                 <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <th className="px-4 py-3">Data</th>
-                  <th className="px-4 py-3">Tipo</th>
-                  <th className="px-4 py-3">Método</th>
-                  <th className="px-4 py-3 text-right">Valor</th>
+                  <th className="px-4 py-3">{t("common.date")}</th>
+                  <th className="px-4 py-3">{t("portal.contributionType")}</th>
+                  <th className="px-4 py-3">{t("common.method")}</th>
+                  <th className="px-4 py-3 text-right">{t("common.amount")}</th>
                 </tr>
               </thead>
               <tbody>

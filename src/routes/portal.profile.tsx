@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Camera, Save, User as UserIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/portal/profile")({
 
 function MemberProfile() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [member, setMember] = useState<MemberData | null>(null);
   const [address, setAddress] = useState("");
   const [emergency, setEmergency] = useState<EmergencyContact>({ name: "", phone: "", relationship: "" });
@@ -61,9 +63,9 @@ function MemberProfile() {
       .eq("id", member.id);
     setSaving(false);
     if (error) {
-      toast.error("Erro ao salvar: " + error.message);
+      toast.error(t("portal.saveError", { message: error.message }));
     } else {
-      toast.success("Perfil atualizado");
+      toast.success(t("portal.profileUpdated"));
       setMember({ ...member, address, emergency_contact: serialized });
     }
   };
@@ -98,7 +100,7 @@ function MemberProfile() {
     const path = `${user.id}/avatar-${Date.now()}.${ext}`;
     const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
     if (upErr) {
-      toast.error("Erro no upload: " + upErr.message);
+      toast.error(t("portal.uploadError", { message: upErr.message }));
       setUploading(false);
       return;
     }
@@ -110,10 +112,10 @@ function MemberProfile() {
       .eq("id", member.id);
     setUploading(false);
     if (updErr) {
-      toast.error("Erro ao salvar foto: " + updErr.message);
+      toast.error(t("portal.photoSaveError", { message: updErr.message }));
     } else {
       setMember({ ...member, profile_photo_url: url });
-      toast.success("Foto atualizada");
+      toast.success(t("portal.photoUpdated"));
     }
   };
 
@@ -141,7 +143,7 @@ function MemberProfile() {
               onClick={() => fileInput.current?.click()}
               disabled={uploading}
               className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow hover:opacity-90 disabled:opacity-50"
-              title="Trocar foto"
+              title={t("portal.changePhoto")}
             >
               <Camera className="h-4 w-4" />
             </button>
@@ -150,57 +152,57 @@ function MemberProfile() {
           <div className="flex-1">
             <h2 className="font-display text-xl font-semibold text-foreground">{member.name}</h2>
             <p className="text-sm text-muted-foreground">{member.email}</p>
-            {uploading && <p className="text-xs text-primary mt-1">Enviando foto...</p>}
+            {uploading && <p className="text-xs text-primary mt-1">{t("portal.uploadingPhoto")}</p>}
           </div>
         </div>
       </div>
 
       <div className="card-elevated p-6 space-y-4">
-        <h3 className="font-display text-base font-medium text-foreground">Informações fixas</h3>
+        <h3 className="font-display text-base font-medium text-foreground">{t("portal.fixedInfo")}</h3>
         <div className="grid gap-3 sm:grid-cols-2 text-sm">
-          <ReadField label="Nome" value={member.name} />
-          <ReadField label="Email" value={member.email} />
-          <ReadField label="Telefone" value={member.phone} />
+          <ReadField label={t("common.name")} value={member.name} />
+          <ReadField label={t("common.email")} value={member.email} />
+          <ReadField label={t("common.phone")} value={member.phone} />
         </div>
         <p className="text-xs text-muted-foreground">
-          Para alterar nome, email ou telefone, entre em contato com o administrador.
+          {t("portal.fixedInfoNote")}
         </p>
       </div>
 
       <div className="card-elevated p-6 space-y-4">
-        <h3 className="font-display text-base font-medium text-foreground">Informações editáveis</h3>
+        <h3 className="font-display text-base font-medium text-foreground">{t("portal.editableInfo")}</h3>
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5">Endereço</label>
+          <label className="block text-sm font-medium text-foreground mb-1.5">{t("memberProfile.address")}</label>
           <textarea
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             rows={2}
             className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            placeholder="Rua, número, cidade..."
+            placeholder={t("portal.addressPlaceholder")}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-foreground mb-2">Contato de emergência</label>
+          <label className="block text-sm font-medium text-foreground mb-2">{t("memberProfile.emergencyContact")}</label>
           <EmergencyContactFields value={emergency} onChange={setEmergency} />
         </div>
         <button onClick={handleSave} disabled={saving} className="btn-google flex items-center gap-2 disabled:opacity-50">
           <Save className="h-4 w-4" />
-          {saving ? "Salvando..." : "Salvar alterações"}
+          {saving ? t("portal.savingProfile") : t("portal.saveChanges")}
         </button>
       </div>
 
       <div className="card-elevated p-6 space-y-4">
-        <h3 className="font-display text-base font-medium text-foreground">Pastor Salary</h3>
+        <h3 className="font-display text-base font-medium text-foreground">{t("portal.pastorSalary")}</h3>
         <div className="grid gap-3 sm:grid-cols-2 text-sm">
-          <ReadField label="Subscription" value={member.subscription_active ? "Active" : "Pending"} />
-          <ReadField label="Status" value={member.status_payment ?? "Pending"} />
+          <ReadField label={t("portal.subscriptionLabel")} value={member.subscription_active ? t("portal.subscriptionActive") : t("portal.subscriptionPending")} />
+          <ReadField label={t("common.status")} value={member.status_payment ?? t("portal.subscriptionPending")} />
         </div>
         <button
           onClick={handleSubscribe}
           disabled={member.subscription_active || subscribing}
           className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {member.subscription_active ? "Active" : subscribing ? "Redirecting..." : "Subscribe $20/week"}
+          {member.subscription_active ? t("portal.subscriptionActive") : subscribing ? t("portal.redirecting") : t("portal.subscribeWeekly")}
         </button>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { DollarSign, CreditCard, Users, AlertTriangle, Receipt, Pencil, Trash2, UserX, Download } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { exportPaymentsCSV, exportPaymentsXLSX } from "@/lib/dataExportImport";
@@ -55,6 +56,7 @@ function getDateRange(filter: FilterRange, customStart?: string, customEnd?: str
 }
 
 function ReportsPage() {
+  const { t } = useTranslation();
   const { range } = Route.useSearch();
   const [filter, setFilter] = useState<FilterRange>(range ?? "this_month");
   const [customStart, setCustomStart] = useState("");

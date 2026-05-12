@@ -1,4 +1,5 @@
 // Birthday helpers — all date math is done in local time to avoid TZ shifts.
+import i18n from "i18next";
 
 export interface BirthdayInfo {
   /** Days until next birthday (0 = today). */
@@ -52,8 +53,8 @@ export function isInWindow(info: BirthdayInfo, window: BirthdayWindow): boolean 
 }
 
 export function formatBirthdayLabel(info: BirthdayInfo): string {
-  if (info.daysUntil === 0) return "Hoje 🎂";
-  if (info.daysUntil === 1) return "Amanhã";
-  if (info.daysUntil <= 7) return `Em ${info.daysUntil} dias`;
+  if (info.daysUntil === 0) return i18n.t("birthdays.today") + " 🎂";
+  if (info.daysUntil === 1) return i18n.t("birthdays.tomorrow");
+  if (info.daysUntil <= 7) return i18n.t("birthdays.in", { days: info.daysUntil });
   return info.nextDate.toLocaleDateString("en-US", { day: "2-digit", month: "short" });
 }

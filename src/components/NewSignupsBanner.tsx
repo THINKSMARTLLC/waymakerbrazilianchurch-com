@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { UserPlus, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 
@@ -12,6 +13,7 @@ interface SignupRow {
 }
 
 export function NewSignupsBanner() {
+  const { t } = useTranslation();
   const { isSuperAdmin, loading } = useUserRole();
   const [rows, setRows] = useState<SignupRow[]>([]);
   const [dismissed, setDismissed] = useState(false);
@@ -51,7 +53,7 @@ export function NewSignupsBanner() {
           </div>
           <div>
             <h3 className="font-display text-sm font-semibold text-foreground">
-              {rows.length} new member{rows.length === 1 ? "" : "s"} registered (last 24h)
+              {t("signupsBanner.title", { count: rows.length })}
             </h3>
             <ul className="mt-2 space-y-1">
               {rows.slice(0, 5).map((r) => {
@@ -84,7 +86,7 @@ export function NewSignupsBanner() {
                 );
               })}
               {rows.length > 5 && (
-                <li className="text-xs text-muted-foreground">+ {rows.length - 5} more</li>
+                <li className="text-xs text-muted-foreground">{t("signupsBanner.more", { count: rows.length - 5 })}</li>
               )}
             </ul>
           </div>
@@ -92,7 +94,7 @@ export function NewSignupsBanner() {
         <button
           onClick={() => setDismissed(true)}
           className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
-          aria-label="Dismiss"
+          aria-label={t("common.dismiss")}
         >
           <X className="h-4 w-4" />
         </button>

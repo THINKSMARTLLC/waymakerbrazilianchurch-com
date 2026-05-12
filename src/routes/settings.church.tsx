@@ -208,21 +208,21 @@ function ChurchSettingsPage() {
           <div className="rounded-lg bg-accent/40 p-3 text-sm flex items-start gap-2">
             <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
             <div>
-              <p className="text-foreground">Coordenadas configuradas</p>
+              <p className="text-foreground">{t("settingsPage.coordinatesSet")}</p>
               <a
                 href={`https://www.google.com/maps?q=${lat},${lng}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-xs text-primary hover:underline"
               >
-                Ver no Google Maps ↗
+                {t("settingsPage.viewOnGoogleMaps")}
               </a>
             </div>
           </div>
         )}
 
         {message && (
-          <p className={`text-sm ${message.startsWith("Erro") ? "text-destructive" : "text-success"}`}>
+          <p className={`text-sm ${message.startsWith(t("settingsPage.errorPrefix")) ? "text-destructive" : "text-success"}`}>
             {message}
           </p>
         )}
@@ -233,7 +233,7 @@ function ChurchSettingsPage() {
           className="btn-google inline-flex items-center gap-2 disabled:opacity-50"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Salvar configurações
+          {t("settingsPage.saveSettings")}
         </button>
       </form>
     </div>

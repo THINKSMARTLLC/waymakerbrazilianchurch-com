@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Cake, Phone, MessageCircle } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { getBirthdayInfo, formatBirthdayLabel, type BirthdayInfo } from "@/lib/birthday";
 import { toTitleCase } from "@/lib/format";

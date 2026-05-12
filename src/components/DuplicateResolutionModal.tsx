@@ -531,10 +531,7 @@ function isArchiveRecommended(s: MemberStats, all: MemberStats[]): boolean {
   const max = Math.max(...all.map(score));
   return all.length > 1 && mine < max;
 }
-      </div>
-    </div>
-  );
-}
+
 
 function RecordCard({ s }: { s: MemberStats }) {
   return (

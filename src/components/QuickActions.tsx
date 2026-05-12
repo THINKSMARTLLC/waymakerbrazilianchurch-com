@@ -1,17 +1,18 @@
 import { UserPlus, DollarSign, CreditCard } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-
-const actions = [
-  { label: "Add Member", icon: UserPlus, to: "/members", color: "bg-primary" },
-  { label: "Add Cash Offering", icon: DollarSign, to: "/members", color: "bg-success" },
-  { label: "Create Subscription", icon: CreditCard, to: "/members", color: "bg-warning" },
-];
+import { useTranslation } from "react-i18next";
 
 export function QuickActions() {
+  const { t } = useTranslation();
+  const actions = [
+    { label: t("quickActions.addMember"), icon: UserPlus, to: "/members" as const, color: "bg-primary" },
+    { label: t("quickActions.addCashOffering"), icon: DollarSign, to: "/members" as const, color: "bg-success" },
+    { label: t("quickActions.createSubscription"), icon: CreditCard, to: "/members" as const, color: "bg-warning" },
+  ];
   return (
     <div className="card-elevated p-5">
       <h3 className="font-display text-base font-medium text-foreground mb-4">
-        Quick Actions
+        {t("quickActions.title")}
       </h3>
       <div className="space-y-2">
         {actions.map((action) => (

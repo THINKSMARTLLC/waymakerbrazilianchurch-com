@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { X, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ACTIVITY_LABEL, ACTIVITY_ICON, todayLocalISO, type ActivityType } from "@/lib/engagement";
@@ -23,6 +24,7 @@ const TYPES: ActivityType[] = ["attendance", "cell_group", "visit_scheduled", "l
 
 export function RegisterActivityModal({ memberId, memberName, onClose, onSaved }: Props) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [type, setType] = useState<ActivityType>("attendance");
   const [date, setDate] = useState(() => todayLocalISO());
   const [notes, setNotes] = useState("");
@@ -70,7 +72,7 @@ export function RegisterActivityModal({ memberId, memberName, onClose, onSaved }
       <div className="bg-card rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div>
-            <h2 className="font-display text-lg font-semibold text-foreground">Registrar Atividade</h2>
+            <h2 className="font-display text-lg font-semibold text-foreground">{t("modals.registerActivity")}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">{memberName}</p>
           </div>
           <button onClick={onClose} className="rounded-lg p-1 text-muted-foreground hover:bg-muted">
@@ -80,24 +82,24 @@ export function RegisterActivityModal({ memberId, memberName, onClose, onSaved }
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="text-sm font-medium text-foreground mb-2 block">Tipo de atividade</label>
+            <label className="text-sm font-medium text-foreground mb-2 block">{t("modals.activityType")}</label>
             <div className="grid grid-cols-2 gap-2">
-              {TYPES.map((t) => (
+              {TYPES.map((tp) => (
                 <button
-                  key={t}
+                  key={tp}
                   type="button"
                   onClick={() => {
-                    setType(t);
+                    setType(tp);
                     setEventTypeId("");
                   }}
                   className={`flex items-center gap-2 rounded-xl border p-3 text-left text-sm transition-colors ${
-                    type === t
+                    type === tp
                       ? "border-primary bg-accent text-foreground"
                       : "border-input bg-background hover:bg-muted"
                   }`}
                 >
-                  <span className="text-lg">{ACTIVITY_ICON[t]}</span>
-                  <span className="font-medium">{ACTIVITY_LABEL[t]}</span>
+                  <span className="text-lg">{ACTIVITY_ICON[tp]}</span>
+                  <span className="font-medium">{ACTIVITY_LABEL[tp]}</span>
                 </button>
               ))}
             </div>
@@ -105,13 +107,13 @@ export function RegisterActivityModal({ memberId, memberName, onClose, onSaved }
 
           {filteredEvents.length > 0 && (
             <div>
-              <label className="text-sm font-medium text-foreground mb-1 block">Evento específico (opcional)</label>
+              <label className="text-sm font-medium text-foreground mb-1 block">{t("modals.specificEventOptional")}</label>
               <select
                 value={eventTypeId}
                 onChange={(e) => setEventTypeId(e.target.value)}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
               >
-                <option value="">— Nenhum —</option>
+                <option value="">{t("modals.noneOption")}</option>
                 {filteredEvents.map((ev) => (
                   <option key={ev.id} value={ev.id}>
                     {ev.icon ?? ""} {ev.name}
@@ -122,7 +124,7 @@ export function RegisterActivityModal({ memberId, memberName, onClose, onSaved }
           )}
 
           <div>
-            <label className="text-sm font-medium text-foreground mb-1 block">Data</label>
+            <label className="text-sm font-medium text-foreground mb-1 block">{t("common.date")}</label>
             <input
               type="date"
               value={date}
@@ -134,13 +136,13 @@ export function RegisterActivityModal({ memberId, memberName, onClose, onSaved }
           </div>
 
           <div>
-            <label className="text-sm font-medium text-foreground mb-1 block">Notas (opcional)</label>
+            <label className="text-sm font-medium text-foreground mb-1 block">{t("modals.notesOptional")}</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              placeholder="Observações adicionais..."
+              placeholder={t("modals.additionalNotes")}
             />
           </div>
 
@@ -152,7 +154,7 @@ export function RegisterActivityModal({ memberId, memberName, onClose, onSaved }
               onClick={onClose}
               className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted"
             >
-              Cancelar
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
@@ -160,7 +162,7 @@ export function RegisterActivityModal({ memberId, memberName, onClose, onSaved }
               className="flex-1 btn-google inline-flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Registrar
+              {t("modals.register")}
             </button>
           </div>
         </form>

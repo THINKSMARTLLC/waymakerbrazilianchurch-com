@@ -76,6 +76,7 @@ function RootComponent() {
 }
 
 function AuthGate() {
+  const { t } = useTranslation();
   const { user, loading } = useAuth();
   const location = useLocation();
   const isPublic = PUBLIC_ROUTES.includes(location.pathname);
@@ -94,8 +95,8 @@ function AuthGate() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
-          <p className="text-muted-foreground mb-4">Você precisa fazer login para acessar o sistema.</p>
-          <Link to="/login" className="btn-google inline-block">Ir para Login</Link>
+          <p className="text-muted-foreground mb-4">{t("rootApp.loginRequired")}</p>
+          <Link to="/login" className="btn-google inline-block">{t("auth.login", { defaultValue: "Sign In" })}</Link>
         </div>
       </div>
     );

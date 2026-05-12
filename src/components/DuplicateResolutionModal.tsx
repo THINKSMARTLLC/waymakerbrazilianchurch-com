@@ -283,26 +283,92 @@ export function DuplicateResolutionModal({
           <div className="flex items-center justify-center py-10">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
+        ) : archiveMode ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {stats.map((s) => {
+                const recommended = isArchiveRecommended(s, stats);
+                const selected = archiveTargetId === s.member.id;
+                return (
+                  <button
+                    type="button"
+                    key={s.member.id}
+                    onClick={() => { setArchiveTargetId(s.member.id); setConfirmArchive(false); }}
+                    className={`text-left rounded-xl border bg-background p-4 transition-colors ${selected ? "border-primary ring-2 ring-primary/30" : "border-border hover:bg-muted/40"}`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {selected ? "Will be archived" : "Keep active"}
+                      </span>
+                      {recommended && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-600">
+                          Recommended for archive
+                        </span>
+                      )}
+                    </div>
+                    <RecordCard s={s} />
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-5 rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+              <strong className="text-foreground">Safe archive:</strong> The archived record is not deleted. All payments, activities, devotionals, engagement and notes stay attached to it and can be restored anytime from <em>Archived Members</em>.
+            </div>
+            {confirmArchive && (
+              <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-50 dark:bg-amber-950/30 p-4">
+                <p className="text-sm font-medium text-foreground mb-1">Confirm archive?</p>
+                <p className="text-xs text-muted-foreground">
+                  <strong>{toTitleCase(stats.find((x) => x.member.id === archiveTargetId)?.member.name ?? "")}</strong> will be moved to Archived Members. The other record stays active. This is reversible.
+                </p>
+              </div>
+            )}
+            <div className="flex flex-wrap gap-3 pt-5">
+              <button
+                type="button"
+                onClick={() => { setArchiveMode(false); setConfirmArchive(false); setError(""); }}
+                className="flex-1 min-w-[120px] rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={handleArchive}
+                disabled={!archiveTargetId || merging}
+                className="btn-google flex-1 min-w-[220px] inline-flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <Archive className="h-4 w-4" />
+                {merging ? "Archiving..." : confirmArchive ? "Confirm archive" : "Archive selected record"}
+              </button>
+            </div>
+          </>
         ) : isWarning ? (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {stats.map((s) => (
-                <div key={s.member.id} className="rounded-xl border border-border bg-background p-4">
-                  <div className="mb-3">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Member</span>
+              {stats.map((s) => {
+                const recommended = isArchiveRecommended(s, stats);
+                return (
+                  <div key={s.member.id} className="rounded-xl border border-border bg-background p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Member</span>
+                      {recommended && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-600">
+                          Recommended for archive
+                        </span>
+                      )}
+                    </div>
+                    <RecordCard s={s} />
                   </div>
-                  <RecordCard s={s} />
-                </div>
-              ))}
+                );
+              })}
             </div>
-            <div className="mt-5 rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
-              <strong className="text-foreground">Why no merge?</strong> These members share a phone number but have different names/emails — likely a household phone. Both records remain active. If they are actually the same person, edit one record to fix the name/email and the system will offer a merge.
+            <div className="mt-5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-500/40 p-3 text-xs text-foreground">
+              <strong>These members may belong to different people.</strong> They share a phone number but have different names/emails (e.g. household phone). As an admin you can still merge them, archive one of them, or keep them as separate records.
             </div>
-            <div className="flex gap-3 pt-5">
+            <div className="flex flex-wrap gap-3 pt-5">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                className="flex-1 min-w-[110px] rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
               >
                 Cancel
               </button>
@@ -310,14 +376,36 @@ export function DuplicateResolutionModal({
                 type="button"
                 onClick={handleDismiss}
                 disabled={merging}
-                className="btn-google flex-1 inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex-1 min-w-[140px] rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                title="Both records remain active and the alert is dismissed."
               >
                 {merging ? "Saving..." : "Keep separate"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setArchiveMode(true); setError(""); }}
+                className="flex-1 min-w-[180px] rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors inline-flex items-center justify-center gap-2"
+              >
+                <Archive className="h-4 w-4" />
+                Archive selected record
+              </button>
+              <button
+                type="button"
+                onClick={() => { setOverrideMerge(true); setError(""); }}
+                className="btn-google flex-1 min-w-[160px] inline-flex items-center justify-center gap-2"
+              >
+                <GitMerge className="h-4 w-4" />
+                Merge anyway
               </button>
             </div>
           </>
         ) : (
           <>
+            {overrideMerge && (
+              <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-foreground">
+                <strong>Admin override merge.</strong> These records have different names/emails. They may not be the same person. Choose carefully which record stays active — the other will be archived (recoverable).
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* For groups of >2, let admin pick winner from a select */}
               {[
@@ -365,6 +453,15 @@ export function DuplicateResolutionModal({
               </div>
             )}
 
+            {overrideMerge && confirmDifferentPeople && !confirmDelete && (
+              <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-50 dark:bg-amber-950/30 p-4">
+                <p className="text-sm font-medium text-foreground mb-1">Are you sure these records belong to the same person?</p>
+                <p className="text-xs text-muted-foreground">
+                  Names and emails differ. Click <em>Merge Records</em> again to continue, or <em>Cancel</em> to back out.
+                </p>
+              </div>
+            )}
+
             {confirmDelete && (
               <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-50 dark:bg-amber-950/30 p-4">
                 <p className="text-sm font-medium text-foreground mb-1">Confirm merge?</p>
@@ -377,20 +474,31 @@ export function DuplicateResolutionModal({
             <div className="flex flex-wrap gap-3 pt-5">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => {
+                  if (overrideMerge) {
+                    setOverrideMerge(false);
+                    setConfirmDifferentPeople(false);
+                    setConfirmDelete(false);
+                    setError("");
+                  } else {
+                    onClose();
+                  }
+                }}
                 className="flex-1 min-w-[120px] rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
               >
-                Cancel
+                {overrideMerge ? "Back" : "Cancel"}
               </button>
-              <button
-                type="button"
-                onClick={handleDismiss}
-                disabled={merging}
-                className="flex-1 min-w-[180px] rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
-                title="Mark as not a duplicate — both records remain active and the alert is dismissed."
-              >
-                Keep Both (Not Duplicate)
-              </button>
+              {!overrideMerge && (
+                <button
+                  type="button"
+                  onClick={handleDismiss}
+                  disabled={merging}
+                  className="flex-1 min-w-[180px] rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                  title="Mark as not a duplicate — both records remain active and the alert is dismissed."
+                >
+                  Keep Both (Not Duplicate)
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleMerge}
@@ -398,11 +506,31 @@ export function DuplicateResolutionModal({
                 className="btn-google flex-1 min-w-[200px] inline-flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <GitMerge className="h-4 w-4" />
-                {merging ? "Merging..." : confirmDelete ? "Confirm merge & archive duplicate" : "Merge Records"}
+                {merging
+                  ? "Merging..."
+                  : confirmDelete
+                  ? "Confirm merge & archive duplicate"
+                  : overrideMerge && !confirmDifferentPeople
+                  ? "Merge Anyway"
+                  : "Merge Records"}
               </button>
             </div>
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+function isArchiveRecommended(s: MemberStats, all: MemberStats[]): boolean {
+  if (s.member.archived || s.member.status === "inactive") return true;
+  // Lowest score in the group → recommended for archive when others have more history.
+  const score = (x: MemberStats) =>
+    x.paymentCount * 1000 + x.activityCount * 200 + x.engagementCount * 100 + x.devotionalCount * 100 + x.completeness * 50;
+  const mine = score(s);
+  const max = Math.max(...all.map(score));
+  return all.length > 1 && mine < max;
+}
       </div>
     </div>
   );

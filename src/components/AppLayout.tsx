@@ -67,7 +67,7 @@ export function AppLayout() {
       mounted = false;
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [t]);
 
   const baseNavItems = [
     { label: t("nav.dashboard"), to: "/dashboard" as const, icon: LayoutDashboard },

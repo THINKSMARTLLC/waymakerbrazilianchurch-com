@@ -286,20 +286,20 @@ function EngagementDashboard() {
                   <div className="flex items-center gap-2 shrink-0">
                     {a.photo_url && (
                       <a href={a.photo_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
-                        Foto
+                        {t("engagementPage.photo")}
                       </a>
                     )}
                     <button
                       onClick={() => reviewActivity(a.id, "approved")}
                       className="inline-flex items-center gap-1 rounded-lg bg-success/15 text-success px-2 py-1 text-xs font-medium hover:bg-success/25"
                     >
-                      <Check className="h-3 w-3" /> Aprovar
+                      <Check className="h-3 w-3" /> {t("engagementPage.approve")}
                     </button>
                     <button
                       onClick={() => reviewActivity(a.id, "rejected")}
                       className="inline-flex items-center gap-1 rounded-lg bg-destructive/15 text-destructive px-2 py-1 text-xs font-medium hover:bg-destructive/25"
                     >
-                      <XCircle className="h-3 w-3" /> Rejeitar
+                      <XCircle className="h-3 w-3" /> {t("engagementPage.reject")}
                     </button>
                   </div>
                 </li>

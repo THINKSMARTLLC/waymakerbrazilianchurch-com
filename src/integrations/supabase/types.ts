@@ -293,6 +293,30 @@ export type Database = {
           },
         ]
       }
+      dismissed_duplicate_groups: {
+        Row: {
+          dismissed_at: string
+          dismissed_by: string | null
+          group_key: string
+          id: string
+          reason: string
+        }
+        Insert: {
+          dismissed_at?: string
+          dismissed_by?: string | null
+          group_key: string
+          id?: string
+          reason?: string
+        }
+        Update: {
+          dismissed_at?: string
+          dismissed_by?: string | null
+          group_key?: string
+          id?: string
+          reason?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -987,6 +1011,10 @@ export type Database = {
       is_staff: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       merge_members_by_email: { Args: { _email: string }; Returns: string }
+      merge_members_by_id: {
+        Args: { _loser: string; _winner: string }
+        Returns: string
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string

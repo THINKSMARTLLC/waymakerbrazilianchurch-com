@@ -127,6 +127,13 @@ function MemberProfilePage() {
   const [activities, setActivities] = useState<MemberActivity[]>([]);
   const [socials, setSocials] = useState<SocialEngagement[]>([]);
   const [pastoralNotes, setPastoralNotes] = useState<PastoralNote[]>([]);
+  const [mergedRecords, setMergedRecords] = useState<Array<{
+    id: string;
+    merge_date: string;
+    restored: boolean;
+    snapshot_data: { member?: { name?: string; email?: string | null; phone?: string | null } } | null;
+  }>>([]);
+  const [showMerged, setShowMerged] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
@@ -134,7 +141,7 @@ function MemberProfilePage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchData = async () => {
-    const [memberRes, paymentsRes, actsRes, socRes, notesRes] = await Promise.all([
+    const [memberRes, paymentsRes, actsRes, socRes, notesRes, mergedRes] = await Promise.all([
       supabase.from("members").select("*").eq("id", memberId).maybeSingle(),
       supabase.from("payments").select("*").eq("member_id", memberId).order("payment_date", { ascending: false }),
       supabase.from("member_activities").select("*").eq("member_id", memberId).order("activity_date", { ascending: false }),
@@ -145,12 +152,18 @@ function MemberProfilePage() {
         .eq("member_id", memberId)
         .eq("share_with_pastor", true)
         .order("updated_at", { ascending: false }),
+      supabase
+        .from("member_merge_history" as never)
+        .select("id, merge_date, restored, snapshot_data")
+        .eq("merged_into_member_id", memberId)
+        .order("merge_date", { ascending: false }),
     ]);
     setMember(memberRes.data);
     setPayments(paymentsRes.data || []);
     setActivities(actsRes.data || []);
     setSocials(socRes.data || []);
     setPastoralNotes((notesRes.data || []) as PastoralNote[]);
+    setMergedRecords(((mergedRes.data || []) as Array<{ id: string; merge_date: string; restored: boolean; snapshot_data: { member?: { name?: string } } | null }>));
     setLoading(false);
   };
 

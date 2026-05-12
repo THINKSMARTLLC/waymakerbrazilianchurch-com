@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Database as DatabaseIcon, Download, Upload, Archive, Shield, ArrowLeft, Loader2, Users, Receipt, FileSpreadsheet } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import {
@@ -13,7 +14,7 @@ import { ImportPreviewModal } from "@/components/ImportPreviewModal";
 import { logActivity } from "@/lib/activityLog";
 
 export const Route = createFileRoute("/import-export")({
-  head: () => ({ meta: [{ title: "Importar e Exportar Dados — Way Maker Church" }] }),
+  head: () => ({ meta: [{ title: "Import & Export Data — Way Maker Church" }] }),
   component: AdminDataPage,
 });
 
@@ -23,20 +24,21 @@ type Action =
   | "backup";
 
 function AdminDataPage() {
+  const { t } = useTranslation();
   const { isSuperAdmin, loading } = useUserRole();
   const [busy, setBusy] = useState<Action | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [lastMessage, setLastMessage] = useState<string | null>(null);
 
-  if (loading) return <div className="p-8 text-muted-foreground">Carregando...</div>;
+  if (loading) return <div className="p-8 text-muted-foreground">{t("common.loading")}</div>;
   if (!isSuperAdmin) {
     return (
       <div className="p-8 text-center">
         <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-        <h2 className="text-xl font-semibold mb-2">Acesso restrito</h2>
-        <p className="text-muted-foreground mb-4">Apenas Super Admins podem acessar Importar/Exportar.</p>
+        <h2 className="text-xl font-semibold mb-2">{t("admin.restrictedTitle")}</h2>
+        <p className="text-muted-foreground mb-4">{t("importExport.restricted")}</p>
         <Link to="/admin" className="btn-google inline-flex items-center gap-2">
-          <ArrowLeft className="h-4 w-4" /> Voltar
+          <ArrowLeft className="h-4 w-4" /> {t("common.back")}
         </Link>
       </div>
     );
@@ -48,13 +50,13 @@ function AdminDataPage() {
     try {
       const r = await fn();
       if (typeof r === "number") {
-        setLastMessage(`Exported ${r} record(s).`);
+        setLastMessage(t("importExport.exportedRecords", { count: r }));
       } else {
-        setLastMessage(`Backup ready — ${r.members} members, ${r.payments} payments, ${r.contributions} contributions, ${r.subscriptions} subscriptions, ${r.profiles} profiles.`);
+        setLastMessage(t("importExport.backupReady", r));
       }
       await logActivity("data_exported", { action });
     } catch (e) {
-      setLastMessage(e instanceof Error ? e.message : "Failed to export");
+      setLastMessage(e instanceof Error ? e.message : t("importExport.exportFailed"));
     } finally {
       setBusy(null);
     }
@@ -67,8 +69,8 @@ function AdminDataPage() {
           <DatabaseIcon className="h-5 w-5 text-primary" />
         </div>
         <div className="flex-1">
-          <h1 className="text-2xl font-semibold font-display">Importar e Exportar Dados</h1>
-          <p className="text-sm text-muted-foreground">Controle total dos seus dados — exporte, importe e faça backup</p>
+          <h1 className="text-2xl font-semibold font-display">{t("importExport.pageTitle")}</h1>
+          <p className="text-sm text-muted-foreground">{t("importExport.pageSubtitle")}</p>
         </div>
         <Link to="/admin" className="px-3 py-2 rounded-xl border border-input bg-background hover:bg-muted text-sm inline-flex items-center gap-2">
           <ArrowLeft className="h-4 w-4" /> Admin
@@ -81,28 +83,28 @@ function AdminDataPage() {
         </div>
       )}
 
-      <Card title="Exportar Membros" icon={<Users className="h-5 w-5 text-primary" />} description="Inclui nome, email, telefone, contribuição semanal/mensal, status, último pagamento, função.">
+      <Card title={t("importExport.exportTitle")} icon={<Users className="h-5 w-5 text-primary" />} description={t("importExport.exportDescription")}>
         <div className="flex flex-wrap gap-2">
           <ExportBtn label="CSV" busy={busy === "members_csv"} onClick={() => run("members_csv", exportMembersCSV)} />
           <ExportBtn label="Excel (.xlsx)" busy={busy === "members_xlsx"} onClick={() => run("members_xlsx", exportMembersXLSX)} />
         </div>
       </Card>
 
-      <Card title="Exportar Pagamentos" icon={<Receipt className="h-5 w-5 text-primary" />} description="Inclui membro, data, valor, método, tipo (dízimo, oferta, etc.) e mês de referência.">
+      <Card title={t("importExport.exportPaymentsTitle")} icon={<Receipt className="h-5 w-5 text-primary" />} description={t("importExport.exportPaymentsDescription")}>
         <div className="flex flex-wrap gap-2">
           <ExportBtn label="CSV" busy={busy === "payments_csv"} onClick={() => run("payments_csv", exportPaymentsCSV)} />
           <ExportBtn label="Excel (.xlsx)" busy={busy === "payments_xlsx"} onClick={() => run("payments_xlsx", exportPaymentsXLSX)} />
         </div>
       </Card>
 
-      <Card title="Backup Completo" icon={<Archive className="h-5 w-5 text-primary" />} description="ZIP com todas as tabelas (membros, pagamentos, contribuições, assinaturas, perfis) + manifest.json com metadata.">
-        <ExportBtn label="Baixar Backup (.zip)" busy={busy === "backup"} onClick={() => run("backup", exportFullBackup)} icon={<Archive className="h-4 w-4" />} />
+      <Card title={t("importExport.fullBackupTitle")} icon={<Archive className="h-5 w-5 text-primary" />} description={t("importExport.fullBackupDescription")}>
+        <ExportBtn label={t("importExport.downloadBackup")} busy={busy === "backup"} onClick={() => run("backup", exportFullBackup)} icon={<Archive className="h-4 w-4" />} />
       </Card>
 
-      <Card title="Importar Membros" icon={<Upload className="h-5 w-5 text-primary" />} description="Carregue um arquivo CSV ou Excel. O sistema detecta duplicatas (email/telefone) e mostra uma prévia antes de salvar.">
+      <Card title={t("importExport.importTitle")} icon={<Upload className="h-5 w-5 text-primary" />} description={t("importExport.importDescription")}>
         <button onClick={() => setShowImport(true)} className="btn-google inline-flex items-center gap-2">
           <FileSpreadsheet className="h-4 w-4" />
-          Escolher arquivo
+          {t("importExport.chooseFile")}
         </button>
       </Card>
 

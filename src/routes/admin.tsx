@@ -34,6 +34,7 @@ export const Route = createFileRoute("/admin")({
 const ROLE_OPTIONS: AppRole[] = ["super_admin", "church_admin", "admin", "finance_manager", "member"];
 
 function AdminPage() {
+  const { t } = useTranslation();
   const { isSuperAdmin, loading: roleLoading } = useUserRole();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);

@@ -464,7 +464,7 @@ function MembersPage() {
                                 }
                               >
                                 <AlertTriangle className="h-3 w-3" />
-                                {dupGroup.severity === "warning" ? "Shared phone" : "Duplicate detected"}
+                                {dupGroup.severity === "warning" ? "Shared phone" : "Possible duplicate"}
                               </button>
                             )}
                           </div>

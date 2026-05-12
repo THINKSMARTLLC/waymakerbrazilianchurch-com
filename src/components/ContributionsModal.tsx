@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { X, Pencil, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { formatUSD } from "@/lib/format";
+import { formatLocalDateOnly } from "@/lib/datetime";
 import { CONTRIBUTION_TYPE_LABEL, PAYMENT_METHOD_LABEL } from "./RecordPaymentModal";
 import { EditPaymentModal } from "./EditPaymentModal";
 import type { Database } from "@/integrations/supabase/types";
@@ -16,6 +18,7 @@ interface Props {
 }
 
 export function ContributionsModal({ memberId, memberName, onClose, onChanged }: Props) {
+  const { t } = useTranslation();
   const [rows, setRows] = useState<PaymentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<PaymentRow | null>(null);
@@ -36,12 +39,12 @@ export function ContributionsModal({ memberId, memberName, onClose, onChanged }:
   }, [memberId]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this payment?")) return;
+    if (!confirm(t("contributionsModal.confirmDelete"))) return;
     setDeletingId(id);
     const { error } = await supabase.from("payments").delete().eq("id", id);
     setDeletingId(null);
     if (error) {
-      alert(`Failed to delete: ${error.message}`);
+      alert(t("contributionsModal.deleteFailed", { message: error.message }));
       return;
     }
     await fetchRows();
@@ -60,7 +63,7 @@ export function ContributionsModal({ memberId, memberName, onClose, onChanged }:
       <div className="card-elevated w-full max-w-3xl max-h-[85vh] flex flex-col">
         <div className="flex items-start justify-between p-6 border-b border-border">
           <div>
-            <h2 className="font-display text-lg font-semibold text-foreground">Contributions</h2>
+            <h2 className="font-display text-lg font-semibold text-foreground">{t("contributionsModal.title")}</h2>
             <p className="text-sm text-muted-foreground">{memberName}</p>
           </div>
           <button onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
@@ -74,23 +77,23 @@ export function ContributionsModal({ memberId, memberName, onClose, onChanged }:
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           ) : rows.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">No contributions recorded yet.</div>
+            <div className="py-12 text-center text-sm text-muted-foreground">{t("contributionsModal.empty")}</div>
           ) : (
             <table className="w-full">
               <thead className="sticky top-0 bg-card">
                 <tr className="border-b border-border">
-                  <th className="table-header px-5 py-3 text-left">Date</th>
-                  <th className="table-header px-5 py-3 text-left">Amount</th>
-                  <th className="table-header px-5 py-3 text-left">Method</th>
-                  <th className="table-header px-5 py-3 text-left">Type</th>
-                  <th className="table-header px-5 py-3 text-left">Notes</th>
-                  <th className="table-header px-5 py-3 text-right">Actions</th>
+                  <th className="table-header px-5 py-3 text-left">{t("contributionsModal.date")}</th>
+                  <th className="table-header px-5 py-3 text-left">{t("contributionsModal.amount")}</th>
+                  <th className="table-header px-5 py-3 text-left">{t("contributionsModal.method")}</th>
+                  <th className="table-header px-5 py-3 text-left">{t("contributionsModal.type")}</th>
+                  <th className="table-header px-5 py-3 text-left">{t("contributionsModal.notes")}</th>
+                  <th className="table-header px-5 py-3 text-right">{t("contributionsModal.actions")}</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.id} className="border-b border-border last:border-0">
-                    <td className="px-5 py-3 text-sm text-foreground">{new Date(r.payment_date).toLocaleDateString("en-US")}</td>
+                    <td className="px-5 py-3 text-sm text-foreground">{formatLocalDateOnly(r.payment_date)}</td>
                     <td className="px-5 py-3 text-sm font-medium text-foreground">{formatUSD(r.amount)}</td>
                     <td className="px-5 py-3 text-sm text-muted-foreground">{PAYMENT_METHOD_LABEL[r.payment_method] ?? r.payment_method}</td>
                     <td className="px-5 py-3 text-sm text-muted-foreground">{CONTRIBUTION_TYPE_LABEL[r.contribution_type] ?? r.contribution_type}</td>
@@ -100,7 +103,7 @@ export function ContributionsModal({ memberId, memberName, onClose, onChanged }:
                         <button
                           onClick={() => setEditing(r)}
                           className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                          title="Edit Payment"
+                          title={t("contributionsModal.editPayment")}
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
@@ -108,7 +111,7 @@ export function ContributionsModal({ memberId, memberName, onClose, onChanged }:
                           onClick={() => handleDelete(r.id)}
                           disabled={deletingId === r.id}
                           className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50"
-                          title="Delete Payment"
+                          title={t("contributionsModal.deletePayment")}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -122,8 +125,8 @@ export function ContributionsModal({ memberId, memberName, onClose, onChanged }:
         </div>
 
         <div className="flex items-center justify-between p-5 border-t border-border bg-muted/30">
-          <span className="text-sm text-muted-foreground">{rows.length} payment{rows.length === 1 ? "" : "s"}</span>
-          <span className="font-display text-base font-semibold text-foreground">Total: {formatUSD(total)}</span>
+          <span className="text-sm text-muted-foreground">{t("contributionsModal.paymentCount", { count: rows.length })}</span>
+          <span className="font-display text-base font-semibold text-foreground">{t("contributionsModal.total", { amount: formatUSD(total) })}</span>
         </div>
       </div>
 

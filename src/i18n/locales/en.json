@@ -537,6 +537,9 @@
       "friday_youth": "9. Youth service (Friday)",
       "communion": "10. Communion (first Sunday)",
       "general_invite": "11. General invitation"
-    }
+    },
+    "shareMoment": "Share your moment",
+    "shareOptional": "Optional — choose where you want to share.",
+    "somethingWrong": "Something went wrong."
   }
 }

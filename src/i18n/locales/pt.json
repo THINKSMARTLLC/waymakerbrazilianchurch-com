@@ -537,6 +537,9 @@
       "friday_youth": "9. Culto de jovens (sexta-feira)",
       "communion": "10. Santa Ceia (primeiro domingo)",
       "general_invite": "11. Convite geral"
-    }
+    },
+    "shareMoment": "Compartilhe seu momento",
+    "shareOptional": "Opcional — escolha onde quer compartilhar.",
+    "somethingWrong": "Algo deu errado."
   }
 }

@@ -56,6 +56,7 @@ function getDateRange(filter: FilterRange, customStart?: string, customEnd?: str
 }
 
 function ReportsPage() {
+  const { t } = useTranslation();
   const { range } = Route.useSearch();
   const [filter, setFilter] = useState<FilterRange>(range ?? "this_month");
   const [customStart, setCustomStart] = useState("");

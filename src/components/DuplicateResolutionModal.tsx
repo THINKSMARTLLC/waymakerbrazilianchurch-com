@@ -16,6 +16,10 @@ interface MemberStats {
   totalPaid: number;
   lastPaymentDate: string | null;
   completeness: number; // 0..5
+  activityCount: number;
+  lastActivityDate: string | null;
+  engagementCount: number;
+  devotionalCount: number;
 }
 
 const completenessOf = (m: Member): number => {
@@ -57,34 +61,54 @@ export function DuplicateResolutionModal({
     let cancelled = false;
     (async () => {
       const ids = members.map((m) => m.id);
-      const { data: payments } = await supabase
-        .from("payments")
-        .select("member_id, amount, payment_date")
-        .in("member_id", ids)
-        .order("payment_date", { ascending: false });
+      const [paymentsRes, activitiesRes, engagementsRes, devotionalsRes] = await Promise.all([
+        supabase.from("payments").select("member_id, amount, payment_date").in("member_id", ids).order("payment_date", { ascending: false }),
+        supabase.from("member_activities").select("member_id, activity_date").in("member_id", ids).order("activity_date", { ascending: false }),
+        supabase.from("social_engagements").select("member_id").in("member_id", ids),
+        supabase.from("devotional_completions").select("member_id").in("member_id", ids),
+      ]);
 
       const counts = new Map<string, number>();
       const totals = new Map<string, number>();
       const lasts = new Map<string, string>();
-      for (const p of payments ?? []) {
+      for (const p of paymentsRes.data ?? []) {
         counts.set(p.member_id, (counts.get(p.member_id) ?? 0) + 1);
         totals.set(p.member_id, (totals.get(p.member_id) ?? 0) + Number(p.amount || 0));
         if (!lasts.has(p.member_id)) lasts.set(p.member_id, p.payment_date);
       }
+      const actCounts = new Map<string, number>();
+      const lastAct = new Map<string, string>();
+      for (const a of activitiesRes.data ?? []) {
+        actCounts.set(a.member_id, (actCounts.get(a.member_id) ?? 0) + 1);
+        if (!lastAct.has(a.member_id)) lastAct.set(a.member_id, a.activity_date);
+      }
+      const engCounts = new Map<string, number>();
+      for (const e of engagementsRes.data ?? []) engCounts.set(e.member_id, (engCounts.get(e.member_id) ?? 0) + 1);
+      const devCounts = new Map<string, number>();
+      for (const d of devotionalsRes.data ?? []) devCounts.set(d.member_id, (devCounts.get(d.member_id) ?? 0) + 1);
+
       const result: MemberStats[] = members.map((m) => ({
         member: m,
         paymentCount: counts.get(m.id) ?? 0,
         totalPaid: totals.get(m.id) ?? 0,
         lastPaymentDate: lasts.get(m.id) ?? null,
         completeness: completenessOf(m),
+        activityCount: actCounts.get(m.id) ?? 0,
+        lastActivityDate: lastAct.get(m.id) ?? null,
+        engagementCount: engCounts.get(m.id) ?? 0,
+        devotionalCount: devCounts.get(m.id) ?? 0,
       }));
       if (cancelled) return;
       setStats(result);
 
-      // Recommended = highest score: payments > completeness > recency.
+      // Recommended winner = highest score across history dimensions.
       const score = (s: MemberStats) =>
         s.paymentCount * 1000 +
+        s.activityCount * 200 +
+        s.engagementCount * 100 +
+        s.devotionalCount * 100 +
         s.completeness * 50 +
+        (s.lastActivityDate ? new Date(s.lastActivityDate).getTime() / 1e10 : 0) +
         (s.lastPaymentDate ? new Date(s.lastPaymentDate).getTime() / 1e10 : 0);
       const sorted = [...result].sort((a, b) => score(b) - score(a));
       setWinnerId(sorted[0].member.id);
@@ -295,19 +319,28 @@ export function DuplicateResolutionModal({
               </div>
             )}
 
-            <div className="flex gap-3 pt-5">
+            <div className="flex flex-wrap gap-3 pt-5">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                className="flex-1 min-w-[120px] rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="button"
+                onClick={handleDismiss}
+                disabled={merging}
+                className="flex-1 min-w-[180px] rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                title="Mark as not a duplicate — both records remain active and the alert is dismissed."
+              >
+                Keep Both (Not Duplicate)
+              </button>
+              <button
+                type="button"
                 onClick={handleMerge}
                 disabled={!winner || !loser || winner.member.id === loser.member.id || merging}
-                className="btn-google flex-1 inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                className="btn-google flex-1 min-w-[200px] inline-flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <GitMerge className="h-4 w-4" />
                 {merging ? "Merging..." : confirmDelete ? "Confirm merge & archive duplicate" : "Merge Records"}
@@ -331,6 +364,10 @@ function RecordCard({ s }: { s: MemberStats }) {
       <Row label="Payments" value={String(s.paymentCount)} />
       <Row label="Total paid" value={formatUSD(s.totalPaid)} />
       <Row label="Last payment" value={s.lastPaymentDate ? new Date(s.lastPaymentDate).toLocaleDateString("en-US") : "—"} muted={!s.lastPaymentDate} />
+      <Row label="Activities" value={String(s.activityCount)} />
+      <Row label="Last activity" value={s.lastActivityDate ? new Date(s.lastActivityDate).toLocaleDateString("en-US") : "—"} muted={!s.lastActivityDate} />
+      <Row label="Engagement" value={String(s.engagementCount)} />
+      <Row label="Devotionals" value={String(s.devotionalCount)} />
       <Row label="Completeness" value={`${s.completeness}/5 fields`} />
     </div>
   );

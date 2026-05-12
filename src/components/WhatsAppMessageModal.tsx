@@ -281,7 +281,7 @@ export function WhatsAppMessageModal({ open, onOpenChange, member }: WhatsAppMes
   const handleDeleteCustom = (id: string) => {
     const tpl = customTemplates.find((t) => t.id === id);
     if (!tpl) return;
-    if (!confirm(t("whatsapp.confirmDelete", { title: tpl.title }))) return;
+    if (!confirm(tr("whatsapp.confirmDelete", { title: tpl.title }))) return;
     const next = customTemplates.filter((t) => t.id !== id);
     setCustomTemplates(next);
     saveCustomTemplates(next);
@@ -296,7 +296,7 @@ export function WhatsAppMessageModal({ open, onOpenChange, member }: WhatsAppMes
             WhatsApp — {member?.name ?? ""}
           </DialogTitle>
           <DialogDescription>
-            {t("whatsapp.selectAndEdit")}
+            {tr("whatsapp.selectAndEdit")}
           </DialogDescription>
         </DialogHeader>
 
@@ -325,7 +325,7 @@ export function WhatsAppMessageModal({ open, onOpenChange, member }: WhatsAppMes
                       type="button"
                       onClick={() => handleDeleteCustom(t.id)}
                       className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      title={t("whatsapp.deleteMessage")}
+                      title={tr("whatsapp.deleteMessage")}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

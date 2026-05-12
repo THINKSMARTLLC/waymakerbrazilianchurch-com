@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Crown, GitMerge, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Member } from "@/lib/duplicates";
-import { mergeMembers } from "@/lib/duplicates";
+import { mergeMembers, dismissDuplicateGroup } from "@/lib/duplicates";
 import { formatUSD, toTitleCase } from "@/lib/format";
 import { formatPhoneDisplay } from "@/lib/phone";
 
@@ -32,12 +32,14 @@ export function DuplicateResolutionModal({
   members,
   reasons,
   severity = "duplicate",
+  groupKey,
   onClose,
   onResolved,
 }: {
   members: Member[];
   reasons: ("email" | "phone" | "name")[];
   severity?: "duplicate" | "warning";
+  groupKey?: string;
   onClose: () => void;
   onResolved: () => void;
 }) {
@@ -133,15 +135,40 @@ export function DuplicateResolutionModal({
     }
     setMerging(true);
     setError("");
-    const { error: mErr } = await mergeMembers({
-      winnerId: winner.member.id,
-      loserId: loser.member.id,
-      winnerUpdates: buildBestUpdates(),
-    });
-    setMerging(false);
-    if (mErr) {
-      setError(mErr);
+    try {
+      const { error: mErr } = await mergeMembers({
+        winnerId: winner.member.id,
+        loserId: loser.member.id,
+        winnerUpdates: buildBestUpdates(),
+      });
+      if (mErr) {
+        setError(mErr);
+        setConfirmDelete(false);
+        return;
+      }
+      // Best-effort: also clear any prior dismissal for this group key.
+      if (groupKey) await dismissDuplicateGroup(groupKey).catch(() => {});
+      alert("Members merged successfully.");
+      onResolved();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Merge failed");
       setConfirmDelete(false);
+    } finally {
+      setMerging(false);
+    }
+  };
+
+  const handleDismiss = async () => {
+    if (!groupKey) {
+      onClose();
+      return;
+    }
+    setMerging(true);
+    setError("");
+    const { error: dErr } = await dismissDuplicateGroup(groupKey);
+    setMerging(false);
+    if (dErr) {
+      setError(dErr);
       return;
     }
     onResolved();
@@ -196,9 +223,17 @@ export function DuplicateResolutionModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="btn-google flex-1 inline-flex items-center justify-center gap-2"
+                className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
               >
-                Got it
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDismiss}
+                disabled={merging}
+                className="btn-google flex-1 inline-flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {merging ? "Saving..." : "Keep separate"}
               </button>
             </div>
           </>

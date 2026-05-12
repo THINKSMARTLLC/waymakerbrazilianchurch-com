@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.merge_members_by_id(uuid, uuid) FROM PUBLIC, anon;

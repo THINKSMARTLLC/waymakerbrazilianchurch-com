@@ -355,22 +355,9 @@ export async function mergeMembers(opts: {
   loserId: string;
   winnerUpdates: Partial<Member>;
 }): Promise<{ error: string | null }> {
-  // 1. Reassign payments from loser → winner.
-  const { error: payErr } = await supabase
-    .from("payments")
-    .update({ member_id: opts.winnerId })
-    .eq("member_id", opts.loserId);
-  if (payErr) return { error: `Failed to move payments: ${payErr.message}` };
-
-  // 2. Reassign subscriptions from loser → winner (if any).
-  await supabase
-    .from("subscriptions")
-    .update({ member_id: opts.winnerId })
-    .eq("member_id", opts.loserId);
-
-  // 3. Apply chosen field values to the winner.
-  // SAFE MERGE: never overwrite the kept record's email or id. Strip them
-  // from the patch so the original identity is preserved.
+  // 1. Apply chosen field values to the winner BEFORE the server-side merge,
+  //    so any "best of both" data is preserved if the merge succeeds.
+  //    SAFE MERGE: never overwrite the kept record's email or id.
   const safeUpdates = { ...opts.winnerUpdates } as Partial<Member> & Record<string, unknown>;
   delete safeUpdates.email;
   delete (safeUpdates as Record<string, unknown>).id;
@@ -382,14 +369,31 @@ export async function mergeMembers(opts: {
     if (updErr) return { error: `Failed to update kept record: ${updErr.message}` };
   }
 
-  // 4. Delete the loser.
-  const { error: delErr } = await supabase
-    .from("members")
-    .delete()
-    .eq("id", opts.loserId);
-  if (delErr) return { error: `Failed to delete duplicate: ${delErr.message}` };
+  // 2. Atomic server-side merge: moves payments, subscriptions, activities,
+  //    visits, notes, devotionals, engagements, bible history; then deletes
+  //    the loser. SECURITY DEFINER so any active staff can resolve duplicates.
+  const { error: rpcErr } = await supabase.rpc("merge_members_by_id", {
+    _winner: opts.winnerId,
+    _loser: opts.loserId,
+  });
+  if (rpcErr) return { error: rpcErr.message };
 
   return { error: null };
+}
+
+/** Mark a duplicate/shared-phone group as intentionally separate so the alert stops. */
+export async function dismissDuplicateGroup(groupKey: string): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from("dismissed_duplicate_groups")
+    .insert({ group_key: groupKey, reason: "intentionally_shared" } as never);
+  if (error && !/duplicate key/i.test(error.message)) return { error: error.message };
+  return { error: null };
+}
+
+/** Load the set of dismissed group keys (best-effort; empty on failure). */
+export async function loadDismissedGroupKeys(): Promise<Set<string>> {
+  const { data } = await supabase.from("dismissed_duplicate_groups").select("group_key");
+  return new Set((data ?? []).map((r: { group_key: string }) => r.group_key));
 }
 
 /**

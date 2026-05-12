@@ -86,7 +86,7 @@ export function NewSignupsBanner() {
                 );
               })}
               {rows.length > 5 && (
-                <li className="text-xs text-muted-foreground">+ {rows.length - 5} more</li>
+                <li className="text-xs text-muted-foreground">{t("signupsBanner.more", { count: rows.length - 5 })}</li>
               )}
             </ul>
           </div>

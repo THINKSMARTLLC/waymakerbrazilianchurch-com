@@ -223,9 +223,17 @@ export function DuplicateResolutionModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="btn-google flex-1 inline-flex items-center justify-center gap-2"
+                className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
               >
-                Got it
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDismiss}
+                disabled={merging}
+                className="btn-google flex-1 inline-flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {merging ? "Saving..." : "Keep separate"}
               </button>
             </div>
           </>

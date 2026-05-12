@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, Loader2, MapPin, Share2, X, Check, Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { haversineMeters, todayLocalISO } from "@/lib/engagement";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,25 +31,22 @@ interface ChurchSettings {
   church_name: string | null;
 }
 
-// Strict radius requirement per product spec: must be inside the church (≤40m).
-// We cap whatever is configured server-side at 40m for self check-in.
 const STRICT_MAX_RADIUS_METERS = 40;
 const POINTS_PER_CHECKIN = 10;
 
 export function CheckInModal({ memberId, memberName, onClose, onSuccess }: CheckInModalProps) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [stage, setStage] = useState<Stage>("locating");
   const [errorMsg, setErrorMsg] = useState("");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
   const [settings, setSettings] = useState<ChurchSettings | null>(null);
-  const [activityId, setActivityId] = useState<string | null>(null);
+  const [, setActivityId] = useState<string | null>(null);
 
-  // Engagement feedback
   const [streakDays, setStreakDays] = useState<number>(0);
   const [weeklyCount, setWeeklyCount] = useState<number>(0);
 
-  // Photo state — REQUIRED
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -61,7 +59,6 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
     let cancelled = false;
 
     const init = async () => {
-      // Pre-check: already checked in today?
       const today = todayLocalISO();
       const { data: existing } = await supabase
         .from("member_activities")
@@ -94,7 +91,7 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
       setSettings(s);
 
       if (!("geolocation" in navigator)) {
-        setErrorMsg("Seu dispositivo não suporta geolocalização.");
+        setErrorMsg(t("modals.geoNotSupported"));
         setStage("error");
         return;
       }
@@ -126,12 +123,11 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
     return () => {
       cancelled = true;
     };
-  }, [memberId]);
+  }, [memberId, t]);
 
   const handleStartPhoto = () => {
     if (!coords) return;
     setStage("photo");
-    // Auto-open the camera picker
     setTimeout(() => fileInputRef.current?.click(), 100);
   };
 
@@ -139,7 +135,7 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      alert("Foto muito grande. Máximo 5MB.");
+      alert(t("modals.photoTooLarge"));
       return;
     }
     setPhotoFile(file);
@@ -149,7 +145,6 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
   };
 
   const computeEngagementStats = async () => {
-    // Streak: walk back day-by-day from today while attendance exists
     const { data: recent } = await supabase
       .from("member_activities")
       .select("activity_date")
@@ -175,7 +170,6 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
     }
     setStreakDays(streak);
 
-    // Weekly count: last 7 days
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
     const cutoff = `${sevenDaysAgo.getFullYear()}-${String(sevenDaysAgo.getMonth() + 1).padStart(2, "0")}-${String(sevenDaysAgo.getDate()).padStart(2, "0")}`;
@@ -187,7 +181,6 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
     if (!coords || !photoFile || !user) return;
     setStage("saving");
 
-    // 1. Insert activity (gated by photo presence — never saved without photo)
     const { data: inserted, error: insertErr } = await supabase
       .from("member_activities")
       .insert([
@@ -206,13 +199,12 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
       if (insertErr?.code === "23505") {
         setStage("already_today");
       } else {
-        setErrorMsg(insertErr?.message ?? "Não foi possível registrar o check-in.");
+        setErrorMsg(insertErr?.message ?? t("modals.checkinFailed"));
         setStage("error");
       }
       return;
     }
 
-    // 2. Upload photo
     const ext = (photoFile.name.split(".").pop() || "jpg").toLowerCase();
     const path = `${user.id}/${inserted.id}.${ext}`;
     const { error: uploadErr } = await supabase.storage
@@ -248,7 +240,7 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
       try {
         shareData.files = [photoFile];
       } catch {
-        // ignore — not all browsers support files
+        // ignore
       }
     }
     if (typeof navigator.share === "function") {
@@ -256,11 +248,11 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
         await navigator.share(shareData);
         return;
       } catch {
-        // user cancelled or blocked → fall through to copy
+        // fall through
       }
     }
     await navigator.clipboard?.writeText(shareText);
-    alert("Mensagem copiada! Cole onde quiser compartilhar.");
+    alert(t("modals.messageCopied"));
   };
 
   const handleShareWhatsApp = () => {
@@ -269,22 +261,20 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
   };
 
   const handleShareInstagram = async () => {
-    // Instagram has no web share intent on desktop; copy text + open IG
     await navigator.clipboard?.writeText(buildShareText()).catch(() => undefined);
     if (typeof navigator.share === "function") {
-      // On mobile, prefer the native share sheet (user can pick Instagram)
       void handleShareNative();
       return;
     }
     window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
-    alert("Texto copiado! Cole na sua story do Instagram.");
+    alert(t("modals.instagramCopied"));
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-4">
       <div className="bg-card rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b border-border">
-          <h2 className="font-display text-lg font-semibold text-foreground">Check-in na Igreja</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">{t("modals.checkInTitle")}</h2>
           <button onClick={onClose} className="rounded-lg p-1 text-muted-foreground hover:bg-muted">
             <X className="h-5 w-5" />
           </button>
@@ -294,16 +284,16 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
           {stage === "locating" && (
             <div className="py-8 text-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-              <p className="text-sm text-muted-foreground mt-3">Localizando você...</p>
+              <p className="text-sm text-muted-foreground mt-3">{t("modals.locating")}</p>
             </div>
           )}
 
           {stage === "no_settings" && (
             <div className="text-center py-6">
               <MapPin className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-foreground font-medium">Localização da igreja não configurada</p>
+              <p className="text-sm text-foreground font-medium">{t("modals.locationNotConfigured")}</p>
               <p className="text-xs text-muted-foreground mt-2">
-                Peça ao administrador para configurar a localização nas configurações.
+                {t("modals.askAdminLocation")}
               </p>
             </div>
           )}
@@ -311,9 +301,9 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
           {stage === "denied" && (
             <div className="text-center py-6">
               <MapPin className="h-10 w-10 text-destructive mx-auto mb-3" />
-              <p className="text-sm text-foreground font-medium">Permissão negada</p>
+              <p className="text-sm text-foreground font-medium">{t("modals.permissionDenied")}</p>
               <p className="text-xs text-muted-foreground mt-2">
-                Habilite a localização nas configurações do navegador para fazer check-in.
+                {t("modals.enableLocation")}
               </p>
             </div>
           )}
@@ -322,10 +312,10 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
             <div className="text-center py-6">
               <MapPin className="h-10 w-10 text-warning mx-auto mb-3" />
               <p className="text-sm text-foreground font-medium">
-                You must be inside the church to check in
+                {t("modals.youMustBeInside")}
               </p>
               <p className="text-xs text-muted-foreground mt-2">
-                Distância: ~{Math.round(distance ?? 0)}m (limite: {effectiveRadius}m)
+                {t("modals.distance", { m: Math.round(distance ?? 0), limit: effectiveRadius })}
               </p>
             </div>
           )}
@@ -335,13 +325,13 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
               <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-success/15 mb-3">
                 <Check className="h-6 w-6 text-success" />
               </div>
-              <p className="text-sm text-foreground font-medium">Você já fez check-in hoje</p>
-              <p className="text-xs text-muted-foreground mt-2">Volte amanhã para continuar sua sequência 🙌</p>
+              <p className="text-sm text-foreground font-medium">{t("modals.alreadyCheckedIn")}</p>
+              <p className="text-xs text-muted-foreground mt-2">{t("modals.comeBackTomorrow")}</p>
               <button
                 onClick={onClose}
                 className="mt-4 rounded-xl border border-input bg-background px-4 py-2 text-sm hover:bg-muted"
               >
-                Fechar
+                {t("common.close")}
               </button>
             </div>
           )}
@@ -351,19 +341,19 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
               <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-success/15 mb-3">
                 <MapPin className="h-7 w-7 text-success" />
               </div>
-              <p className="text-sm text-foreground font-medium">Você está na igreja!</p>
+              <p className="text-sm text-foreground font-medium">{t("modals.youAreAtChurch")}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Distância: ~{Math.round(distance ?? 0)}m
+                {t("modals.distanceShort", { m: Math.round(distance ?? 0) })}
               </p>
               <p className="text-xs text-muted-foreground mt-3">
-                Para confirmar, você precisará tirar uma foto.
+                {t("modals.needPhoto")}
               </p>
               <button
                 onClick={handleStartPhoto}
                 className="btn-google mt-4 w-full inline-flex items-center justify-center gap-2"
               >
                 <Camera className="h-4 w-4" />
-                Continuar e tirar foto
+                {t("modals.continueAndPhoto")}
               </button>
             </div>
           )}
@@ -374,15 +364,15 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
                 <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-2">
                   <Camera className="h-6 w-6 text-primary" />
                 </div>
-                <p className="text-sm font-medium text-foreground">Tire uma foto para confirmar</p>
+                <p className="text-sm font-medium text-foreground">{t("modals.takePhoto")}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  A foto é obrigatória para registrar o check-in.
+                  {t("modals.photoRequired")}
                 </p>
               </div>
 
               {photoPreview ? (
                 <div className="rounded-xl overflow-hidden border border-border">
-                  <img src={photoPreview} alt="Pré-visualização" className="w-full h-56 object-cover" />
+                  <img src={photoPreview} alt={t("modals.preview")} className="w-full h-56 object-cover" />
                 </div>
               ) : (
                 <button
@@ -390,7 +380,7 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
                   className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-border py-8 text-sm text-muted-foreground hover:bg-muted transition-colors"
                 >
                   <Camera className="h-5 w-5" />
-                  Abrir câmera
+                  {t("modals.openCamera")}
                 </button>
               )}
               <input
@@ -407,7 +397,7 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
                   onClick={() => fileInputRef.current?.click()}
                   className="w-full text-xs text-muted-foreground hover:text-foreground py-1"
                 >
-                  Tirar outra foto
+                  {t("modals.retakePhoto")}
                 </button>
               )}
 
@@ -417,7 +407,7 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
                 className="btn-google w-full inline-flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Check className="h-4 w-4" />
-                Confirmar Check-in
+                {t("modals.confirmCheckin")}
               </button>
             </div>
           )}
@@ -425,7 +415,7 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
           {stage === "saving" && (
             <div className="py-8 text-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-              <p className="text-sm text-muted-foreground mt-3">Registrando seu check-in...</p>
+              <p className="text-sm text-muted-foreground mt-3">{t("modals.registeringCheckin")}</p>
             </div>
           )}
 
@@ -435,23 +425,23 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
                 <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-success/15 mb-2">
                   <Check className="h-7 w-7 text-success" />
                 </div>
-                <p className="text-base font-medium text-foreground">Check-in registrado!</p>
-                <p className="text-xs text-muted-foreground mt-1">Bem-vindo(a), {memberName} 🙏</p>
+                <p className="text-base font-medium text-foreground">{t("modals.checkinDone")}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("modals.welcome", { name: memberName })}</p>
               </div>
 
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
                 <div className="flex items-center gap-2 text-primary">
                   <Sparkles className="h-4 w-4" />
-                  <p className="text-sm font-medium">+{POINTS_PER_CHECKIN} pontos</p>
+                  <p className="text-sm font-medium">{t("modals.points", { points: POINTS_PER_CHECKIN })}</p>
                 </div>
-                <p className="text-sm text-foreground mt-2">You're growing in your journey 🙌</p>
+                <p className="text-sm text-foreground mt-2">{t("modals.growingJourney")}</p>
                 <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
                   <div className="rounded-lg bg-background/60 p-2">
-                    <p className="text-muted-foreground">Sequência</p>
-                    <p className="text-base font-semibold text-foreground">{streakDays} {streakDays === 1 ? "dia" : "dias"}</p>
+                    <p className="text-muted-foreground">{t("modals.streak")}</p>
+                    <p className="text-base font-semibold text-foreground">{streakDays} {streakDays === 1 ? t("modals.day") : t("modals.days")}</p>
                   </div>
                   <div className="rounded-lg bg-background/60 p-2">
-                    <p className="text-muted-foreground">Esta semana</p>
+                    <p className="text-muted-foreground">{t("modals.thisWeek")}</p>
                     <p className="text-base font-semibold text-foreground">{weeklyCount}</p>
                   </div>
                 </div>
@@ -459,14 +449,14 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
 
               {photoPreview && (
                 <div className="rounded-xl overflow-hidden border border-border">
-                  <img src={photoPreview} alt="Sua foto" className="w-full h-40 object-cover" />
+                  <img src={photoPreview} alt={t("modals.yourPhoto")} className="w-full h-40 object-cover" />
                 </div>
               )}
 
               <div className="border-t border-border pt-4">
-                <p className="text-sm font-medium text-foreground mb-1">Compartilhe seu momento</p>
+                <p className="text-sm font-medium text-foreground mb-1">{t("modals.shareMoment")}</p>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Opcional — escolha onde quer compartilhar.
+                  {t("modals.shareOptional")}
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -492,7 +482,7 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
                   }}
                   className="mt-3 w-full text-sm text-muted-foreground hover:text-foreground py-2"
                 >
-                  Concluir
+                  {t("modals.done")}
                 </button>
               </div>
             </div>
@@ -500,12 +490,12 @@ export function CheckInModal({ memberId, memberName, onClose, onSuccess }: Check
 
           {stage === "error" && (
             <div className="text-center py-6">
-              <p className="text-sm text-destructive">{errorMsg || "Algo deu errado."}</p>
+              <p className="text-sm text-destructive">{errorMsg || t("modals.somethingWrong")}</p>
               <button
                 onClick={onClose}
                 className="mt-4 rounded-xl border border-input bg-background px-4 py-2 text-sm hover:bg-muted"
               >
-                Fechar
+                {t("common.close")}
               </button>
             </div>
           )}

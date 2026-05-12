@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Check, X, ExternalLink, Image as ImageIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
@@ -41,20 +42,21 @@ const PLATFORM_LABELS: Record<Platform, string> = {
   google_review: "Google Review",
 };
 
-function openExternal(url: string, context?: string) {
+function openExternal(url: string, context: string | undefined, t: (k: string) => string) {
   const trimmed = (url ?? "").trim();
   if (!trimmed || !/^https?:\/\//i.test(trimmed)) {
     const isInstagram = (context ?? "").toLowerCase().includes("instagram");
-    toast.error(isInstagram ? "Unable to preview. Open in Instagram" : "Unable to preview this link.");
+    toast.error(isInstagram ? t("reviewPage.instagramError") : t("reviewPage.previewError"));
     return;
   }
   const win = window.open(trimmed, "_blank", "noopener,noreferrer");
   if (!win) {
-    toast.error("Pop-up blocked. Allow pop-ups to open the link.");
+    toast.error(t("reviewPage.popupBlocked"));
   }
 }
 
 function EngagementReviewPage() {
+  const { t } = useTranslation();
   const { isStaff, loading: roleLoading } = useUserRole();
   const [rows, setRows] = useState<UnifiedRow[]>([]);
   const [filter, setFilter] = useState<Status | "all">("pending");
@@ -174,26 +176,26 @@ function EngagementReviewPage() {
       toast.error(error.message);
       return;
     }
-    toast.success(status === "approved" ? "Approved 🙌 — points added" : "Rejected");
+    toast.success(status === "approved" ? t("reviewPage.approved") : t("reviewPage.rejected"));
     load();
   };
 
-  if (roleLoading) return <div className="p-6 text-sm text-muted-foreground">Loading...</div>;
-  if (!isStaff) return <div className="p-6 text-sm text-destructive">Access denied.</div>;
+  if (roleLoading) return <div className="p-6 text-sm text-muted-foreground">{t("reviewPage.loading")}</div>;
+  if (!isStaff) return <div className="p-6 text-sm text-destructive">{t("reviewPage.accessDenied")}</div>;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="font-display text-2xl font-semibold text-foreground">Engagement Review</h2>
-          <p className="text-sm text-muted-foreground">Approve or reject member submissions (check-ins, social, manual).</p>
+          <h2 className="font-display text-2xl font-semibold text-foreground">{t("reviewPage.title")}</h2>
+          <p className="text-sm text-muted-foreground">{t("reviewPage.subtitle")}</p>
         </div>
         <div className="flex gap-2 items-center flex-wrap">
           <input
             type="text"
             value={memberFilter}
             onChange={(e) => setMemberFilter(e.target.value)}
-            placeholder="Filter by member name or email..."
+            placeholder={t("reviewPage.filterPlaceholder")}
             className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm w-64"
           />
           {(["pending", "approved", "rejected", "all"] as const).map((f) => (
@@ -204,7 +206,7 @@ function EngagementReviewPage() {
                 filter === f ? "bg-primary text-primary-foreground" : "border border-border bg-background text-foreground hover:bg-muted"
               }`}
             >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
+              {t(`reviewPage.filters.${f}`)}
             </button>
           ))}
         </div>
@@ -212,9 +214,9 @@ function EngagementReviewPage() {
 
       <div className="card-elevated p-5">
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading...</p>
+          <p className="text-sm text-muted-foreground">{t("reviewPage.loading")}</p>
         ) : filteredRows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No submissions.</p>
+          <p className="text-sm text-muted-foreground">{t("reviewPage.noSubmissions")}</p>
         ) : (
           <ul className="divide-y divide-border">
             {filteredRows.map((r) => (
@@ -235,19 +237,19 @@ function EngagementReviewPage() {
                     {r.proof_link && (
                       <button
                         type="button"
-                        onClick={() => openExternal(r.proof_link!, r.type_label)}
+                        onClick={() => openExternal(r.proof_link!, r.type_label, t)}
                         className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                       >
-                        <ExternalLink className="h-3 w-3" /> Open link
+                        <ExternalLink className="h-3 w-3" /> {t("reviewPage.openLink")}
                       </button>
                     )}
                     {r.proof_url && (
                       <button
                         type="button"
-                        onClick={() => openExternal(r.proof_url!, r.type_label)}
+                        onClick={() => openExternal(r.proof_url!, r.type_label, t)}
                         className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                       >
-                        <ImageIcon className="h-3 w-3" /> View proof
+                        <ImageIcon className="h-3 w-3" /> {t("reviewPage.viewProof")}
                       </button>
                     )}
                   </div>
@@ -256,7 +258,7 @@ function EngagementReviewPage() {
                 {r.proof_url && (
                   <button
                     type="button"
-                    onClick={() => openExternal(r.proof_url!, r.type_label)}
+                    onClick={() => openExternal(r.proof_url!, r.type_label, t)}
                     className="shrink-0"
                   >
                     <img src={r.proof_url} alt="proof" className="h-20 w-20 rounded-lg object-cover border border-border" />
@@ -269,7 +271,7 @@ function EngagementReviewPage() {
                     r.status === "approved" ? "bg-success/15 text-success" :
                     "bg-destructive/15 text-destructive"
                   }`}>
-                    {r.status}
+                    {t(`reviewPage.status.${r.status}`)}
                   </span>
                   {r.status === "pending" && (
                     <>
@@ -277,13 +279,13 @@ function EngagementReviewPage() {
                         onClick={() => review(r, "approved")}
                         className="inline-flex items-center gap-1 rounded-lg bg-success/15 px-3 py-1.5 text-xs font-medium text-success hover:bg-success/25"
                       >
-                        <Check className="h-3.5 w-3.5" /> Approve
+                        <Check className="h-3.5 w-3.5" /> {t("reviewPage.approve")}
                       </button>
                       <button
                         onClick={() => review(r, "rejected")}
                         className="inline-flex items-center gap-1 rounded-lg bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/20"
                       >
-                        <X className="h-3.5 w-3.5" /> Reject
+                        <X className="h-3.5 w-3.5" /> {t("reviewPage.reject")}
                       </button>
                     </>
                   )}

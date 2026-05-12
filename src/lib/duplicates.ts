@@ -381,6 +381,38 @@ export async function mergeMembers(opts: {
   return { error: null };
 }
 
+/**
+ * Archive a member record (safe trash). Preserves all linked history
+ * (payments, activities, devotionals, engagements). Reversible from the
+ * Archived Members screen via restore_archived_member.
+ */
+export async function archiveMember(opts: {
+  memberId: string;
+  reason?: string;
+}): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from("members")
+    .update({
+      archived: true,
+      archived_at: new Date().toISOString(),
+      archived_reason: opts.reason ?? "admin_archived_duplicate",
+      status: "inactive",
+    } as never)
+    .eq("id", opts.memberId);
+  if (error) return { error: error.message };
+
+  // Best-effort audit log entry.
+  const { data: userRes } = await supabase.auth.getUser();
+  await supabase.from("activity_logs").insert({
+    user_id: userRes.user?.id ?? null,
+    user_email: userRes.user?.email ?? null,
+    action: "member_archived",
+    metadata: { member_id: opts.memberId, reason: opts.reason ?? "admin_archived_duplicate" },
+  } as never);
+
+  return { error: null };
+}
+
 /** Mark a duplicate/shared-phone group as intentionally separate so the alert stops. */
 export async function dismissDuplicateGroup(groupKey: string): Promise<{ error: string | null }> {
   const { error } = await supabase

@@ -416,6 +416,7 @@ function EngagementDashboard() {
           </div>
         ) : filteredMembers.length === 0 ? (
           <div className="py-8 text-center text-sm text-muted-foreground">{t("engagementPage.noMembersFound")}</div>
+        ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>

@@ -64,6 +64,7 @@ type CardFilter = "all" | "checkins7" | "activities30" | "active" | "inactive";
 type LevelFilter = "all" | "high" | "medium" | "low" | "inactive";
 
 function EngagementDashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [activities, setActivities] = useState<ActivityRow[]>([]);

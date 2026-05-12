@@ -51,7 +51,7 @@ function AdminPage() {
       setRecoveryFor({ email, link: res.recoveryLink });
     } catch (err) {
       setRecoveryFor({ email, link: null });
-      alert(err instanceof Error ? err.message : "Falha ao gerar link");
+      alert(err instanceof Error ? err.message : t("admin.generateLinkFailed"));
     }
   };
 
@@ -59,9 +59,9 @@ function AdminPage() {
     setSendingAccessFor(email);
     try {
       await sendAccess({ data: { email } });
-      alert(`Email de acesso reenviado para ${email}`);
+      alert(t("admin.accessEmailResent", { email }));
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Falha ao enviar email");
+      alert(err instanceof Error ? err.message : t("admin.sendEmailFailed"));
     } finally {
       setSendingAccessFor(null);
     }

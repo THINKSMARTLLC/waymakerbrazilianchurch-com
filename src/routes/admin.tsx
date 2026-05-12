@@ -333,7 +333,7 @@ function ActivityLogSection() {
   return (
     <div className="card-elevated overflow-hidden">
       <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="font-semibold">System Logs</h2>
+        <h2 className="font-semibold">{t("admin.systemLogs")}</h2>
         <div className="flex items-center gap-2 text-xs">
           {(["all", "errors", "stripe", "members"] as const).map((f) => (
             <button
@@ -343,16 +343,16 @@ function ActivityLogSection() {
                 filter === f ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"
               }`}
             >
-              {f}
+              {t(`admin.filter${f.charAt(0).toUpperCase() + f.slice(1)}`)}
             </button>
           ))}
           <button onClick={load} className="px-2.5 py-1 rounded-md border border-border hover:bg-muted">
-            Refresh
+            {t("admin.refresh")}
           </button>
         </div>
       </div>
       <div className="divide-y divide-border max-h-[32rem] overflow-y-auto">
-        {logs.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">Nenhum log encontrado.</div>}
+        {logs.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">{t("admin.noLogs")}</div>}
         {logs.map((l) => {
           const isError = l.action === "error";
           const isOpen = expanded === l.id;

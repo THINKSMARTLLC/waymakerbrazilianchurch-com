@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { X, Loader2, Plus, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ACTIVITY_LABEL, type ActivityType } from "@/lib/engagement";
@@ -19,17 +20,12 @@ interface Props {
   onChanged: () => void;
 }
 
-const CATEGORIES = [
-  { value: "service", label: "Culto / Serviço" },
-  { value: "group", label: "Grupo" },
-  { value: "event", label: "Evento" },
-  { value: "other", label: "Outro" },
-];
-
+const CATEGORY_KEYS = ["service", "group", "event", "other"] as const;
 const BASE_TYPES: ActivityType[] = ["attendance", "cell_group", "visit_scheduled", "leadership_contact"];
 
 export function EventTypeManagerModal({ onClose, onChanged }: Props) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [items, setItems] = useState<EventType[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
@@ -83,19 +79,21 @@ export function EventTypeManagerModal({ onClose, onChanged }: Props) {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Remover este tipo de evento?")) return;
+    if (!confirm(t("modals.deleteEventConfirm"))) return;
     await supabase.from("event_types").delete().eq("id", id);
     await load();
     onChanged();
   };
+
+  const catLabel = (key: string) => t(`modals.categories.${key}`, { defaultValue: key });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-4">
       <div className="bg-card rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div>
-            <h2 className="font-display text-lg font-semibold text-foreground">Tipos de Evento</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Padrões e personalizados</p>
+            <h2 className="font-display text-lg font-semibold text-foreground">{t("modals.eventTypes")}</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">{t("modals.defaultsCustom")}</p>
           </div>
           <button onClick={onClose} className="rounded-lg p-1 text-muted-foreground hover:bg-muted">
             <X className="h-5 w-5" />
@@ -104,11 +102,11 @@ export function EventTypeManagerModal({ onClose, onChanged }: Props) {
 
         <div className="overflow-y-auto p-5 space-y-5">
           <form onSubmit={handleAdd} className="rounded-xl border border-border p-4 space-y-3 bg-muted/20">
-            <p className="text-sm font-medium text-foreground">Criar novo evento</p>
+            <p className="text-sm font-medium text-foreground">{t("modals.createNewEvent")}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <input
                 type="text"
-                placeholder="Nome (ex: Culto Jovem)"
+                placeholder={t("modals.namePlaceholder")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
@@ -116,7 +114,7 @@ export function EventTypeManagerModal({ onClose, onChanged }: Props) {
               />
               <input
                 type="text"
-                placeholder="Ícone (emoji)"
+                placeholder={t("modals.iconPlaceholder")}
                 value={icon}
                 onChange={(e) => setIcon(e.target.value)}
                 className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
@@ -127,8 +125,8 @@ export function EventTypeManagerModal({ onClose, onChanged }: Props) {
                 onChange={(e) => setCategory(e.target.value)}
                 className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
               >
-                {CATEGORIES.map((c) => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
+                {CATEGORY_KEYS.map((c) => (
+                  <option key={c} value={c}>{catLabel(c)}</option>
                 ))}
               </select>
               <select
@@ -136,8 +134,8 @@ export function EventTypeManagerModal({ onClose, onChanged }: Props) {
                 onChange={(e) => setBaseType(e.target.value as ActivityType)}
                 className="rounded-lg border border-input bg-background px-3 py-2 text-sm"
               >
-                {BASE_TYPES.map((t) => (
-                  <option key={t} value={t}>Base: {ACTIVITY_LABEL[t]}</option>
+                {BASE_TYPES.map((tp) => (
+                  <option key={tp} value={tp}>{t("modals.base", { label: ACTIVITY_LABEL[tp] })}</option>
                 ))}
               </select>
             </div>
@@ -148,7 +146,7 @@ export function EventTypeManagerModal({ onClose, onChanged }: Props) {
               className="btn-google inline-flex items-center gap-2 disabled:opacity-50 text-sm"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              Adicionar
+              {t("modals.add")}
             </button>
           </form>
 
@@ -167,8 +165,8 @@ export function EventTypeManagerModal({ onClose, onChanged }: Props) {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">{it.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {CATEGORIES.find((c) => c.value === it.category)?.label} · base: {ACTIVITY_LABEL[it.base_activity_type]}
-                      {it.is_custom && " · personalizado"}
+                      {catLabel(it.category)} · base: {ACTIVITY_LABEL[it.base_activity_type]}
+                      {it.is_custom && ` · ${t("modals.custom")}`}
                     </p>
                   </div>
                   <button
@@ -176,14 +174,14 @@ export function EventTypeManagerModal({ onClose, onChanged }: Props) {
                     onClick={() => handleToggle(it.id, it.active)}
                     className="text-xs rounded-md border border-input px-2 py-1 hover:bg-muted"
                   >
-                    {it.active ? "Desativar" : "Ativar"}
+                    {it.active ? t("modals.deactivate") : t("modals.activate")}
                   </button>
                   {it.is_custom && (
                     <button
                       type="button"
                       onClick={() => handleDelete(it.id)}
                       className="text-destructive p-1 rounded-md hover:bg-destructive/10"
-                      aria-label="Excluir"
+                      aria-label={t("common.delete")}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

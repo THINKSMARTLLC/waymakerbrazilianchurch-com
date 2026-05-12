@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { X, Loader2, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { ACTIVITY_LABEL, type ActivityType } from "@/lib/engagement";
 
@@ -30,6 +31,7 @@ interface Props {
 const TYPES: ActivityType[] = ["attendance", "cell_group", "visit_scheduled", "leadership_contact"];
 
 export function EditActivityModal({ activity, memberName, onClose, onSaved }: Props) {
+  const { t } = useTranslation();
   const [type, setType] = useState<ActivityType>(activity.activity_type);
   const [date, setDate] = useState(activity.activity_date.slice(0, 10));
   const [notes, setNotes] = useState(activity.notes ?? "");
@@ -72,7 +74,7 @@ export function EditActivityModal({ activity, memberName, onClose, onSaved }: Pr
   };
 
   const handleDelete = async () => {
-    if (!confirm("Excluir esta atividade?")) return;
+    if (!confirm(t("modals.deleteActivityConfirm"))) return;
     setDeleting(true);
     const { error: err } = await supabase.from("member_activities").delete().eq("id", activity.id);
     setDeleting(false);
@@ -88,7 +90,7 @@ export function EditActivityModal({ activity, memberName, onClose, onSaved }: Pr
       <div className="bg-card rounded-2xl shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div>
-            <h2 className="font-display text-lg font-semibold text-foreground">Editar Atividade</h2>
+            <h2 className="font-display text-lg font-semibold text-foreground">{t("modals.editActivity")}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">{memberName}</p>
           </div>
           <button onClick={onClose} className="rounded-lg p-1 text-muted-foreground hover:bg-muted">
@@ -98,7 +100,7 @@ export function EditActivityModal({ activity, memberName, onClose, onSaved }: Pr
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="text-sm font-medium text-foreground mb-1 block">Tipo base</label>
+            <label className="text-sm font-medium text-foreground mb-1 block">{t("modals.baseType")}</label>
             <select
               value={type}
               onChange={(e) => {
@@ -107,21 +109,21 @@ export function EditActivityModal({ activity, memberName, onClose, onSaved }: Pr
               }}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
             >
-              {TYPES.map((t) => (
-                <option key={t} value={t}>{ACTIVITY_LABEL[t]}</option>
+              {TYPES.map((tp) => (
+                <option key={tp} value={tp}>{ACTIVITY_LABEL[tp]}</option>
               ))}
             </select>
           </div>
 
           {filteredEvents.length > 0 && (
             <div>
-              <label className="text-sm font-medium text-foreground mb-1 block">Evento específico</label>
+              <label className="text-sm font-medium text-foreground mb-1 block">{t("modals.specificEvent")}</label>
               <select
                 value={eventTypeId}
                 onChange={(e) => setEventTypeId(e.target.value)}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
               >
-                <option value="">— Nenhum —</option>
+                <option value="">{t("modals.noneOption")}</option>
                 {filteredEvents.map((ev) => (
                   <option key={ev.id} value={ev.id}>
                     {ev.icon ?? ""} {ev.name}
@@ -132,7 +134,7 @@ export function EditActivityModal({ activity, memberName, onClose, onSaved }: Pr
           )}
 
           <div>
-            <label className="text-sm font-medium text-foreground mb-1 block">Data</label>
+            <label className="text-sm font-medium text-foreground mb-1 block">{t("common.date")}</label>
             <input
               type="date"
               value={date}
@@ -143,7 +145,7 @@ export function EditActivityModal({ activity, memberName, onClose, onSaved }: Pr
           </div>
 
           <div>
-            <label className="text-sm font-medium text-foreground mb-1 block">Notas</label>
+            <label className="text-sm font-medium text-foreground mb-1 block">{t("common.notes")}</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -162,14 +164,14 @@ export function EditActivityModal({ activity, memberName, onClose, onSaved }: Pr
               className="rounded-xl border border-destructive/30 text-destructive px-3 py-2.5 text-sm font-medium hover:bg-destructive/10 disabled:opacity-50 inline-flex items-center gap-1"
             >
               {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-              Excluir
+              {t("common.delete")}
             </button>
             <button
               type="button"
               onClick={onClose}
               className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted"
             >
-              Cancelar
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
@@ -177,7 +179,7 @@ export function EditActivityModal({ activity, memberName, onClose, onSaved }: Pr
               className="flex-1 btn-google inline-flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Salvar
+              {t("common.save")}
             </button>
           </div>
         </form>

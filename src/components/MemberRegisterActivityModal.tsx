@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { X, Loader2, Camera } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ACTIVITY_LABEL, ACTIVITY_ICON, todayLocalISO, type ActivityType } from "@/lib/engagement";
@@ -15,6 +16,7 @@ const TYPES: ActivityType[] = ["attendance", "cell_group", "visit_scheduled", "l
 
 export function MemberRegisterActivityModal({ memberId, onClose, onSaved }: Props) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [type, setType] = useState<ActivityType>("attendance");
   const [date, setDate] = useState(() => todayLocalISO());
   const [notes, setNotes] = useState("");
@@ -29,7 +31,7 @@ export function MemberRegisterActivityModal({ memberId, onClose, onSaved }: Prop
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      setError("Foto deve ter no máximo 5MB.");
+      setError(t("modals.photoTooLarge"));
       return;
     }
     setError("");
@@ -45,7 +47,7 @@ export function MemberRegisterActivityModal({ memberId, onClose, onSaved }: Prop
     setError("");
 
     if (requiresPhoto && !photoFile) {
-      setError("Para Presença na Igreja é obrigatório enviar uma foto.");
+      setError(t("modals.photoRequiredAttendance"));
       return;
     }
 
@@ -86,7 +88,7 @@ export function MemberRegisterActivityModal({ memberId, onClose, onSaved }: Prop
       return;
     }
 
-    toast.success("Atividade enviada para validação 🙌");
+    toast.success(t("modals.submitted"));
     onSaved();
   };
 
@@ -95,9 +97,9 @@ export function MemberRegisterActivityModal({ memberId, onClose, onSaved }: Prop
       <div className="bg-card rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div>
-            <h2 className="font-display text-lg font-semibold text-foreground">Registrar Atividade</h2>
+            <h2 className="font-display text-lg font-semibold text-foreground">{t("modals.registerActivity")}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Sua atividade ficará pendente até validação do líder.
+              {t("modals.memberActivityPending")}
             </p>
           </div>
           <button onClick={onClose} className="rounded-lg p-1 text-muted-foreground hover:bg-muted">
@@ -107,28 +109,28 @@ export function MemberRegisterActivityModal({ memberId, onClose, onSaved }: Prop
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="text-sm font-medium text-foreground mb-2 block">Tipo de atividade</label>
+            <label className="text-sm font-medium text-foreground mb-2 block">{t("modals.activityType")}</label>
             <div className="grid grid-cols-2 gap-2">
-              {TYPES.map((t) => (
+              {TYPES.map((tp) => (
                 <button
-                  key={t}
+                  key={tp}
                   type="button"
-                  onClick={() => setType(t)}
+                  onClick={() => setType(tp)}
                   className={`flex items-center gap-2 rounded-xl border p-3 text-left text-sm transition-colors ${
-                    type === t
+                    type === tp
                       ? "border-primary bg-accent text-foreground"
                       : "border-input bg-background hover:bg-muted"
                   }`}
                 >
-                  <span className="text-lg">{ACTIVITY_ICON[t]}</span>
-                  <span className="font-medium">{ACTIVITY_LABEL[t]}</span>
+                  <span className="text-lg">{ACTIVITY_ICON[tp]}</span>
+                  <span className="font-medium">{ACTIVITY_LABEL[tp]}</span>
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <label className="text-sm font-medium text-foreground mb-1 block">Data</label>
+            <label className="text-sm font-medium text-foreground mb-1 block">{t("common.date")}</label>
             <input
               type="date"
               value={date}
@@ -141,11 +143,11 @@ export function MemberRegisterActivityModal({ memberId, onClose, onSaved }: Prop
 
           <div>
             <label className="text-sm font-medium text-foreground mb-1 block">
-              {requiresPhoto ? "Foto (obrigatória)" : "Foto (opcional)"}
+              {requiresPhoto ? t("modals.photoMandatory") : t("modals.photoOptional")}
             </label>
             <label className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border py-4 text-sm text-muted-foreground hover:bg-muted cursor-pointer">
               <Camera className="h-4 w-4" />
-              {photoFile ? "Trocar foto" : "Selecionar foto"}
+              {photoFile ? t("modals.changePhoto") : t("modals.selectPhoto")}
               <input
                 type="file"
                 accept="image/*"
@@ -156,19 +158,19 @@ export function MemberRegisterActivityModal({ memberId, onClose, onSaved }: Prop
             </label>
             {photoPreview && (
               <div className="mt-2 rounded-lg overflow-hidden border border-border">
-                <img src={photoPreview} alt="Pré-visualização" className="w-full h-40 object-cover" />
+                <img src={photoPreview} alt={t("modals.preview")} className="w-full h-40 object-cover" />
               </div>
             )}
           </div>
 
           <div>
-            <label className="text-sm font-medium text-foreground mb-1 block">Notas (opcional)</label>
+            <label className="text-sm font-medium text-foreground mb-1 block">{t("modals.notesOptional")}</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              placeholder="Algum detalhe que ajude na validação..."
+              placeholder={t("modals.validationDetail")}
             />
           </div>
 
@@ -180,7 +182,7 @@ export function MemberRegisterActivityModal({ memberId, onClose, onSaved }: Prop
               onClick={onClose}
               className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted"
             >
-              Cancelar
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
@@ -188,7 +190,7 @@ export function MemberRegisterActivityModal({ memberId, onClose, onSaved }: Prop
               className="flex-1 btn-google inline-flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Enviar
+              {t("modals.send")}
             </button>
           </div>
         </form>

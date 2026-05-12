@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { X, Copy, Check, AlertTriangle, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { createManagedUser, generateRecoveryForEmail } from "@/lib/adminUsers.functions";
 import type { Database } from "@/integrations/supabase/types";
 import { formatUSPhoneInput } from "@/lib/phone";
@@ -46,6 +47,7 @@ export function CreateUserModal({
   canAssignStaff = false,
   initial,
 }: Props) {
+  const { t } = useTranslation();
   const createUser = useServerFn(createManagedUser);
   const sendRecovery = useServerFn(generateRecoveryForEmail);
 
@@ -92,7 +94,7 @@ export function CreateUserModal({
         if (res.reason === "email_exists") {
           setDuplicateRecovery({ link: res.magicLink, email });
         } else {
-          setError("Falha ao criar conta");
+          setError(t("modals.failedCreate"));
         }
         return;
       }
@@ -104,7 +106,7 @@ export function CreateUserModal({
       });
       onCreated?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido");
+      setError(err instanceof Error ? err.message : t("modals.unknownError"));
     } finally {
       setSubmitting(false);
     }
@@ -117,7 +119,7 @@ export function CreateUserModal({
       const res = await sendRecovery({ data: { email: duplicateRecovery.email } });
       setDuplicateRecovery({ ...duplicateRecovery, link: res.recoveryLink });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao gerar link");
+      setError(err instanceof Error ? err.message : t("modals.failedRecovery"));
     } finally {
       setSubmitting(false);
     }
@@ -128,7 +130,7 @@ export function CreateUserModal({
       <div className="w-full max-w-lg bg-card rounded-2xl shadow-xl border border-border max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <h2 className="font-display text-lg font-semibold">
-            {credentials ? "Conta criada" : memberOnly ? "Criar login para membro" : "Criar nova conta"}
+            {credentials ? t("modals.accountCreated") : memberOnly ? t("modals.createLogin") : t("modals.newAccount")}
           </h2>
           <button onClick={close} className="text-muted-foreground hover:text-foreground">
             <X className="h-5 w-5" />
@@ -142,21 +144,21 @@ export function CreateUserModal({
             <div className="flex items-start gap-3 rounded-xl bg-amber-500/10 px-4 py-3 text-sm">
               <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
               <div className="text-amber-900 dark:text-amber-200">
-                <p className="font-medium">Este email já está cadastrado</p>
+                <p className="font-medium">{t("modals.emailExists")}</p>
                 <p className="text-xs mt-1 opacity-80">
-                  Você pode enviar um link de recuperação para que a pessoa defina uma nova senha.
+                  {t("modals.emailExistsDesc")}
                 </p>
               </div>
             </div>
             {duplicateRecovery.link ? (
-              <CopyField label="Link de recuperação de senha" value={duplicateRecovery.link} />
+              <CopyField label={t("modals.recoveryLink")} value={duplicateRecovery.link} />
             ) : (
               <button
                 onClick={handleResendRecovery}
                 disabled={submitting}
                 className="btn-google w-full disabled:opacity-50"
               >
-                {submitting ? "Gerando..." : "Gerar link de recuperação"}
+                {submitting ? t("modals.generating") : t("modals.generateRecovery")}
               </button>
             )}
             <button
@@ -166,7 +168,7 @@ export function CreateUserModal({
               }}
               className="w-full text-sm text-muted-foreground hover:text-foreground"
             >
-              Voltar
+              {t("common.back")}
             </button>
           </div>
         ) : (
@@ -175,29 +177,29 @@ export function CreateUserModal({
               <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>
             )}
 
-            <Field label="Nome completo" required>
+            <Field label={t("modals.fullName")} required>
               <input
                 type="text"
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="Nome da pessoa"
+                placeholder={t("modals.personName")}
               />
             </Field>
 
-            <Field label="Email" required>
+            <Field label={t("common.email")} required>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="email@exemplo.com"
+                placeholder={t("modals.emailExample")}
               />
             </Field>
 
-            <Field label="Telefone">
+            <Field label={t("common.phone")}>
               <input
                 type="tel"
                 inputMode="numeric"
@@ -210,7 +212,7 @@ export function CreateUserModal({
             </Field>
 
             {!memberOnly && (
-              <Field label="Função" required>
+              <Field label={t("modals.function")} required>
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value as AppRole)}
@@ -228,25 +230,23 @@ export function CreateUserModal({
                 </select>
                 {!canAssignStaff && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Apenas Super Admin pode criar contas Staff/Admin.
+                    {t("modals.onlySuperAdmin")}
                   </p>
                 )}
               </Field>
             )}
 
             <div className="rounded-xl bg-muted/50 px-4 py-3 text-xs text-muted-foreground">
-              <strong className="text-foreground">Como funciona:</strong> uma senha temporária será gerada e
-              um link de recuperação será mostrado na próxima tela. Copie e envie ao novo usuário —
-              no primeiro login ele será obrigado a definir uma nova senha.
+              <strong className="text-foreground">{t("modals.howItWorks")}</strong> {t("modals.howItWorksDesc")}
             </div>
 
             <div className="flex gap-2 pt-2">
               <button type="button" onClick={close} className="flex-1 px-4 py-2.5 rounded-xl border border-input text-sm font-medium hover:bg-muted">
-                Cancelar
+                {t("common.cancel")}
               </button>
               <button type="submit" disabled={submitting} className="btn-google flex-1 disabled:opacity-50 inline-flex items-center justify-center gap-2">
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                {submitting ? "Criando..." : "Criar conta"}
+                {submitting ? t("modals.creating") : t("modals.createAccount")}
               </button>
             </div>
           </form>
@@ -257,29 +257,30 @@ export function CreateUserModal({
 }
 
 function CredentialsView({ credentials, onClose }: { credentials: CreatedCredentials; onClose: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className="p-5 space-y-4">
       <div className="rounded-xl bg-primary/10 px-4 py-3 text-sm text-foreground">
-        <p className="font-medium">Conta criada com sucesso!</p>
+        <p className="font-medium">{t("modals.accountCreatedSuccess")}</p>
         <p className="text-xs text-muted-foreground mt-1">
           {credentials.emailSent
-            ? `Um email de acesso foi enviado para ${credentials.email}. Os dados abaixo são um fallback caso o email não chegue.`
-            : "Copie e envie os dados abaixo ao novo usuário."}
+            ? t("modals.emailSent", { email: credentials.email })
+            : t("modals.copyAndSend")}
         </p>
       </div>
 
-      <CopyField label="Email de login" value={credentials.email} />
-      <CopyField label="Senha temporária" value={credentials.tempPassword} mono />
+      <CopyField label={t("modals.loginEmail")} value={credentials.email} />
+      <CopyField label={t("modals.tempPassword")} value={credentials.tempPassword} mono />
       {credentials.magicLink && (
-        <CopyField label="Magic link (login direto)" value={credentials.magicLink} />
+        <CopyField label={t("modals.magicLink")} value={credentials.magicLink} />
       )}
 
       <div className="rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-900 dark:text-amber-200">
-        <strong>Importante:</strong> a senha temporária não será mostrada novamente. Salve agora caso precise reenviar manualmente.
+        <strong>{t("modals.important")}</strong> {t("modals.tempPasswordWarning")}
       </div>
 
       <button onClick={onClose} className="btn-google w-full">
-        Concluir
+        {t("modals.done")}
       </button>
     </div>
   );
@@ -297,6 +298,7 @@ function Field({ label, required, children }: { label: string; required?: boolea
 }
 
 function CopyField({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     await navigator.clipboard.writeText(value);
@@ -318,7 +320,7 @@ function CopyField({ label, value, mono }: { label: string; value: string; mono?
           className="px-3 rounded-xl border border-input bg-background hover:bg-muted text-sm inline-flex items-center gap-1.5"
         >
           {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
-          {copied ? "Copiado" : "Copiar"}
+          {copied ? t("modals.copied") : t("modals.copy")}
         </button>
       </div>
     </div>

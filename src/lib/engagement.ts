@@ -115,11 +115,11 @@ export function parseLocalDate(value: string | Date | null | undefined): Date | 
   return isNaN(d.getTime()) ? null : d;
 }
 
-/** Format a YYYY-MM-DD date string for display in pt-BR without timezone shift. */
+/** Format a YYYY-MM-DD date string for display in US format MM/DD/YYYY without timezone shift. */
 export function formatLocalDate(value: string | Date | null | undefined): string {
   const d = parseLocalDate(value);
   if (!d) return "—";
-  return d.toLocaleDateString("pt-BR");
+  return d.toLocaleDateString("en-US");
 }
 
 /** Today's date as YYYY-MM-DD in the user's local timezone. */

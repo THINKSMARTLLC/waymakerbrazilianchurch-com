@@ -187,7 +187,7 @@ function AdminPage() {
                         className="rounded-md border border-input bg-background px-2 py-1 text-xs"
                       >
                         {ROLE_OPTIONS.map((r) => (
-                          <option key={r} value={r}>{roleLabel(r)}</option>
+                          <option key={r} value={r}>{t(`admin.roles.${r}`)}</option>
                         ))}
                       </select>
                     </td>

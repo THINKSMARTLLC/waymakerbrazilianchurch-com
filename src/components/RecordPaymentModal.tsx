@@ -104,9 +104,41 @@ export function RecordPaymentModal({ memberId, memberName, defaultAmount, onClos
     setContribs((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
   };
 
-  const removeContrib = (id: string) => {
-    setContribs((prev) => prev.filter((c) => c.id !== id));
-  };
+  // Member search for beneficiary
+  useEffect(() => {
+    if (beneficiaryMode === "myself") {
+      setSearchResults([]);
+      return;
+    }
+    const term = searchTerm.trim();
+    if (term.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    let cancelled = false;
+    setSearching(true);
+    const handle = setTimeout(async () => {
+      const digits = term.replace(/\D/g, "");
+      const like = `%${term}%`;
+      const orFilters = [`name.ilike.${like}`, `email.ilike.${like}`];
+      if (digits.length >= 3) orFilters.push(`phone.ilike.%${digits}%`);
+      const { data } = await supabase
+        .from("members")
+        .select("id, name, email, phone")
+        .eq("archived", false)
+        .neq("id", memberId)
+        .or(orFilters.join(","))
+        .order("name", { ascending: true })
+        .limit(8);
+      if (cancelled) return;
+      setSearchResults((data ?? []) as MemberLite[]);
+      setSearching(false);
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [searchTerm, beneficiaryMode, memberId]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -123,6 +155,11 @@ export function RecordPaymentModal({ memberId, memberName, defaultAmount, onClos
       return;
     }
 
+    if (beneficiaryMode !== "myself" && !beneficiary) {
+      setError("Select the member this contribution is for.");
+      return;
+    }
+
     setSaving(true);
 
     // Default contribution_type for the parent record:
@@ -133,8 +170,12 @@ export function RecordPaymentModal({ memberId, memberName, defaultAmount, onClos
     // reference_month: store as the first day of the chosen month (only for monthly)
     const refMonthDate = frequency === "monthly" ? `${referenceMonth}-01` : null;
 
+    const beneficiaryId = beneficiaryMode === "myself" ? memberId : beneficiary!.id;
+
     const insertPayload = {
-      member_id: memberId,
+      member_id: beneficiaryId,
+      payer_member_id: memberId,
+      beneficiary_member_id: beneficiaryId,
       amount: totalNum,
       base_amount: baseAmount,
       extra_amount: extraAmount,

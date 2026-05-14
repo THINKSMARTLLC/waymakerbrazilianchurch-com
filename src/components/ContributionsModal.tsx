@@ -98,6 +98,8 @@ export function ContributionsModal({ memberId, memberName, onClose, onChanged }:
                 <tr className="border-b border-border">
                   <th className="table-header px-5 py-3 text-left">{t("contributionsModal.date")}</th>
                   <th className="table-header px-5 py-3 text-left">{t("contributionsModal.amount")}</th>
+                  <th className="table-header px-5 py-3 text-left">{t("payerBeneficiary.paidBy")}</th>
+                  <th className="table-header px-5 py-3 text-left">{t("payerBeneficiary.benefiting")}</th>
                   <th className="table-header px-5 py-3 text-left">{t("contributionsModal.method")}</th>
                   <th className="table-header px-5 py-3 text-left">{t("contributionsModal.type")}</th>
                   <th className="table-header px-5 py-3 text-left">{t("contributionsModal.notes")}</th>
@@ -105,10 +107,25 @@ export function ContributionsModal({ memberId, memberName, onClose, onChanged }:
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
+                {rows.map((r) => {
+                  const payerId = r.payer_member_id ?? r.member_id;
+                  const benId = r.beneficiary_member_id ?? r.member_id;
+                  const payerName = memberNames.get(payerId) ?? "—";
+                  const benName = memberNames.get(benId) ?? "—";
+                  const isFamily = r.payer_member_id && r.beneficiary_member_id && r.payer_member_id !== r.beneficiary_member_id;
+                  return (
                   <tr key={r.id} className="border-b border-border last:border-0">
                     <td className="px-5 py-3 text-sm text-foreground">{formatLocalDateOnly(r.payment_date)}</td>
                     <td className="px-5 py-3 text-sm font-medium text-foreground">{formatUSD(r.amount)}</td>
+                    <td className="px-5 py-3 text-sm text-foreground">
+                      {payerName}
+                      {isFamily && (
+                        <span className="ml-1.5 inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                          {t("payerBeneficiary.familySupport")}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-foreground">{benName}</td>
                     <td className="px-5 py-3 text-sm text-muted-foreground">{PAYMENT_METHOD_LABEL[r.payment_method] ?? r.payment_method}</td>
                     <td className="px-5 py-3 text-sm text-muted-foreground">{CONTRIBUTION_TYPE_LABEL[r.contribution_type] ?? r.contribution_type}</td>
                     <td className="px-5 py-3 text-sm text-muted-foreground">{r.notes || "—"}</td>

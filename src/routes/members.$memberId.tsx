@@ -140,11 +140,21 @@ function MemberProfilePage() {
   const [showEditMember, setShowEditMember] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const [paysFor, setPaysFor] = useState<Array<{ id: string; name: string }>>([]);
-  const [sponsoredBy, setSponsoredBy] = useState<Array<{ id: string; name: string }>>([]);
+  type RelatedMember = {
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+    subscription_active: boolean;
+    total: number;
+  };
+  const [paysFor, setPaysFor] = useState<RelatedMember[]>([]);
+  const [sponsoredBy, setSponsoredBy] = useState<RelatedMember[]>([]);
+  const [household, setHousehold] = useState<RelatedMember[]>([]);
+  const [relsLoading, setRelsLoading] = useState(true);
 
   const fetchData = async () => {
-    const [memberRes, paymentsRes, actsRes, socRes, notesRes, mergedRes, paysForRes, sponsoredRes] = await Promise.all([
+    const [memberRes, paymentsRes, actsRes, socRes, notesRes, mergedRes] = await Promise.all([
       supabase.from("members").select("*").eq("id", memberId).maybeSingle(),
       supabase.from("payments").select("*").or(`member_id.eq.${memberId},payer_member_id.eq.${memberId},beneficiary_member_id.eq.${memberId}`).order("payment_date", { ascending: false }),
       supabase.from("member_activities").select("*").eq("member_id", memberId).order("activity_date", { ascending: false }),
@@ -160,8 +170,6 @@ function MemberProfilePage() {
         .select("id, merge_date, restored, snapshot_data")
         .eq("merged_into_member_id", memberId)
         .order("merge_date", { ascending: false }),
-      supabase.from("payments").select("beneficiary_member_id").eq("payer_member_id", memberId).neq("beneficiary_member_id", memberId),
-      supabase.from("payments").select("payer_member_id").eq("beneficiary_member_id", memberId).neq("payer_member_id", memberId),
     ]);
     setMember(memberRes.data);
     setPayments(paymentsRes.data || []);
@@ -169,20 +177,109 @@ function MemberProfilePage() {
     setSocials(socRes.data || []);
     setPastoralNotes((notesRes.data || []) as PastoralNote[]);
     setMergedRecords(((mergedRes.data || []) as Array<{ id: string; merge_date: string; restored: boolean; snapshot_data: { member?: { name?: string } } | null }>));
+    setLoading(false);
 
-    const paysForIds = Array.from(new Set((paysForRes.data || []).map((r) => r.beneficiary_member_id).filter(Boolean) as string[]));
-    const sponsoredIds = Array.from(new Set((sponsoredRes.data || []).map((r) => r.payer_member_id).filter(Boolean) as string[]));
-    const allIds = Array.from(new Set([...paysForIds, ...sponsoredIds]));
-    if (allIds.length > 0) {
-      const { data: mems } = await supabase.from("members").select("id, name").in("id", allIds);
-      const map = new Map((mems || []).map((m) => [m.id, m.name]));
-      setPaysFor(paysForIds.map((id) => ({ id, name: map.get(id) ?? "—" })));
-      setSponsoredBy(sponsoredIds.map((id) => ({ id, name: map.get(id) ?? "—" })));
-    } else {
+    // ---- Financial relationships (UI-only, computed from existing payments) ----
+    setRelsLoading(true);
+    try {
+      const [paysForRows, sponsoredRows] = await Promise.all([
+        supabase
+          .from("payments")
+          .select("beneficiary_member_id, amount, payer_member_id")
+          .eq("payer_member_id", memberId)
+          .neq("beneficiary_member_id", memberId),
+        supabase
+          .from("payments")
+          .select("payer_member_id, amount, beneficiary_member_id")
+          .eq("beneficiary_member_id", memberId)
+          .neq("payer_member_id", memberId),
+      ]);
+
+      const paysForTotals = new Map<string, number>();
+      for (const r of paysForRows.data || []) {
+        if (!r.beneficiary_member_id) continue;
+        paysForTotals.set(
+          r.beneficiary_member_id,
+          (paysForTotals.get(r.beneficiary_member_id) ?? 0) + Number(r.amount ?? 0),
+        );
+      }
+      const sponsoredTotals = new Map<string, number>();
+      for (const r of sponsoredRows.data || []) {
+        if (!r.payer_member_id) continue;
+        sponsoredTotals.set(
+          r.payer_member_id,
+          (sponsoredTotals.get(r.payer_member_id) ?? 0) + Number(r.amount ?? 0),
+        );
+      }
+
+      // Household: other beneficiaries (not self) of any payer who also pays for this member
+      const sponsorIds = Array.from(sponsoredTotals.keys());
+      let householdIds: string[] = [];
+      const householdTotals = new Map<string, number>();
+      if (sponsorIds.length > 0) {
+        const { data: hhRows } = await supabase
+          .from("payments")
+          .select("beneficiary_member_id, amount")
+          .in("payer_member_id", sponsorIds)
+          .neq("beneficiary_member_id", memberId);
+        for (const r of hhRows || []) {
+          if (!r.beneficiary_member_id) continue;
+          householdTotals.set(
+            r.beneficiary_member_id,
+            (householdTotals.get(r.beneficiary_member_id) ?? 0) + Number(r.amount ?? 0),
+          );
+        }
+        householdIds = Array.from(householdTotals.keys());
+      }
+
+      const allIds = Array.from(new Set([
+        ...paysForTotals.keys(),
+        ...sponsoredTotals.keys(),
+        ...householdIds,
+      ]));
+
+      const memberMap = new Map<string, { name: string; email: string | null; phone: string | null; subscription_active: boolean }>();
+      if (allIds.length > 0) {
+        const { data: mems } = await supabase
+          .from("members")
+          .select("id, name, email, phone, subscription_active")
+          .in("id", allIds);
+        for (const m of mems || []) {
+          memberMap.set(m.id, {
+            name: m.name,
+            email: m.email,
+            phone: m.phone,
+            subscription_active: !!m.subscription_active,
+          });
+        }
+      }
+
+      const build = (totals: Map<string, number>): RelatedMember[] =>
+        Array.from(totals.entries())
+          .map(([id, total]) => {
+            const info = memberMap.get(id);
+            return {
+              id,
+              name: info?.name ?? "—",
+              email: info?.email ?? null,
+              phone: info?.phone ?? null,
+              subscription_active: info?.subscription_active ?? false,
+              total,
+            };
+          })
+          .sort((a, b) => b.total - a.total);
+
+      setPaysFor(build(paysForTotals));
+      setSponsoredBy(build(sponsoredTotals));
+      setHousehold(build(householdTotals));
+    } catch (err) {
+      console.error("[member-profile] failed to load financial relationships", err);
       setPaysFor([]);
       setSponsoredBy([]);
+      setHousehold([]);
+    } finally {
+      setRelsLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {

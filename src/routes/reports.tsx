@@ -34,7 +34,7 @@ type Payment = Database["public"]["Tables"]["payments"]["Row"];
 type MemberRow = Database["public"]["Tables"]["members"]["Row"];
 
 interface PaymentWithMember extends Payment {
-  members: { id: string; name: string; email: string | null } | null;
+  members: { id: string; name: string; email: string | null; phone: string | null; stripe_customer_id: string | null } | null;
 }
 
 function getDateRange(filter: FilterRange, customStart?: string, customEnd?: string): { start: string | null; end: string | null } {
@@ -71,7 +71,7 @@ function ReportsPage() {
   const [methodFilter, setMethodFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<MemberPaymentStatus | "all" | "paid">("all");
   const [showAllMembers, setShowAllMembers] = useState(false);
-  const [groupBy, setGroupBy] = useState<"transactions" | "member">("member");
+  const [groupBy, setGroupBy] = useState<"transactions" | "member" | "payer" | "beneficiary" | "household">("member");
 
   // Latest payment dates per member (status — uses ALL payments, not just filtered range)
   const [lastByMember, setLastByMember] = useState<Map<string, string>>(new Map());
@@ -129,7 +129,7 @@ function ReportsPage() {
 
     let query = supabase
       .from("payments")
-      .select("*, members(id, name, email)")
+      .select("*, members(id, name, email, phone, stripe_customer_id)")
       .order("payment_date", { ascending: false });
 
     if (start) query = query.gte("payment_date", start);

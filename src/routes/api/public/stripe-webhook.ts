@@ -459,7 +459,10 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
               customerEmail: invoice.customer_email,
               customerId: stripeCustomerId,
             });
-            const memberIdMetadata = invoice.metadata?.member_id ?? null;
+            const beneficiaryIdMetadata =
+              invoice.metadata?.beneficiary_member_id ?? invoice.metadata?.member_id ?? null;
+            const payerIdMetadata = invoice.metadata?.payer_member_id ?? null;
+            const memberIdMetadata = beneficiaryIdMetadata;
             const member = await resolveMember({ memberIdMetadata, email, stripeCustomerId });
             const paymentDate = getNewYorkDateFromUnix(invoice.status_transitions.paid_at ?? invoice.created);
 
@@ -509,6 +512,8 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
                 eventType: event.type,
                 externalPaymentId: invoice.id,
                 memberId: member.id,
+                payerMemberId: payerIdMetadata ?? member.id,
+                beneficiaryMemberId: member.id,
                 paymentDate,
                 paymentFrequency,
                 stripeCustomerId,

@@ -388,7 +388,10 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
               ? session.subscription
               : session.subscription?.id ?? null;
             const paymentDate = getNewYorkDateFromUnix(session.created);
-            const memberIdMetadata = session.metadata?.member_id ?? null;
+            const beneficiaryIdMetadata =
+              session.metadata?.beneficiary_member_id ?? session.metadata?.member_id ?? null;
+            const payerIdMetadata = session.metadata?.payer_member_id ?? null;
+            const memberIdMetadata = beneficiaryIdMetadata;
             const member = await resolveMember({ memberIdMetadata, email, stripeCustomerId });
 
             logWebhookDebug(`Email found: ${email ?? "none"}`, {
@@ -436,6 +439,8 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
                 eventType: event.type,
                 externalPaymentId: session.payment_intent?.toString() ?? session.id,
                 memberId: member.id,
+                payerMemberId: payerIdMetadata ?? member.id,
+                beneficiaryMemberId: member.id,
                 paymentDate,
                 stripeCustomerId,
                 stripeSubscriptionId,

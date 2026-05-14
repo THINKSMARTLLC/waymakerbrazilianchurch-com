@@ -149,7 +149,8 @@ export function ContributionsModal({ memberId, memberName, onClose, onChanged }:
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           )}

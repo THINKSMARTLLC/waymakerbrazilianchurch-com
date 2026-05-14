@@ -199,7 +199,16 @@ function ReportsPage() {
   const filteredPayments = useMemo(() => {
     return payments.filter((p) => {
       if (memberIdFilter !== "all" && p.members?.id !== memberIdFilter) return false;
-      if (nameFilter && !(p.members?.name.toLowerCase().includes(nameFilter.toLowerCase()))) return false;
+      if (nameFilter) {
+        const q = nameFilter.toLowerCase();
+        const m = p.members;
+        const hit =
+          m?.name?.toLowerCase().includes(q) ||
+          m?.email?.toLowerCase().includes(q) ||
+          m?.phone?.toLowerCase().includes(q) ||
+          m?.stripe_customer_id?.toLowerCase().includes(q);
+        if (!hit) return false;
+      }
       if (methodFilter !== "all") {
         const normalized = p.payment_method === "stripe" ? "card" : p.payment_method;
         if (normalized !== methodFilter) return false;
@@ -468,12 +477,12 @@ function ReportsPage() {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">Search Name</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Search</label>
           <input
             type="text"
             value={nameFilter}
             onChange={(e) => setNameFilter(e.target.value)}
-            placeholder="Search by name..."
+            placeholder={t("payerBeneficiary.searchPlaceholder")}
             className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
@@ -509,14 +518,17 @@ function ReportsPage() {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">View</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">{t("payerBeneficiary.groupBy")}</label>
           <select
             value={groupBy}
-            onChange={(e) => setGroupBy(e.target.value as "transactions" | "member")}
+            onChange={(e) => setGroupBy(e.target.value as typeof groupBy)}
             className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value="member">By Member</option>
-            <option value="transactions">Individual Transactions</option>
+            <option value="member">{t("payerBeneficiary.groupMember")}</option>
+            <option value="transactions">{t("payerBeneficiary.groupTransactions")}</option>
+            <option value="payer">{t("payerBeneficiary.groupPayer")}</option>
+            <option value="beneficiary">{t("payerBeneficiary.groupBeneficiary")}</option>
+            <option value="household">{t("payerBeneficiary.groupHousehold")}</option>
           </select>
         </div>
         </div>

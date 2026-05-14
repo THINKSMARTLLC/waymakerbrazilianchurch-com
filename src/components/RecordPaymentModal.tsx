@@ -61,6 +61,13 @@ export function RecordPaymentModal({ memberId, memberName, defaultAmount, onClos
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // Payer/beneficiary
+  const [beneficiaryMode, setBeneficiaryMode] = useState<BeneficiaryMode>("myself");
+  const [beneficiary, setBeneficiary] = useState<MemberLite | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<MemberLite[]>([]);
+  const [searching, setSearching] = useState(false);
+
   const [frequency, setFrequency] = useState<Frequency>("weekly");
   const [paymentDate, setPaymentDate] = useState<string>(todayISO());
   const [referenceMonth, setReferenceMonth] = useState<string>(currentMonthISO());

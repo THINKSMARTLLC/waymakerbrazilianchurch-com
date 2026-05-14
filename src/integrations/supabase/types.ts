@@ -764,16 +764,60 @@ export type Database = {
           },
         ]
       }
+      payment_relationships: {
+        Row: {
+          beneficiary_member_id: string
+          contribution_type:
+            | Database["public"]["Enums"]["contribution_type"]
+            | null
+          created_at: string
+          id: string
+          payer_member_id: string
+          relationship_label: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          beneficiary_member_id: string
+          contribution_type?:
+            | Database["public"]["Enums"]["contribution_type"]
+            | null
+          created_at?: string
+          id?: string
+          payer_member_id: string
+          relationship_label?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          beneficiary_member_id?: string
+          contribution_type?:
+            | Database["public"]["Enums"]["contribution_type"]
+            | null
+          created_at?: string
+          id?: string
+          payer_member_id?: string
+          relationship_label?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
           base_amount: number | null
+          beneficiary_member_id: string | null
           contribution_type: Database["public"]["Enums"]["contribution_type"]
           created_at: string
           extra_amount: number
           id: string
           member_id: string
           notes: string | null
+          payer_member_id: string | null
           payment_date: string
           payment_frequency: Database["public"]["Enums"]["payment_frequency"]
           payment_method: Database["public"]["Enums"]["payment_method"]
@@ -785,12 +829,14 @@ export type Database = {
         Insert: {
           amount: number
           base_amount?: number | null
+          beneficiary_member_id?: string | null
           contribution_type?: Database["public"]["Enums"]["contribution_type"]
           created_at?: string
           extra_amount?: number
           id?: string
           member_id: string
           notes?: string | null
+          payer_member_id?: string | null
           payment_date?: string
           payment_frequency?: Database["public"]["Enums"]["payment_frequency"]
           payment_method?: Database["public"]["Enums"]["payment_method"]
@@ -802,12 +848,14 @@ export type Database = {
         Update: {
           amount?: number
           base_amount?: number | null
+          beneficiary_member_id?: string | null
           contribution_type?: Database["public"]["Enums"]["contribution_type"]
           created_at?: string
           extra_amount?: number
           id?: string
           member_id?: string
           notes?: string | null
+          payer_member_id?: string | null
           payment_date?: string
           payment_frequency?: Database["public"]["Enums"]["payment_frequency"]
           payment_method?: Database["public"]["Enums"]["payment_method"]

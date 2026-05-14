@@ -140,10 +140,13 @@ function MemberProfilePage() {
   const [showEditMember, setShowEditMember] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const [paysFor, setPaysFor] = useState<Array<{ id: string; name: string }>>([]);
+  const [sponsoredBy, setSponsoredBy] = useState<Array<{ id: string; name: string }>>([]);
+
   const fetchData = async () => {
-    const [memberRes, paymentsRes, actsRes, socRes, notesRes, mergedRes] = await Promise.all([
+    const [memberRes, paymentsRes, actsRes, socRes, notesRes, mergedRes, paysForRes, sponsoredRes] = await Promise.all([
       supabase.from("members").select("*").eq("id", memberId).maybeSingle(),
-      supabase.from("payments").select("*").eq("member_id", memberId).order("payment_date", { ascending: false }),
+      supabase.from("payments").select("*").or(`member_id.eq.${memberId},payer_member_id.eq.${memberId},beneficiary_member_id.eq.${memberId}`).order("payment_date", { ascending: false }),
       supabase.from("member_activities").select("*").eq("member_id", memberId).order("activity_date", { ascending: false }),
       supabase.from("social_engagements").select("*").eq("member_id", memberId).order("created_at", { ascending: false }),
       supabase
@@ -157,6 +160,8 @@ function MemberProfilePage() {
         .select("id, merge_date, restored, snapshot_data")
         .eq("merged_into_member_id", memberId)
         .order("merge_date", { ascending: false }),
+      supabase.from("payments").select("beneficiary_member_id").eq("payer_member_id", memberId).neq("beneficiary_member_id", memberId),
+      supabase.from("payments").select("payer_member_id").eq("beneficiary_member_id", memberId).neq("payer_member_id", memberId),
     ]);
     setMember(memberRes.data);
     setPayments(paymentsRes.data || []);
@@ -164,6 +169,19 @@ function MemberProfilePage() {
     setSocials(socRes.data || []);
     setPastoralNotes((notesRes.data || []) as PastoralNote[]);
     setMergedRecords(((mergedRes.data || []) as Array<{ id: string; merge_date: string; restored: boolean; snapshot_data: { member?: { name?: string } } | null }>));
+
+    const paysForIds = Array.from(new Set((paysForRes.data || []).map((r) => r.beneficiary_member_id).filter(Boolean) as string[]));
+    const sponsoredIds = Array.from(new Set((sponsoredRes.data || []).map((r) => r.payer_member_id).filter(Boolean) as string[]));
+    const allIds = Array.from(new Set([...paysForIds, ...sponsoredIds]));
+    if (allIds.length > 0) {
+      const { data: mems } = await supabase.from("members").select("id, name").in("id", allIds);
+      const map = new Map((mems || []).map((m) => [m.id, m.name]));
+      setPaysFor(paysForIds.map((id) => ({ id, name: map.get(id) ?? "—" })));
+      setSponsoredBy(sponsoredIds.map((id) => ({ id, name: map.get(id) ?? "—" })));
+    } else {
+      setPaysFor([]);
+      setSponsoredBy([]);
+    }
     setLoading(false);
   };
 

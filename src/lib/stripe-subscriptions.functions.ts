@@ -9,7 +9,12 @@ const PRICE_ID = "price_1TP4GqQgaefH3AzYwnNLBcTr";
 const NEW_YORK_TIME_ZONE = "America/New_York";
 
 const createSessionInput = z.object({
-  memberId: z.string().uuid(),
+  // Backwards compatible: memberId === payer === beneficiary when only one is provided.
+  memberId: z.string().uuid().optional(),
+  payerMemberId: z.string().uuid().optional(),
+  beneficiaryMemberId: z.string().uuid().optional(),
+  contributionType: z.string().max(60).optional(),
+  relationshipLabel: z.string().max(60).optional(),
 });
 
 const finalizeSessionInput = z.object({
@@ -75,57 +80,81 @@ export const createSubscriptionSession = createServerFn({ method: "POST" })
     const stripe = getStripeClient();
     const baseUrl = getBaseUrl();
 
-    const { data: member, error: memberError } = await context.supabase
-      .from("members")
-      .select("id, email, name, user_id, subscription_active, stripe_customer_id")
-      .eq("id", data.memberId)
-      .maybeSingle();
-
-    if (memberError || !member || member.user_id !== context.userId) {
-      throw new Error("Member not found.");
+    const payerId = data.payerMemberId ?? data.memberId;
+    const beneficiaryId = data.beneficiaryMemberId ?? data.memberId ?? payerId;
+    if (!payerId || !beneficiaryId) {
+      throw new Error("Payer and beneficiary are required.");
     }
 
-    if (member.subscription_active) {
+    // Payer must be the authenticated user
+    const { data: payer, error: payerError } = await context.supabase
+      .from("members")
+      .select("id, email, name, user_id, stripe_customer_id")
+      .eq("id", payerId)
+      .maybeSingle();
+
+    if (payerError || !payer || payer.user_id !== context.userId) {
+      throw new Error("Payer member not found.");
+    }
+
+    // Beneficiary lookup uses admin client (any active member can be a beneficiary)
+    const { data: beneficiary, error: beneficiaryError } = await supabaseAdmin
+      .from("members")
+      .select("id, name, subscription_active")
+      .eq("id", beneficiaryId)
+      .maybeSingle();
+
+    if (beneficiaryError || !beneficiary) {
+      throw new Error("Beneficiary member not found.");
+    }
+
+    // Self-payment: keep existing guard (cannot double-subscribe yourself)
+    if (payerId === beneficiaryId && beneficiary.subscription_active) {
       throw new Error("An active subscription already exists.");
     }
 
-    let customerId = member.stripe_customer_id;
+    let customerId = payer.stripe_customer_id;
 
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email: member.email ?? undefined,
-        name: member.name,
-        metadata: {
-          memberId: member.id,
-        },
+        email: payer.email ?? undefined,
+        name: payer.name,
+        metadata: { memberId: payer.id },
       });
       customerId = customer.id;
 
       await supabaseAdmin
         .from("members")
         .update({ stripe_customer_id: customerId })
-        .eq("id", member.id);
+        .eq("id", payer.id);
     }
+
+    const contributionType = data.contributionType ?? "pastor_salary";
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
-      line_items: [
-        {
-          price: PRICE_ID,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: PRICE_ID, quantity: 1 }],
       success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/cancel?member_id=${member.id}`,
+      cancel_url: `${baseUrl}/cancel?member_id=${beneficiary.id}`,
       metadata: {
-        memberId: member.id,
-        contribution_type: "pastor_salary",
+        // legacy
+        memberId: beneficiary.id,
+        member_id: beneficiary.id,
+        // new
+        payer_member_id: payer.id,
+        beneficiary_member_id: beneficiary.id,
+        contribution_type: contributionType,
+        relationship_label: data.relationshipLabel ?? "",
       },
       subscription_data: {
         metadata: {
-          memberId: member.id,
-          contribution_type: "pastor_salary",
+          memberId: beneficiary.id,
+          member_id: beneficiary.id,
+          payer_member_id: payer.id,
+          beneficiary_member_id: beneficiary.id,
+          contribution_type: contributionType,
+          relationship_label: data.relationshipLabel ?? "",
         },
       },
     });
@@ -146,30 +175,54 @@ export const finalizeSubscriptionSession = createServerFn({ method: "POST" })
       throw new Error("Subscription payment has not been completed.");
     }
 
-    const memberId = session.metadata?.memberId;
+    const beneficiaryId =
+      session.metadata?.beneficiary_member_id ?? session.metadata?.memberId ?? session.metadata?.member_id ?? null;
+    const payerId = session.metadata?.payer_member_id ?? beneficiaryId;
+    const contributionType = session.metadata?.contribution_type ?? "pastor_salary";
 
-    if (!memberId) {
-      throw new Error("Subscription member metadata is missing.");
+    if (!beneficiaryId || !payerId) {
+      throw new Error("Subscription metadata is missing.");
     }
 
-    const { data: member, error: memberError } = await context.supabase
+    // Authorise: caller must be either payer or beneficiary
+    const { data: authMember } = await context.supabase
       .from("members")
       .select("id, user_id")
-      .eq("id", memberId)
+      .in("id", [beneficiaryId, payerId])
+      .eq("user_id", context.userId)
+      .limit(1)
       .maybeSingle();
 
-    if (memberError || !member || member.user_id !== context.userId) {
+    if (!authMember) {
       throw new Error("Member not found.");
     }
 
+    const stripeCustomerId =
+      typeof session.customer === "string" ? session.customer : session.customer?.id ?? null;
+    const stripeSubscriptionId =
+      typeof session.subscription === "string" ? session.subscription : session.subscription?.id ?? null;
+
     await updateMemberContributionState({
-      memberId,
+      memberId: beneficiaryId,
       statusPayment: "On Time",
       subscriptionActive: true,
-      stripeCustomerId: typeof session.customer === "string" ? session.customer : session.customer?.id ?? null,
-      stripeSubscriptionId:
-        typeof session.subscription === "string" ? session.subscription : session.subscription?.id ?? null,
+      stripeCustomerId,
+      stripeSubscriptionId,
     });
+
+    // Save reusable payer→beneficiary relationship
+    await supabaseAdmin
+      .from("payment_relationships")
+      .upsert(
+        {
+          payer_member_id: payerId,
+          beneficiary_member_id: beneficiaryId,
+          stripe_customer_id: stripeCustomerId,
+          stripe_subscription_id: stripeSubscriptionId,
+          contribution_type: contributionType as never,
+        },
+        { onConflict: "payer_member_id,beneficiary_member_id,contribution_type" },
+      );
 
     return { ok: true };
   });

@@ -1,9 +1,12 @@
-import { useMemo, useState, type FormEvent } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Plus, Trash2, Search, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatUSD } from "@/lib/format";
 import { WEEKLY_TARGET_AMOUNT_PER_PERSON } from "@/lib/settings";
+
+type BeneficiaryMode = "myself" | "another" | "family";
+interface MemberLite { id: string; name: string; email: string | null; phone: string | null }
 
 const CONTRIBUTION_TYPES = [
   { value: "pastor_salary", label: "Pastor Salary" },

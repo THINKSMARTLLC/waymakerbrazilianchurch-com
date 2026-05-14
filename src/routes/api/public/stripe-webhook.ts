@@ -158,6 +158,8 @@ async function registerMatchedStripePayment(input: {
   eventType: string;
   externalPaymentId: string;
   memberId: string;
+  payerMemberId?: string | null;
+  beneficiaryMemberId?: string | null;
   paymentDate: string;
   paymentFrequency?: "weekly" | "monthly";
   stripeCustomerId?: string | null;
@@ -176,6 +178,9 @@ async function registerMatchedStripePayment(input: {
     return;
   }
 
+  const beneficiaryId = input.beneficiaryMemberId ?? input.memberId;
+  const payerId = input.payerMemberId ?? beneficiaryId;
+
   const { data: payment, error: paymentError } = await supabaseAdmin
     .from("payments")
     .insert({
@@ -183,7 +188,9 @@ async function registerMatchedStripePayment(input: {
       base_amount: input.amount,
       contribution_type: "pastor_salary",
       extra_amount: 0,
-      member_id: input.memberId,
+      member_id: beneficiaryId,
+      payer_member_id: payerId,
+      beneficiary_member_id: beneficiaryId,
       notes: `Stripe payment ID: ${input.externalPaymentId} | Event: ${input.eventType}`,
       payment_date: input.paymentDate,
       payment_frequency: input.paymentFrequency ?? "weekly",
@@ -191,7 +198,7 @@ async function registerMatchedStripePayment(input: {
       reference_month: null,
       status: "paid",
       stripe_subscription_id: input.stripeSubscriptionId ?? null,
-    })
+    } as never)
     .select("id")
     .single();
 

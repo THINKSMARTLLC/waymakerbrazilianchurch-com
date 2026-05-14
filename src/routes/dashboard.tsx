@@ -30,6 +30,9 @@ function DashboardPage() {
     totalMembers: 0,
     collectedThisMonth: 0,
     outstanding: 0,
+    supportedByOthers: 0,
+    payingForFamily: 0,
+    totalSponsored: 0,
   });
 
   useEffect(() => {
@@ -37,18 +40,33 @@ function DashboardPage() {
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
 
-      const [membersRes, monthRes] = await Promise.all([
+      const [membersRes, monthRes, relRes] = await Promise.all([
         supabase.from("members").select("id"),
         supabase.from("payments").select("amount").gte("payment_date", startOfMonth).eq("status", "paid"),
+        supabase.from("payments").select("payer_member_id, beneficiary_member_id").not("payer_member_id", "is", null).not("beneficiary_member_id", "is", null),
       ]);
 
       const collectedThisMonth = (monthRes.data || []).reduce((sum, p) => sum + Number(p.amount), 0);
       const outstanding = Math.max(weeklyExpected * 4 - collectedThisMonth, 0);
 
+      const beneficiaries = new Set<string>();
+      const payers = new Set<string>();
+      const sponsored = new Set<string>();
+      for (const r of relRes.data || []) {
+        if (r.payer_member_id !== r.beneficiary_member_id) {
+          payers.add(r.payer_member_id as string);
+          beneficiaries.add(r.beneficiary_member_id as string);
+          sponsored.add(r.beneficiary_member_id as string);
+        }
+      }
+
       setStats({
         totalMembers: (membersRes.data || []).length,
         collectedThisMonth,
         outstanding,
+        supportedByOthers: beneficiaries.size,
+        payingForFamily: payers.size,
+        totalSponsored: sponsored.size,
       });
     }
     fetchStats();
@@ -90,6 +108,12 @@ function DashboardPage() {
           <DonationsChart />
         </div>
         <QuickActions />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <StatCard title={t("payerBeneficiary.supportedByOthers")} value={String(stats.supportedByOthers)} icon={Users} />
+        <StatCard title={t("payerBeneficiary.payingForFamily")} value={String(stats.payingForFamily)} icon={Users} />
+        <StatCard title={t("payerBeneficiary.totalSponsored")} value={String(stats.totalSponsored)} icon={Users} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

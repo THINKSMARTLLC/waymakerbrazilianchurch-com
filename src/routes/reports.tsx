@@ -34,7 +34,7 @@ type Payment = Database["public"]["Tables"]["payments"]["Row"];
 type MemberRow = Database["public"]["Tables"]["members"]["Row"];
 
 interface PaymentWithMember extends Payment {
-  members: { id: string; name: string; email: string | null } | null;
+  members: { id: string; name: string; email: string | null; phone: string | null; stripe_customer_id: string | null } | null;
 }
 
 function getDateRange(filter: FilterRange, customStart?: string, customEnd?: string): { start: string | null; end: string | null } {
@@ -71,7 +71,7 @@ function ReportsPage() {
   const [methodFilter, setMethodFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<MemberPaymentStatus | "all" | "paid">("all");
   const [showAllMembers, setShowAllMembers] = useState(false);
-  const [groupBy, setGroupBy] = useState<"transactions" | "member">("member");
+  const [groupBy, setGroupBy] = useState<"transactions" | "member" | "payer" | "beneficiary" | "household">("member");
 
   // Latest payment dates per member (status — uses ALL payments, not just filtered range)
   const [lastByMember, setLastByMember] = useState<Map<string, string>>(new Map());
@@ -129,7 +129,7 @@ function ReportsPage() {
 
     let query = supabase
       .from("payments")
-      .select("*, members(id, name, email)")
+      .select("*, members(id, name, email, phone, stripe_customer_id)")
       .order("payment_date", { ascending: false });
 
     if (start) query = query.gte("payment_date", start);
@@ -199,7 +199,16 @@ function ReportsPage() {
   const filteredPayments = useMemo(() => {
     return payments.filter((p) => {
       if (memberIdFilter !== "all" && p.members?.id !== memberIdFilter) return false;
-      if (nameFilter && !(p.members?.name.toLowerCase().includes(nameFilter.toLowerCase()))) return false;
+      if (nameFilter) {
+        const q = nameFilter.toLowerCase();
+        const m = p.members;
+        const hit =
+          m?.name?.toLowerCase().includes(q) ||
+          m?.email?.toLowerCase().includes(q) ||
+          m?.phone?.toLowerCase().includes(q) ||
+          m?.stripe_customer_id?.toLowerCase().includes(q);
+        if (!hit) return false;
+      }
       if (methodFilter !== "all") {
         const normalized = p.payment_method === "stripe" ? "card" : p.payment_method;
         if (normalized !== methodFilter) return false;
@@ -296,6 +305,32 @@ function ReportsPage() {
       };
     });
   }, [filteredPayments, filteredMembers, statusByMember]);
+
+  // Aggregations by payer / beneficiary
+  const memberById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
+
+  type RelRow = { id: string; name: string; count: number; total: number; partners: Set<string> };
+  const buildRelRows = (key: "payer_member_id" | "beneficiary_member_id", partnerKey: "payer_member_id" | "beneficiary_member_id") => {
+    const agg = new Map<string, RelRow>();
+    for (const p of filteredPayments) {
+      const id = (p as Payment)[key] ?? p.member_id;
+      if (!id) continue;
+      const partnerId = (p as Payment)[partnerKey] ?? p.member_id;
+      const m = memberById.get(id);
+      const cur = agg.get(id) ?? { id, name: toTitleCase(m?.name ?? p.members?.name ?? "—"), count: 0, total: 0, partners: new Set<string>() };
+      cur.count += 1;
+      cur.total += Number(p.amount);
+      if (partnerId && partnerId !== id) cur.partners.add(partnerId);
+      agg.set(id, cur);
+    }
+    return Array.from(agg.values()).sort((a, b) => b.total - a.total);
+  };
+
+  const payerRows = useMemo(() => buildRelRows("payer_member_id", "beneficiary_member_id"), [filteredPayments, memberById]);
+  const beneficiaryRows = useMemo(() => buildRelRows("beneficiary_member_id", "payer_member_id"), [filteredPayments, memberById]);
+
+  // Households: group by payer where payer has 2+ distinct beneficiaries
+  const householdRows = useMemo(() => payerRows.filter((r) => r.partners.size >= 1), [payerRows]);
 
   const handleStatusCardClick = (status: MemberPaymentStatus | "paid") => {
     setStatusFilter((cur) => (cur === status ? "all" : status));
@@ -468,12 +503,12 @@ function ReportsPage() {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">Search Name</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Search</label>
           <input
             type="text"
             value={nameFilter}
             onChange={(e) => setNameFilter(e.target.value)}
-            placeholder="Search by name..."
+            placeholder={t("payerBeneficiary.searchPlaceholder")}
             className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
@@ -509,14 +544,17 @@ function ReportsPage() {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">View</label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">{t("payerBeneficiary.groupBy")}</label>
           <select
             value={groupBy}
-            onChange={(e) => setGroupBy(e.target.value as "transactions" | "member")}
+            onChange={(e) => setGroupBy(e.target.value as typeof groupBy)}
             className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value="member">By Member</option>
-            <option value="transactions">Individual Transactions</option>
+            <option value="member">{t("payerBeneficiary.groupMember")}</option>
+            <option value="transactions">{t("payerBeneficiary.groupTransactions")}</option>
+            <option value="payer">{t("payerBeneficiary.groupPayer")}</option>
+            <option value="beneficiary">{t("payerBeneficiary.groupBeneficiary")}</option>
+            <option value="household">{t("payerBeneficiary.groupHousehold")}</option>
           </select>
         </div>
         </div>
@@ -538,10 +576,58 @@ function ReportsPage() {
         <div className="card-elevated overflow-hidden">
           <div className="p-5 border-b border-border">
             <h3 className="font-display text-base font-medium text-foreground">
-              {groupBy === "member" ? "Members Summary" : "All Transactions"}
+              {groupBy === "member"
+                ? "Members Summary"
+                : groupBy === "payer"
+                ? t("payerBeneficiary.groupPayer")
+                : groupBy === "beneficiary"
+                ? t("payerBeneficiary.groupBeneficiary")
+                : groupBy === "household"
+                ? t("payerBeneficiary.groupHousehold")
+                : "All Transactions"}
             </h3>
           </div>
-          {groupBy === "member" ? (
+          {(groupBy === "payer" || groupBy === "beneficiary" || groupBy === "household") ? (
+            (() => {
+              const rows = groupBy === "payer" ? payerRows : groupBy === "beneficiary" ? beneficiaryRows : householdRows;
+              if (rows.length === 0) {
+                return <div className="py-8 text-center text-sm text-muted-foreground">{t("common.noResults")}</div>;
+              }
+              return (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="table-header px-5 py-3 text-left">{groupBy === "payer" ? t("payerBeneficiary.payer") : groupBy === "beneficiary" ? t("payerBeneficiary.beneficiary") : t("payerBeneficiary.household")}</th>
+                        <th className="table-header px-5 py-3 text-right">Payments</th>
+                        <th className="table-header px-5 py-3 text-right">Total</th>
+                        <th className="table-header px-5 py-3 text-left">{groupBy === "payer" ? t("payerBeneficiary.beneficiaries") : t("payerBeneficiary.payer")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((r) => (
+                        <tr key={r.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                          <td className="px-5 py-3 text-sm font-medium text-foreground">
+                            {r.name}
+                            {r.partners.size >= 2 && (
+                              <span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                                {t("payerBeneficiary.familySupport")}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-5 py-3 text-sm text-foreground text-right tabular-nums">{r.count}</td>
+                          <td className="px-5 py-3 text-sm font-medium text-foreground text-right tabular-nums">{formatUSD(r.total)}</td>
+                          <td className="px-5 py-3 text-sm text-muted-foreground">
+                            {r.partners.size === 0 ? "—" : `${r.partners.size} ${t("payerBeneficiary.members")}`}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()
+          ) : groupBy === "member" ? (
             memberRows.length === 0 ? (
               <div className="py-8 text-center text-sm text-muted-foreground">No members found in this category</div>
             ) : (

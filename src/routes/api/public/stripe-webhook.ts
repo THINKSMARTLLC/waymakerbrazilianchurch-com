@@ -158,6 +158,8 @@ async function registerMatchedStripePayment(input: {
   eventType: string;
   externalPaymentId: string;
   memberId: string;
+  payerMemberId?: string | null;
+  beneficiaryMemberId?: string | null;
   paymentDate: string;
   paymentFrequency?: "weekly" | "monthly";
   stripeCustomerId?: string | null;
@@ -176,6 +178,9 @@ async function registerMatchedStripePayment(input: {
     return;
   }
 
+  const beneficiaryId = input.beneficiaryMemberId ?? input.memberId;
+  const payerId = input.payerMemberId ?? beneficiaryId;
+
   const { data: payment, error: paymentError } = await supabaseAdmin
     .from("payments")
     .insert({
@@ -183,7 +188,9 @@ async function registerMatchedStripePayment(input: {
       base_amount: input.amount,
       contribution_type: "pastor_salary",
       extra_amount: 0,
-      member_id: input.memberId,
+      member_id: beneficiaryId,
+      payer_member_id: payerId,
+      beneficiary_member_id: beneficiaryId,
       notes: `Stripe payment ID: ${input.externalPaymentId} | Event: ${input.eventType}`,
       payment_date: input.paymentDate,
       payment_frequency: input.paymentFrequency ?? "weekly",
@@ -191,7 +198,7 @@ async function registerMatchedStripePayment(input: {
       reference_month: null,
       status: "paid",
       stripe_subscription_id: input.stripeSubscriptionId ?? null,
-    })
+    } as never)
     .select("id")
     .single();
 
@@ -381,7 +388,10 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
               ? session.subscription
               : session.subscription?.id ?? null;
             const paymentDate = getNewYorkDateFromUnix(session.created);
-            const memberIdMetadata = session.metadata?.member_id ?? null;
+            const beneficiaryIdMetadata =
+              session.metadata?.beneficiary_member_id ?? session.metadata?.member_id ?? null;
+            const payerIdMetadata = session.metadata?.payer_member_id ?? null;
+            const memberIdMetadata = beneficiaryIdMetadata;
             const member = await resolveMember({ memberIdMetadata, email, stripeCustomerId });
 
             logWebhookDebug(`Email found: ${email ?? "none"}`, {
@@ -429,6 +439,8 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
                 eventType: event.type,
                 externalPaymentId: session.payment_intent?.toString() ?? session.id,
                 memberId: member.id,
+                payerMemberId: payerIdMetadata ?? member.id,
+                beneficiaryMemberId: member.id,
                 paymentDate,
                 stripeCustomerId,
                 stripeSubscriptionId,
@@ -447,7 +459,10 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
               customerEmail: invoice.customer_email,
               customerId: stripeCustomerId,
             });
-            const memberIdMetadata = invoice.metadata?.member_id ?? null;
+            const beneficiaryIdMetadata =
+              invoice.metadata?.beneficiary_member_id ?? invoice.metadata?.member_id ?? null;
+            const payerIdMetadata = invoice.metadata?.payer_member_id ?? null;
+            const memberIdMetadata = beneficiaryIdMetadata;
             const member = await resolveMember({ memberIdMetadata, email, stripeCustomerId });
             const paymentDate = getNewYorkDateFromUnix(invoice.status_transitions.paid_at ?? invoice.created);
 
@@ -497,6 +512,8 @@ export const Route = createFileRoute("/api/public/stripe-webhook")({
                 eventType: event.type,
                 externalPaymentId: invoice.id,
                 memberId: member.id,
+                payerMemberId: payerIdMetadata ?? member.id,
+                beneficiaryMemberId: member.id,
                 paymentDate,
                 paymentFrequency,
                 stripeCustomerId,

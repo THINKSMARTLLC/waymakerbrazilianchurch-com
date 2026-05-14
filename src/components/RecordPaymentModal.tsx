@@ -1,9 +1,12 @@
-import { useMemo, useState, type FormEvent } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Plus, Trash2, Search, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatUSD } from "@/lib/format";
 import { WEEKLY_TARGET_AMOUNT_PER_PERSON } from "@/lib/settings";
+
+type BeneficiaryMode = "myself" | "another" | "family";
+interface MemberLite { id: string; name: string; email: string | null; phone: string | null }
 
 const CONTRIBUTION_TYPES = [
   { value: "pastor_salary", label: "Pastor Salary" },
@@ -58,6 +61,13 @@ export function RecordPaymentModal({ memberId, memberName, defaultAmount, onClos
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // Payer/beneficiary
+  const [beneficiaryMode, setBeneficiaryMode] = useState<BeneficiaryMode>("myself");
+  const [beneficiary, setBeneficiary] = useState<MemberLite | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<MemberLite[]>([]);
+  const [searching, setSearching] = useState(false);
+
   const [frequency, setFrequency] = useState<Frequency>("weekly");
   const [paymentDate, setPaymentDate] = useState<string>(todayISO());
   const [referenceMonth, setReferenceMonth] = useState<string>(currentMonthISO());
@@ -98,6 +108,42 @@ export function RecordPaymentModal({ memberId, memberName, defaultAmount, onClos
     setContribs((prev) => prev.filter((c) => c.id !== id));
   };
 
+  // Member search for beneficiary
+  useEffect(() => {
+    if (beneficiaryMode === "myself") {
+      setSearchResults([]);
+      return;
+    }
+    const term = searchTerm.trim();
+    if (term.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    let cancelled = false;
+    setSearching(true);
+    const handle = setTimeout(async () => {
+      const digits = term.replace(/\D/g, "");
+      const like = `%${term}%`;
+      const orFilters = [`name.ilike.${like}`, `email.ilike.${like}`];
+      if (digits.length >= 3) orFilters.push(`phone.ilike.%${digits}%`);
+      const { data } = await supabase
+        .from("members")
+        .select("id, name, email, phone")
+        .eq("archived", false)
+        .neq("id", memberId)
+        .or(orFilters.join(","))
+        .order("name", { ascending: true })
+        .limit(8);
+      if (cancelled) return;
+      setSearchResults((data ?? []) as MemberLite[]);
+      setSearching(false);
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [searchTerm, beneficiaryMode, memberId]);
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
@@ -113,6 +159,11 @@ export function RecordPaymentModal({ memberId, memberName, defaultAmount, onClos
       return;
     }
 
+    if (beneficiaryMode !== "myself" && !beneficiary) {
+      setError("Select the member this contribution is for.");
+      return;
+    }
+
     setSaving(true);
 
     // Default contribution_type for the parent record:
@@ -123,8 +174,12 @@ export function RecordPaymentModal({ memberId, memberName, defaultAmount, onClos
     // reference_month: store as the first day of the chosen month (only for monthly)
     const refMonthDate = frequency === "monthly" ? `${referenceMonth}-01` : null;
 
+    const beneficiaryId = beneficiaryMode === "myself" ? memberId : beneficiary!.id;
+
     const insertPayload = {
-      member_id: memberId,
+      member_id: beneficiaryId,
+      payer_member_id: memberId,
+      beneficiary_member_id: beneficiaryId,
       amount: totalNum,
       base_amount: baseAmount,
       extra_amount: extraAmount,
@@ -180,6 +235,71 @@ export function RecordPaymentModal({ memberId, memberName, defaultAmount, onClos
         <p className="text-sm text-muted-foreground mb-5">{memberName}</p>
         <form className="space-y-4" onSubmit={handleSubmit}>
           {error && <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
+
+          {/* Beneficiary selector */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Who is this contribution for?</label>
+            <div className="grid grid-cols-3 gap-2 rounded-xl bg-muted p-1">
+              {(["myself", "another", "family"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => { setBeneficiaryMode(m); setBeneficiary(null); setSearchTerm(""); }}
+                  className={`rounded-lg px-2 py-2 text-xs font-medium transition-colors ${
+                    beneficiaryMode === m ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {m === "myself" ? "Myself" : m === "another" ? "Another member" : "Family member"}
+                </button>
+              ))}
+            </div>
+            {beneficiaryMode !== "myself" && (
+              <div className="mt-2">
+                {beneficiary ? (
+                  <div className="flex items-center justify-between rounded-xl border border-input bg-background px-3 py-2 text-sm">
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground truncate">{beneficiary.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{beneficiary.email ?? beneficiary.phone ?? ""}</p>
+                    </div>
+                    <button type="button" onClick={() => setBeneficiary(null)} className="text-muted-foreground hover:text-foreground">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Search by name, email or phone…"
+                      className="w-full rounded-xl border border-input bg-background pl-9 pr-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                    {(searching || searchResults.length > 0) && (
+                      <div className="mt-1 max-h-48 overflow-y-auto rounded-xl border border-input bg-background shadow-sm">
+                        {searching && <div className="px-3 py-2 text-xs text-muted-foreground">Searching…</div>}
+                        {searchResults.map((r) => (
+                          <button
+                            key={r.id}
+                            type="button"
+                            onClick={() => { setBeneficiary(r); setSearchResults([]); setSearchTerm(""); }}
+                            className="w-full px-3 py-2 text-left text-sm hover:bg-muted"
+                          >
+                            <p className="font-medium text-foreground">{r.name}</p>
+                            <p className="text-xs text-muted-foreground">{r.email ?? r.phone ?? ""}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Paid by <span className="font-medium text-foreground">{memberName}</span>
+              {beneficiary && <> · Benefiting <span className="font-medium text-foreground">{beneficiary.name}</span></>}
+            </p>
+          </div>
 
           {/* Frequency selector */}
           <div>

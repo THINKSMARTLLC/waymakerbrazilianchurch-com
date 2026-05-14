@@ -236,6 +236,71 @@ export function RecordPaymentModal({ memberId, memberName, defaultAmount, onClos
         <form className="space-y-4" onSubmit={handleSubmit}>
           {error && <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
 
+          {/* Beneficiary selector */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Who is this contribution for?</label>
+            <div className="grid grid-cols-3 gap-2 rounded-xl bg-muted p-1">
+              {(["myself", "another", "family"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => { setBeneficiaryMode(m); setBeneficiary(null); setSearchTerm(""); }}
+                  className={`rounded-lg px-2 py-2 text-xs font-medium transition-colors ${
+                    beneficiaryMode === m ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {m === "myself" ? "Myself" : m === "another" ? "Another member" : "Family member"}
+                </button>
+              ))}
+            </div>
+            {beneficiaryMode !== "myself" && (
+              <div className="mt-2">
+                {beneficiary ? (
+                  <div className="flex items-center justify-between rounded-xl border border-input bg-background px-3 py-2 text-sm">
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground truncate">{beneficiary.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{beneficiary.email ?? beneficiary.phone ?? ""}</p>
+                    </div>
+                    <button type="button" onClick={() => setBeneficiary(null)} className="text-muted-foreground hover:text-foreground">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Search by name, email or phone…"
+                      className="w-full rounded-xl border border-input bg-background pl-9 pr-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                    {(searching || searchResults.length > 0) && (
+                      <div className="mt-1 max-h-48 overflow-y-auto rounded-xl border border-input bg-background shadow-sm">
+                        {searching && <div className="px-3 py-2 text-xs text-muted-foreground">Searching…</div>}
+                        {searchResults.map((r) => (
+                          <button
+                            key={r.id}
+                            type="button"
+                            onClick={() => { setBeneficiary(r); setSearchResults([]); setSearchTerm(""); }}
+                            className="w-full px-3 py-2 text-left text-sm hover:bg-muted"
+                          >
+                            <p className="font-medium text-foreground">{r.name}</p>
+                            <p className="text-xs text-muted-foreground">{r.email ?? r.phone ?? ""}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Paid by <span className="font-medium text-foreground">{memberName}</span>
+              {beneficiary && <> · Benefiting <span className="font-medium text-foreground">{beneficiary.name}</span></>}
+            </p>
+          </div>
+
           {/* Frequency selector */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">Frequency</label>

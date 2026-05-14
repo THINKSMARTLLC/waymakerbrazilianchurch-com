@@ -306,6 +306,32 @@ function ReportsPage() {
     });
   }, [filteredPayments, filteredMembers, statusByMember]);
 
+  // Aggregations by payer / beneficiary
+  const memberById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
+
+  type RelRow = { id: string; name: string; count: number; total: number; partners: Set<string> };
+  const buildRelRows = (key: "payer_member_id" | "beneficiary_member_id", partnerKey: "payer_member_id" | "beneficiary_member_id") => {
+    const agg = new Map<string, RelRow>();
+    for (const p of filteredPayments) {
+      const id = (p as Payment)[key] ?? p.member_id;
+      if (!id) continue;
+      const partnerId = (p as Payment)[partnerKey] ?? p.member_id;
+      const m = memberById.get(id);
+      const cur = agg.get(id) ?? { id, name: toTitleCase(m?.name ?? p.members?.name ?? "—"), count: 0, total: 0, partners: new Set<string>() };
+      cur.count += 1;
+      cur.total += Number(p.amount);
+      if (partnerId && partnerId !== id) cur.partners.add(partnerId);
+      agg.set(id, cur);
+    }
+    return Array.from(agg.values()).sort((a, b) => b.total - a.total);
+  };
+
+  const payerRows = useMemo(() => buildRelRows("payer_member_id", "beneficiary_member_id"), [filteredPayments, memberById]);
+  const beneficiaryRows = useMemo(() => buildRelRows("beneficiary_member_id", "payer_member_id"), [filteredPayments, memberById]);
+
+  // Households: group by payer where payer has 2+ distinct beneficiaries
+  const householdRows = useMemo(() => payerRows.filter((r) => r.partners.size >= 1), [payerRows]);
+
   const handleStatusCardClick = (status: MemberPaymentStatus | "paid") => {
     setStatusFilter((cur) => (cur === status ? "all" : status));
     setShowAllMembers(false);

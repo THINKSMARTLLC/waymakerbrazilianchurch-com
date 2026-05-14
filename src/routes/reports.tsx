@@ -576,10 +576,58 @@ function ReportsPage() {
         <div className="card-elevated overflow-hidden">
           <div className="p-5 border-b border-border">
             <h3 className="font-display text-base font-medium text-foreground">
-              {groupBy === "member" ? "Members Summary" : "All Transactions"}
+              {groupBy === "member"
+                ? "Members Summary"
+                : groupBy === "payer"
+                ? t("payerBeneficiary.groupPayer")
+                : groupBy === "beneficiary"
+                ? t("payerBeneficiary.groupBeneficiary")
+                : groupBy === "household"
+                ? t("payerBeneficiary.groupHousehold")
+                : "All Transactions"}
             </h3>
           </div>
-          {groupBy === "member" ? (
+          {(groupBy === "payer" || groupBy === "beneficiary" || groupBy === "household") ? (
+            (() => {
+              const rows = groupBy === "payer" ? payerRows : groupBy === "beneficiary" ? beneficiaryRows : householdRows;
+              if (rows.length === 0) {
+                return <div className="py-8 text-center text-sm text-muted-foreground">{t("common.noResults")}</div>;
+              }
+              return (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="table-header px-5 py-3 text-left">{groupBy === "payer" ? t("payerBeneficiary.payer") : groupBy === "beneficiary" ? t("payerBeneficiary.beneficiary") : t("payerBeneficiary.household")}</th>
+                        <th className="table-header px-5 py-3 text-right">Payments</th>
+                        <th className="table-header px-5 py-3 text-right">Total</th>
+                        <th className="table-header px-5 py-3 text-left">{groupBy === "payer" ? t("payerBeneficiary.beneficiaries") : t("payerBeneficiary.payer")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((r) => (
+                        <tr key={r.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                          <td className="px-5 py-3 text-sm font-medium text-foreground">
+                            {r.name}
+                            {r.partners.size >= 2 && (
+                              <span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                                {t("payerBeneficiary.familySupport")}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-5 py-3 text-sm text-foreground text-right tabular-nums">{r.count}</td>
+                          <td className="px-5 py-3 text-sm font-medium text-foreground text-right tabular-nums">{formatUSD(r.total)}</td>
+                          <td className="px-5 py-3 text-sm text-muted-foreground">
+                            {r.partners.size === 0 ? "—" : `${r.partners.size} ${t("payerBeneficiary.members")}`}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()
+          ) : groupBy === "member" ? (
             memberRows.length === 0 ? (
               <div className="py-8 text-center text-sm text-muted-foreground">No members found in this category</div>
             ) : (

@@ -1100,6 +1100,12 @@
     "payer": "Payer",
     "beneficiary": "Beneficiary",
     "beneficiaries": "Beneficiaries",
-    "members": "members"
+    "members": "members",
+    "noFinancialRelationships": "No financial relationships found",
+    "totalContributions": "Total contributions",
+    "activeSubscription": "Active subscription",
+    "inactiveSubscription": "No active subscription",
+    "noEmail": "No email",
+    "noPhone": "No phone"
   }
 }

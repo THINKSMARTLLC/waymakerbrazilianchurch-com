@@ -1100,6 +1100,12 @@
     "payer": "Pagador",
     "beneficiary": "Beneficiário",
     "beneficiaries": "Beneficiários",
-    "members": "membros"
+    "members": "membros",
+    "noFinancialRelationships": "Nenhuma relação financeira encontrada",
+    "totalContributions": "Total de contribuições",
+    "activeSubscription": "Assinatura ativa",
+    "inactiveSubscription": "Sem assinatura ativa",
+    "noEmail": "Sem email",
+    "noPhone": "Sem telefone"
   }
 }

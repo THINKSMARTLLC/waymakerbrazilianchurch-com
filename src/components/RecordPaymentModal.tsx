@@ -104,6 +104,10 @@ export function RecordPaymentModal({ memberId, memberName, defaultAmount, onClos
     setContribs((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
   };
 
+  const removeContrib = (id: string) => {
+    setContribs((prev) => prev.filter((c) => c.id !== id));
+  };
+
   // Member search for beneficiary
   useEffect(() => {
     if (beneficiaryMode === "myself") {

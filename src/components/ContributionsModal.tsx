@@ -20,17 +20,31 @@ interface Props {
 export function ContributionsModal({ memberId, memberName, onClose, onChanged }: Props) {
   const { t } = useTranslation();
   const [rows, setRows] = useState<PaymentRow[]>([]);
+  const [memberNames, setMemberNames] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<PaymentRow | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchRows = async () => {
+    // Show payments where this member is the legacy member, payer, or beneficiary
     const { data } = await supabase
       .from("payments")
       .select("*")
-      .eq("member_id", memberId)
+      .or(`member_id.eq.${memberId},payer_member_id.eq.${memberId},beneficiary_member_id.eq.${memberId}`)
       .order("payment_date", { ascending: false });
-    setRows((data as PaymentRow[]) || []);
+    const list = (data as PaymentRow[]) || [];
+    setRows(list);
+
+    const ids = new Set<string>();
+    for (const r of list) {
+      if (r.payer_member_id) ids.add(r.payer_member_id);
+      if (r.beneficiary_member_id) ids.add(r.beneficiary_member_id);
+      if (r.member_id) ids.add(r.member_id);
+    }
+    if (ids.size > 0) {
+      const { data: mems } = await supabase.from("members").select("id, name").in("id", Array.from(ids));
+      setMemberNames(new Map((mems || []).map((m) => [m.id, m.name])));
+    }
     setLoading(false);
   };
 

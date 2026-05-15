@@ -502,17 +502,26 @@ function MembersPage() {
       })()}
 
       {selectedMembers.length > 0 && (
-        <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-4 py-2 text-sm">
+        <div className="sticky top-2 z-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2 text-sm shadow-sm backdrop-blur">
           <span className="font-medium text-foreground">
             {selectedMembers.length} {selectedMembers.length === 1 ? "selecionado" : "selecionados"}
           </span>
-          <button
-            type="button"
-            onClick={() => setSelectedMembers([])}
-            className="text-xs font-medium text-muted-foreground hover:text-foreground"
-          >
-            Limpar seleção
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {}}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              Export CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedMembers([])}
+              className="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              Clear Selection
+            </button>
+          </div>
         </div>
       )}
 

@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatUSD, toTitleCase } from "@/lib/format";
-import { calculateExpectedMonthlyAmount } from "@/lib/settings";
+import { calculateExpectedMonthlyAmount, getWeeksInMonth } from "@/lib/settings";
 import { RecordPaymentModal } from "@/components/RecordPaymentModal";
 import { ContributionsModal } from "@/components/ContributionsModal";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, FREQUENCY_LABEL, type MemberPaymentStatus, type ContributionFrequency } from "@/lib/memberStatus";

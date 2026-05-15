@@ -56,6 +56,14 @@ interface MemberWithStatus extends Member {
   last_payment_method: string | null;
   payment_status: MemberPaymentStatus;
   monthly_total: number;
+  // Explicit per-member financial breakdown (single source of truth).
+  // Formula:
+  //   monthly_expected = weekly_amount * weeks_in_current_month
+  //   monthly_pending  = max(monthly_expected - monthly_paid, 0)
+  weekly_amount: number;
+  monthly_expected: number;
+  monthly_paid: number;
+  monthly_pending: number;
 }
 
 // Stripe-aligned financial buckets. Mirrors Stripe subscription/charge statuses

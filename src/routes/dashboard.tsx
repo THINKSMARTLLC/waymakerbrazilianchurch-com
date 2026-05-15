@@ -39,15 +39,13 @@ function DashboardPage() {
   useEffect(() => {
     async function fetchStats() {
       const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
 
-      const [membersRes, monthRes, relRes] = await Promise.all([
+      const [membersRes, collectedThisMonth, relRes] = await Promise.all([
         supabase.from("members").select("id"),
-        supabase.from("payments").select("amount").gte("payment_date", startOfMonth).eq("status", "paid"),
+        getMonthlyRevenue(now.getMonth() + 1, now.getFullYear()),
         supabase.from("payments").select("payer_member_id, beneficiary_member_id").not("payer_member_id", "is", null).not("beneficiary_member_id", "is", null),
       ]);
 
-      const collectedThisMonth = (monthRes.data || []).reduce((sum, p) => sum + Number(p.amount), 0);
       const outstanding = Math.max(weeklyExpected * 4 - collectedThisMonth, 0);
 
       const beneficiaries = new Set<string>();

@@ -576,11 +576,11 @@ function MembersPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="table-header px-3 py-3 text-left w-10">
+                  <th className="table-header px-3 py-3 text-center w-10 align-middle">
                     <input
                       type="checkbox"
                       aria-label="Select all"
-                      className="h-4 w-4 cursor-pointer accent-primary"
+                      className="h-4 w-4 cursor-pointer accent-primary align-middle"
                       checked={filtered.length > 0 && filtered.every((m) => selectedMembers.includes(m.id))}
                       ref={(el) => {
                         if (el) {

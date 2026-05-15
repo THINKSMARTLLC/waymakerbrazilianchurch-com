@@ -107,6 +107,13 @@ function MembersPage() {
   const [showImport, setShowImport] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [whatsappTarget, setWhatsappTarget] = useState<WhatsAppMember | null>(null);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+
+  const toggleMemberSelection = (id: string) => {
+    setSelectedMembers((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
   const { isSuperAdmin } = useUserRole();
 
   const handleExport = async (format: "csv" | "xlsx") => {

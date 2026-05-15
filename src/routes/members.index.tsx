@@ -628,7 +628,7 @@ function MembersPage() {
                   const bucket = finBucketOf(member);
                   const rowHighlight = dupGroup
                     ? "bg-amber-50/50 dark:bg-amber-950/20"
-                    : bucket === "defaulter" || bucket === "stripe_failure"
+                    : bucket === "failed" || bucket === "cancelled"
                     ? "bg-red-50/40 dark:bg-red-950/20"
                     : "";
                   const isSelected = selectedMembers.includes(member.id);

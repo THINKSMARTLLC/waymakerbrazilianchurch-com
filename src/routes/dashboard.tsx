@@ -31,42 +31,40 @@ function DashboardPage() {
     totalMembers: 0,
     collectedThisMonth: 0,
     outstanding: 0,
-    supportedByOthers: 0,
+    activeFamilies: 0,
     payingForFamily: 0,
-    totalSponsored: 0,
+    sponsored: 0,
   });
 
   useEffect(() => {
     async function fetchStats() {
       const now = new Date();
 
-      const [membersRes, collectedThisMonth, relRes] = await Promise.all([
-        supabase.from("members").select("id"),
+      const [membersRes, collectedThisMonth] = await Promise.all([
+        supabase.from("members").select("id, family_id, family_role, status"),
         getMonthlyRevenue(now.getMonth() + 1, now.getFullYear()),
-        supabase.from("payments").select("payer_member_id, beneficiary_member_id").not("payer_member_id", "is", null).not("beneficiary_member_id", "is", null),
       ]);
 
       const monthlyExpected = calculateExpectedMonthlyAmount(weeklyExpected, now.getMonth() + 1, now.getFullYear());
       const outstanding = Math.max(monthlyExpected - collectedThisMonth, 0);
 
-      const beneficiaries = new Set<string>();
-      const payers = new Set<string>();
-      const sponsored = new Set<string>();
-      for (const r of relRes.data || []) {
-        if (r.payer_member_id !== r.beneficiary_member_id) {
-          payers.add(r.payer_member_id as string);
-          beneficiaries.add(r.beneficiary_member_id as string);
-          sponsored.add(r.beneficiary_member_id as string);
-        }
+      const list = membersRes.data || [];
+      const activeFamilyIds = new Set<string>();
+      let payingForFamily = 0;
+      let sponsored = 0;
+      for (const m of list) {
+        if (m.status === "active" && m.family_id) activeFamilyIds.add(m.family_id as string);
+        if (m.family_role === "family_owner") payingForFamily += 1;
+        if (m.family_role === "sponsored") sponsored += 1;
       }
 
       setStats({
-        totalMembers: (membersRes.data || []).length,
+        totalMembers: list.length,
         collectedThisMonth,
         outstanding,
-        supportedByOthers: beneficiaries.size,
-        payingForFamily: payers.size,
-        totalSponsored: sponsored.size,
+        activeFamilies: activeFamilyIds.size,
+        payingForFamily,
+        sponsored,
       });
     }
     fetchStats();

@@ -460,7 +460,7 @@ function MembersPage() {
           return true;
         });
         const buckets: Record<FinBucket, MemberWithStatus[]> = {
-          on_time: [], late: [], defaulter: [], no_payment: [], stripe_failure: [],
+          paid: [], past_due: [], failed: [], unpaid: [], cancelled: [],
         };
         for (const m of visible) {
           const b = finBucketOf(m);
@@ -474,15 +474,15 @@ function MembersPage() {
 
         const total = visible.length || 1;
         const todayCount = visible.filter((m) => m.last_payment_date === todayYMD).length;
-        const stripeFailures = buckets.stripe_failure.length;
-        const pendingCharges = buckets.late.length + buckets.defaulter.length + buckets.no_payment.length;
+        const stripeFailures = buckets.failed.length;
+        const pendingCharges = buckets.past_due.length + buckets.unpaid.length + buckets.failed.length;
 
         const cards: Array<{ key: FinBucket; label: string; count: number; amount: number; amountLabel: string; tone: "emerald" | "amber" | "red" | "slate" | "rose"; Icon: typeof CheckCircle2 }> = [
-          { key: "on_time", label: "On Time", count: buckets.on_time.length, amount: sumPaid(buckets.on_time), amountLabel: "received", tone: "emerald", Icon: CheckCircle2 },
-          { key: "late", label: "Late", count: buckets.late.length, amount: sumPending(buckets.late), amountLabel: "pending", tone: "amber", Icon: Clock },
-          { key: "defaulter", label: "Defaulters", count: buckets.defaulter.length, amount: sumPending(buckets.defaulter), amountLabel: "overdue", tone: "red", Icon: AlertCircle },
-          { key: "no_payment", label: "No Payment", count: buckets.no_payment.length, amount: sumExpected(buckets.no_payment), amountLabel: "expected", tone: "slate", Icon: CircleDashed },
-          { key: "stripe_failure", label: "Stripe Failure", count: buckets.stripe_failure.length, amount: sumPending(buckets.stripe_failure), amountLabel: "pending", tone: "rose", Icon: CreditCard },
+          { key: "paid",      label: "Paid",      count: buckets.paid.length,      amount: sumPaid(buckets.paid),          amountLabel: "received", tone: "emerald", Icon: CheckCircle2 },
+          { key: "past_due",  label: "Past Due",  count: buckets.past_due.length,  amount: sumPending(buckets.past_due),   amountLabel: "pending",  tone: "amber",   Icon: Clock },
+          { key: "failed",    label: "Failed",    count: buckets.failed.length,    amount: sumPending(buckets.failed),     amountLabel: "pending",  tone: "rose",    Icon: CreditCard },
+          { key: "unpaid",    label: "Unpaid",    count: buckets.unpaid.length,    amount: sumExpected(buckets.unpaid),    amountLabel: "expected", tone: "slate",   Icon: CircleDashed },
+          { key: "cancelled", label: "Cancelled", count: buckets.cancelled.length, amount: sumExpected(buckets.cancelled), amountLabel: "expected", tone: "red",     Icon: AlertCircle },
         ];
 
         const toneClasses: Record<typeof cards[number]["tone"], { ring: string; bg: string; icon: string; text: string }> = {

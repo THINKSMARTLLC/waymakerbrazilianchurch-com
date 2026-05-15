@@ -79,7 +79,18 @@
     "recentActivities": "Actividades Recientes",
     "noActivitiesYet": "No hay actividad registrada. ¡Haz tu primer registro!",
     "selfCheckin": "Auto-registro",
-    "leadershipRecord": "Registrado por el liderazgo"
+    "leadershipRecord": "Registrado por el liderazgo",
+    "payerModalTitle": "Confirmar suscripción",
+    "payerModalSubtitle": "Tendrás tu propia suscripción, cliente y factura en Stripe.",
+    "paidByOther": "Otra persona será responsable del pago",
+    "payerName": "Nombre del responsable",
+    "payerNamePlaceholder": "p. ej. Carlos Silva",
+    "payerRelationship": "Parentesco",
+    "payerNote": "Mantienes suscripción, cobro y factura individuales. El nombre del responsable se registra solo como referencia.",
+    "payerNameRequired": "Ingresa el nombre del responsable.",
+    "continueToCheckout": "Continuar al pago",
+    "redirecting": "Redirigiendo...",
+    "paidBy": "Pagado por"
   },
   "memberProfile": {
     "pageTitle": "Perfil del Miembro — Way Maker Church",

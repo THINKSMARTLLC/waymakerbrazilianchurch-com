@@ -90,6 +90,10 @@ function MemberDashboard() {
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
+  const [showPayerModal, setShowPayerModal] = useState(false);
+  const [paidByOther, setPaidByOther] = useState(false);
+  const [payerName, setPayerName] = useState("");
+  const [payerRelationship, setPayerRelationship] = useState("father");
 
   const loadActivities = async (mid: string) => {
     const { data } = await supabase
@@ -196,6 +200,10 @@ function MemberDashboard() {
 
   const handleSubscribe = async () => {
     if (!memberId || billingStatus?.subscription_active) return;
+    if (paidByOther && !payerName.trim()) {
+      toast.error(t("portal.payerNameRequired"));
+      return;
+    }
     setSubscribing(true);
     try {
       const { data } = await supabase.auth.getSession();
@@ -203,8 +211,12 @@ function MemberDashboard() {
 
       if (!token) throw new Error("Please sign in again.");
 
+      const relationshipLabel = paidByOther
+        ? `${payerName.trim()} (${t(`emergencyContact.relationships.${payerRelationship}`)})`
+        : undefined;
+
       const result = await createSubscriptionSession({
-        data: { memberId },
+        data: { memberId, relationshipLabel },
         headers: { authorization: `Bearer ${token}` },
       });
 
@@ -345,7 +357,7 @@ function MemberDashboard() {
             <div className="space-y-3">
               <button
                 disabled={!memberId || billingStatus?.subscription_active || subscribing}
-                onClick={handleSubscribe}
+                onClick={() => setShowPayerModal(true)}
                 className="flex w-full items-center justify-center rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {billingStatus?.subscription_active ? t("portal.subscriptionActive") : subscribing ? t("portal.redirecting") : t("portal.subscribeWeekly")}
@@ -403,6 +415,72 @@ function MemberDashboard() {
               })}
             </ul>
           )}
+        </div>
+      )}
+
+      {showPayerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 backdrop-blur-sm p-4">
+          <div className="card-elevated w-full max-w-md p-6">
+            <h2 className="font-display text-lg font-semibold text-foreground mb-1">{t("portal.payerModalTitle")}</h2>
+            <p className="text-sm text-muted-foreground mb-4">{t("portal.payerModalSubtitle")}</p>
+
+            <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-input bg-background p-3 hover:bg-muted/50 transition-colors">
+              <input
+                type="checkbox"
+                checked={paidByOther}
+                onChange={(e) => setPaidByOther(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring"
+              />
+              <span className="text-sm text-foreground">{t("portal.paidByOther")}</span>
+            </label>
+
+            {paidByOther && (
+              <div className="mt-4 space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">{t("portal.payerName")}</label>
+                  <input
+                    type="text"
+                    value={payerName}
+                    onChange={(e) => setPayerName(e.target.value)}
+                    placeholder={t("portal.payerNamePlaceholder")}
+                    className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1.5">{t("portal.payerRelationship")}</label>
+                  <select
+                    value={payerRelationship}
+                    onChange={(e) => setPayerRelationship(e.target.value)}
+                    className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    {["father", "mother", "spouse", "sibling", "child", "friend", "other"].map((r) => (
+                      <option key={r} value={r}>{t(`emergencyContact.relationships.${r}`)}</option>
+                    ))}
+                  </select>
+                </div>
+                <p className="text-xs text-muted-foreground">{t("portal.payerNote")}</p>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-5">
+              <button
+                type="button"
+                onClick={() => setShowPayerModal(false)}
+                disabled={subscribing}
+                className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={handleSubscribe}
+                disabled={subscribing}
+                className="btn-google flex-1 disabled:opacity-50"
+              >
+                {subscribing ? t("portal.redirecting") : t("portal.continueToCheckout")}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

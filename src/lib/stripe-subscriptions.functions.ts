@@ -179,6 +179,7 @@ export const finalizeSubscriptionSession = createServerFn({ method: "POST" })
       session.metadata?.beneficiary_member_id ?? session.metadata?.memberId ?? session.metadata?.member_id ?? null;
     const payerId = session.metadata?.payer_member_id ?? beneficiaryId;
     const contributionType = session.metadata?.contribution_type ?? "pastor_salary";
+    const relationshipLabel = session.metadata?.relationship_label || null;
 
     if (!beneficiaryId || !payerId) {
       throw new Error("Subscription metadata is missing.");
@@ -220,6 +221,7 @@ export const finalizeSubscriptionSession = createServerFn({ method: "POST" })
           stripe_customer_id: stripeCustomerId,
           stripe_subscription_id: stripeSubscriptionId,
           contribution_type: contributionType as never,
+          relationship_label: relationshipLabel,
         },
         { onConflict: "payer_member_id,beneficiary_member_id,contribution_type" },
       );

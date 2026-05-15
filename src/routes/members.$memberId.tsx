@@ -153,6 +153,7 @@ function MemberProfilePage() {
   const [sponsoredBy, setSponsoredBy] = useState<RelatedMember[]>([]);
   const [household, setHousehold] = useState<RelatedMember[]>([]);
   const [relsLoading, setRelsLoading] = useState(true);
+  const [showRelDrawer, setShowRelDrawer] = useState(false);
 
   const fetchData = async () => {
     const [memberRes, paymentsRes, actsRes, socRes, notesRes, mergedRes] = await Promise.all([

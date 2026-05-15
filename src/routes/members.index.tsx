@@ -56,6 +56,14 @@ interface MemberWithStatus extends Member {
   last_payment_method: string | null;
   payment_status: MemberPaymentStatus;
   monthly_total: number;
+  // Explicit per-member financial breakdown (single source of truth).
+  // Formula:
+  //   monthly_expected = weekly_amount * weeks_in_current_month
+  //   monthly_pending  = max(monthly_expected - monthly_paid, 0)
+  weekly_amount: number;
+  monthly_expected: number;
+  monthly_paid: number;
+  monthly_pending: number;
 }
 
 // Stripe-aligned financial buckets. Mirrors Stripe subscription/charge statuses
@@ -229,16 +237,26 @@ function MembersPage() {
       }
     }
 
+    const weeksInCurrentMonth = getWeeksInMonth(now.getMonth() + 1, now.getFullYear());
+
     const withStatus: MemberWithStatus[] = list.map((m) => {
       const last = lastByMember.get(m.id);
       const freq = (m as Member & { contribution_frequency?: ContributionFrequency }).contribution_frequency ?? "weekly";
+      const weeklyAmount = Number(m.weekly_contribution_usd) || 0;
+      const monthlyPaid = monthlyTotalByMember.get(m.id) ?? 0;
+      const monthlyExpected = weeklyAmount * weeksInCurrentMonth;
+      const monthlyPending = Math.max(monthlyExpected - monthlyPaid, 0);
       return {
         ...m,
         name: toTitleCase(m.name),
         last_payment_date: last?.payment_date ?? null,
         last_payment_method: last?.payment_method ?? null,
         payment_status: computeMemberStatus(last?.payment_date ?? null, freq, monthsByMember.get(m.id) ?? null),
-        monthly_total: monthlyTotalByMember.get(m.id) ?? 0,
+        monthly_total: monthlyPaid,
+        weekly_amount: weeklyAmount,
+        monthly_expected: monthlyExpected,
+        monthly_paid: monthlyPaid,
+        monthly_pending: monthlyPending,
       };
     });
 
@@ -466,11 +484,34 @@ function MembersPage() {
           const b = finBucketOf(m);
           if (b) buckets[b].push(m);
         }
-        const expectedFor = (m: MemberWithStatus) => (Number(m.weekly_contribution_usd) || 0) * weeks;
-        const pendingFor = (m: MemberWithStatus) => Math.max(expectedFor(m) - m.monthly_total, 0);
-        const sumPending = (arr: MemberWithStatus[]) => arr.reduce((s, m) => s + pendingFor(m), 0);
-        const sumPaid = (arr: MemberWithStatus[]) => arr.reduce((s, m) => s + m.monthly_total, 0);
-        const sumExpected = (arr: MemberWithStatus[]) => arr.reduce((s, m) => s + expectedFor(m), 0);
+        // Use the explicit per-member fields (single source of truth).
+        const sumPending  = (arr: MemberWithStatus[]) => arr.reduce((s, m) => s + m.monthly_pending,  0);
+        const sumPaid     = (arr: MemberWithStatus[]) => arr.reduce((s, m) => s + m.monthly_paid,     0);
+        const sumExpected = (arr: MemberWithStatus[]) => arr.reduce((s, m) => s + m.monthly_expected, 0);
+
+        // Temporary diagnostic logs — verify the math member-by-member.
+        // eslint-disable-next-line no-console
+        console.log("[finance] weeks_in_month", weeks, "visible_members", visible.length);
+        // eslint-disable-next-line no-console
+        console.table(
+          visible.map((m) => ({
+            name: m.name,
+            bucket: finBucketOf(m),
+            weekly_amount: m.weekly_amount,
+            weeks,
+            monthly_expected: m.monthly_expected,
+            monthly_paid: m.monthly_paid,
+            monthly_pending: m.monthly_pending,
+          }))
+        );
+        // eslint-disable-next-line no-console
+        console.log("[finance] bucket totals", {
+          paid:      { count: buckets.paid.length,      paid: sumPaid(buckets.paid) },
+          past_due:  { count: buckets.past_due.length,  pending: sumPending(buckets.past_due) },
+          failed:    { count: buckets.failed.length,    pending: sumPending(buckets.failed) },
+          unpaid:    { count: buckets.unpaid.length,    expected: sumExpected(buckets.unpaid) },
+          cancelled: { count: buckets.cancelled.length, expected: sumExpected(buckets.cancelled) },
+        });
 
         const total = visible.length || 1;
         const todayCount = visible.filter((m) => m.last_payment_date === todayYMD).length;

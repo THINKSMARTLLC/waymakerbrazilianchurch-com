@@ -114,11 +114,11 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
 
 function MembersPage() {
   const { t } = useTranslation();
-  const { status: statusParam, lifecycle: lifecycleParam } = Route.useSearch();
+  const { status: statusParam, lifecycle: lifecycleParam, fin: finParam, group: groupParam } = Route.useSearch();
   const [search, setSearch] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<MemberPaymentStatus | "all">(statusParam ?? "all");
-  const [finFilter, setFinFilter] = useState<FinBucket | "all">("all");
+  const [finFilter, setFinFilter] = useState<FinBucket | "all">(finParam ?? "all");
   const [lifecycleFilter, setLifecycleFilter] = useState<LifecycleFilter>(lifecycleParam ?? "active");
   const [birthdayFilter, setBirthdayFilter] = useState<"all" | BirthdayWindow>("all");
   const [showAddModal, setShowAddModal] = useState(false);

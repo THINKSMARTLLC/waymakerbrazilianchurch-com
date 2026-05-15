@@ -418,12 +418,20 @@ function MemberProfilePage() {
       </div>
 
       <div className="card-elevated p-6">
-        <div className="flex items-center gap-2 mb-4">
+        <button
+          type="button"
+          onClick={() => setShowRelDrawer(true)}
+          className="flex items-center gap-2 mb-4 w-full text-left hover:opacity-80 transition-opacity group"
+          title={t("payerBeneficiary.financialRelationships")}
+        >
           <UsersIcon className="h-4 w-4 text-primary" />
-          <h3 className="font-display text-base font-medium text-foreground">
+          <h3 className="font-display text-base font-medium text-foreground group-hover:underline">
             {t("payerBeneficiary.financialRelationships")}
           </h3>
-        </div>
+          <span className="ml-auto text-xs text-muted-foreground">
+            {t("financialDrawer.openManage", { defaultValue: "Manage →" })}
+          </span>
+        </button>
         {relsLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />

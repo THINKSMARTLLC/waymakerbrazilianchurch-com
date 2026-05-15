@@ -27,6 +27,7 @@ import { findDuplicates, findDuplicateGroups, generateTempAccessCode, loadDismis
 import { DuplicateWarning } from "@/components/DuplicateWarning";
 import { MergeMembersModal } from "@/components/MergeMembersModal";
 import { DuplicateResolutionModal } from "@/components/DuplicateResolutionModal";
+import { FinancialRelationshipsDrawer } from "@/components/FinancialRelationshipsDrawer";
 
 type LifecycleFilter = "active" | "inactive" | "all";
 
@@ -130,6 +131,7 @@ function MembersPage() {
   const [groupByFamily, setGroupByFamily] = useState(false);
   const [collapsedFamilies, setCollapsedFamilies] = useState<Set<string>>(new Set());
   const [paidByMap, setPaidByMap] = useState<Map<string, { payerName: string; relationship: string | null }>>(new Map());
+  const [relationsDrawerFor, setRelationsDrawerFor] = useState<string | null>(null);
 
   const toggleMemberSelection = (id: string) => {
     setSelectedMembers((prev) =>
@@ -855,14 +857,19 @@ function MembersPage() {
                                 const Icon = role === "family_owner" ? Crown : role === "sponsored" ? Heart : Users;
                                 const cls =
                                   role === "family_owner"
-                                    ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-200"
+                                    ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-200 hover:bg-amber-200"
                                     : role === "sponsored"
-                                    ? "bg-pink-100 text-pink-800 dark:bg-pink-950/60 dark:text-pink-200"
-                                    : "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-200";
+                                    ? "bg-pink-100 text-pink-800 dark:bg-pink-950/60 dark:text-pink-200 hover:bg-pink-200"
+                                    : "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-200 hover:bg-blue-200";
                                 return (
-                                  <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${cls}`} title={`${famName} · ${role}`}>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); setRelationsDrawerFor(member.id); }}
+                                    className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${cls}`}
+                                    title={`${famName} · ${role} — ${t("payerBeneficiary.financialRelationships")}`}
+                                  >
                                     <Icon className="h-3 w-3" /> {famName}
-                                  </span>
+                                  </button>
                                 );
                               })()}
                               {(() => {
@@ -870,9 +877,14 @@ function MembersPage() {
                                 if (!pb) return null;
                                 const label = pb.relationship ? `${pb.payerName} · ${pb.relationship}` : pb.payerName;
                                 return (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 dark:bg-violet-950/60 px-1.5 py-0.5 text-[10px] font-semibold text-violet-800 dark:text-violet-200" title={`${t("portal.paidBy")}: ${label}`}>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); setRelationsDrawerFor(member.id); }}
+                                    className="inline-flex items-center gap-1 rounded-full bg-violet-100 dark:bg-violet-950/60 hover:bg-violet-200 px-1.5 py-0.5 text-[10px] font-semibold text-violet-800 dark:text-violet-200 transition-colors cursor-pointer"
+                                    title={`${t("portal.paidBy")}: ${label}`}
+                                  >
                                     <CreditCard className="h-3 w-3" /> {t("portal.paidBy")}: {label}
-                                  </span>
+                                  </button>
                                 );
                               })()}
                               {member.phone && (
@@ -1036,6 +1048,12 @@ function MembersPage() {
         open={!!whatsappTarget}
         onOpenChange={(open) => { if (!open) setWhatsappTarget(null); }}
         member={whatsappTarget}
+      />
+      <FinancialRelationshipsDrawer
+        memberId={relationsDrawerFor}
+        open={!!relationsDrawerFor}
+        onClose={() => setRelationsDrawerFor(null)}
+        onChanged={fetchMembers}
       />
     </div>
   );

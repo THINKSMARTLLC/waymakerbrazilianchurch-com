@@ -31,15 +31,21 @@ import { FinancialRelationshipsDrawer } from "@/components/FinancialRelationship
 
 type LifecycleFilter = "active" | "inactive" | "all";
 
+type FinFilterParam = "paid" | "past_due" | "failed" | "unpaid" | "cancelled";
+
 interface MembersSearch {
   status?: MemberPaymentStatus;
   lifecycle?: LifecycleFilter;
+  fin?: FinFilterParam;
+  group?: "family";
 }
 
 export const Route = createFileRoute("/members/")({
   validateSearch: (search: Record<string, unknown>): MembersSearch => ({
     status: (search.status as MemberPaymentStatus | undefined) ?? undefined,
     lifecycle: (search.lifecycle as LifecycleFilter | undefined) ?? undefined,
+    fin: (search.fin as FinFilterParam | undefined) ?? undefined,
+    group: search.group === "family" ? "family" : undefined,
   }),
   head: () => ({
     meta: [

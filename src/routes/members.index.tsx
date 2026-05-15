@@ -58,22 +58,32 @@ interface MemberWithStatus extends Member {
   monthly_total: number;
 }
 
-type FinBucket = "on_time" | "late" | "defaulter" | "no_payment" | "stripe_failure";
+// Stripe-aligned financial buckets. Mirrors Stripe subscription/charge statuses
+// so dashboard totals match Stripe exactly.
+//   paid      → Stripe charge succeeded / member is current for the month
+//   past_due  → Stripe subscription past_due / member has paid before but is behind
+//   failed    → Stripe last charge failed
+//   unpaid    → Stripe unpaid / member has never paid
+//   cancelled → Stripe subscription cancelled
+type FinBucket = "paid" | "past_due" | "failed" | "unpaid" | "cancelled";
 
 function finBucketOf(m: MemberWithStatus): FinBucket | null {
-  // Stripe failure: had a subscription but it's no longer active.
-  if (m.stripe_subscription_id && !m.subscription_active) return "stripe_failure";
-  if (m.payment_status === "no_payment") return "no_payment";
-  if (m.payment_status === "late") {
-    if (m.last_payment_date) {
-      const days = (Date.now() - new Date(m.last_payment_date).getTime()) / 86_400_000;
-      if (days >= 30) return "defaulter";
-    } else {
-      return "defaulter";
-    }
-    return "late";
-  }
-  if (m.payment_status === "on_time" || m.payment_status === "active") return "on_time";
+  const sp = (m.status_payment || "").toLowerCase();
+
+  // Honor explicit Stripe-synced statuses first.
+  if (sp === "paid") return "paid";
+  if (sp === "failed") return "failed";
+  if (sp === "past_due") return "past_due";
+  if (sp === "unpaid") return "unpaid";
+  if (sp === "cancelled" || sp === "canceled") return "cancelled";
+
+  // Stripe subscription that is no longer active → failed.
+  if (m.stripe_subscription_id && !m.subscription_active) return "failed";
+
+  // Derive from internal computed status.
+  if (m.payment_status === "on_time" || m.payment_status === "active") return "paid";
+  if (m.payment_status === "late") return "past_due";
+  if (m.payment_status === "no_payment") return "unpaid";
   return null;
 }
 

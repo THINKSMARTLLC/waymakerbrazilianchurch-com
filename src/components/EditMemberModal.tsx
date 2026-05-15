@@ -46,6 +46,31 @@ export function EditMemberModal({ member, onClose, onSaved }: EditMemberModalPro
     setSaving(true);
     setError(null);
 
+    let resolvedFamilyId: string | null = familyId || null;
+
+    // Create-on-the-fly family if requested.
+    if (familyId === "__new__") {
+      const trimmed = newFamilyName.trim();
+      if (!trimmed) {
+        setSaving(false);
+        setError("Family name is required.");
+        return;
+      }
+      const { data: created, error: famErr } = await supabase
+        .from("families")
+        .insert({ name: trimmed })
+        .select("id")
+        .single();
+      if (famErr || !created) {
+        setSaving(false);
+        setError(famErr?.message ?? "Could not create family.");
+        return;
+      }
+      resolvedFamilyId = created.id;
+    }
+
+    const effectiveFamilyRole: FamilyRole = resolvedFamilyId ? familyRole : "individual";
+
     const { error: updateError } = await supabase
       .from("members")
       .update({
@@ -57,6 +82,8 @@ export function EditMemberModal({ member, onClose, onSaved }: EditMemberModalPro
         emergency_contact: serializeEmergencyContact(emergency),
         member_role: memberRole.trim() || null,
         department: department.trim() || null,
+        family_id: resolvedFamilyId,
+        family_role: effectiveFamilyRole,
       })
       .eq("id", member.id);
 

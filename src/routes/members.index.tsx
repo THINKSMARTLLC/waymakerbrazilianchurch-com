@@ -131,6 +131,7 @@ function MembersPage() {
   const [groupByFamily, setGroupByFamily] = useState(false);
   const [collapsedFamilies, setCollapsedFamilies] = useState<Set<string>>(new Set());
   const [paidByMap, setPaidByMap] = useState<Map<string, { payerName: string; relationship: string | null }>>(new Map());
+  const [relationsDrawerFor, setRelationsDrawerFor] = useState<string | null>(null);
 
   const toggleMemberSelection = (id: string) => {
     setSelectedMembers((prev) =>

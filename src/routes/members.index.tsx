@@ -245,7 +245,7 @@ function MembersPage() {
         }
         return false;
       }),
-    [members, search, statusFilter, selectedMemberId, lifecycleFilter, birthdayFilter]
+    [members, search, statusFilter, finFilter, selectedMemberId, lifecycleFilter, birthdayFilter]
   );
 
   const inactiveCount = useMemo(

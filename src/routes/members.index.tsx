@@ -536,22 +536,25 @@ function MembersPage() {
       })()}
 
       {selectedMembers.length > 0 && (
-        <div className="sticky top-2 z-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2 text-sm shadow-sm backdrop-blur">
-          <span className="font-medium text-foreground">
-            {selectedMembers.length} {selectedMembers.length === 1 ? "selecionado" : "selecionados"}
+        <div className="sticky top-2 z-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/10 px-4 py-2.5 text-sm shadow-md backdrop-blur animate-in fade-in slide-in-from-top-2 duration-200">
+          <span className="font-medium text-foreground flex items-center gap-2">
+            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
+              {selectedMembers.length}
+            </span>
+            {selectedMembers.length === 1 ? "selecionado" : "selecionados"}
           </span>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={exportSelectedCSV}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-muted hover:shadow transition-all duration-150"
             >
               Export CSV
             </button>
             <button
               type="button"
               onClick={() => setSelectedMembers([])}
-              className="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-150"
             >
               Clear Selection
             </button>

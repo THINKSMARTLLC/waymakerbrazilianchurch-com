@@ -93,6 +93,7 @@ function MembersPage() {
   const [search, setSearch] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<MemberPaymentStatus | "all">(statusParam ?? "all");
+  const [finFilter, setFinFilter] = useState<FinBucket | "all">("all");
   const [lifecycleFilter, setLifecycleFilter] = useState<LifecycleFilter>(lifecycleParam ?? "active");
   const [birthdayFilter, setBirthdayFilter] = useState<"all" | BirthdayWindow>("all");
   const [showAddModal, setShowAddModal] = useState(false);

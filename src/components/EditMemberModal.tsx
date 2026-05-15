@@ -162,6 +162,49 @@ export function EditMemberModal({ member, onClose, onSaved }: EditMemberModalPro
             </div>
           </div>
 
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Family</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Family</label>
+                <select
+                  value={familyId}
+                  onChange={(e) => setFamilyId(e.target.value)}
+                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">— None (individual)</option>
+                  {families.map((f) => (
+                    <option key={f.id} value={f.id}>{f.name}</option>
+                  ))}
+                  <option value="__new__">+ Create new family…</option>
+                </select>
+                {familyId === "__new__" && (
+                  <input
+                    type="text"
+                    placeholder="New family name"
+                    value={newFamilyName}
+                    onChange={(e) => setNewFamilyName(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
+                  />
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Role in family</label>
+                <select
+                  value={familyRole}
+                  onChange={(e) => setFamilyRole(e.target.value as FamilyRole)}
+                  disabled={!familyId}
+                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm disabled:opacity-50"
+                >
+                  <option value="individual">Individual</option>
+                  <option value="family_owner">Family owner (pays)</option>
+                  <option value="family_member">Family member</option>
+                  <option value="sponsored">Sponsored</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           {error && <div className="text-sm text-destructive">{error}</div>}
 
           <div className="flex justify-end gap-2 pt-2 border-t border-border">

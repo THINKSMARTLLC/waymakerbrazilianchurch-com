@@ -536,22 +536,25 @@ function MembersPage() {
       })()}
 
       {selectedMembers.length > 0 && (
-        <div className="sticky top-2 z-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2 text-sm shadow-sm backdrop-blur">
-          <span className="font-medium text-foreground">
-            {selectedMembers.length} {selectedMembers.length === 1 ? "selecionado" : "selecionados"}
+        <div className="sticky top-2 z-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/10 px-4 py-2.5 text-sm shadow-md backdrop-blur animate-in fade-in slide-in-from-top-2 duration-200">
+          <span className="font-medium text-foreground flex items-center gap-2">
+            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
+              {selectedMembers.length}
+            </span>
+            {selectedMembers.length === 1 ? "selecionado" : "selecionados"}
           </span>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={exportSelectedCSV}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-muted hover:shadow transition-all duration-150"
             >
               Export CSV
             </button>
             <button
               type="button"
               onClick={() => setSelectedMembers([])}
-              className="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-150"
             >
               Clear Selection
             </button>
@@ -573,11 +576,11 @@ function MembersPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="table-header px-3 py-3 text-left w-10">
+                  <th className="table-header px-3 py-3 text-center w-10 align-middle">
                     <input
                       type="checkbox"
                       aria-label="Select all"
-                      className="h-4 w-4 cursor-pointer accent-primary"
+                      className="h-4 w-4 cursor-pointer accent-primary align-middle"
                       checked={filtered.length > 0 && filtered.every((m) => selectedMembers.includes(m.id))}
                       ref={(el) => {
                         if (el) {
@@ -618,14 +621,15 @@ function MembersPage() {
                     : bucket === "defaulter" || bucket === "stripe_failure"
                     ? "bg-red-50/40 dark:bg-red-950/20"
                     : "";
+                  const isSelected = selectedMembers.includes(member.id);
                   return (
-                    <tr key={member.id} className={`border-b border-border last:border-0 hover:bg-muted/60 transition-colors ${rowHighlight} ${selectedMembers.includes(member.id) ? "bg-primary/5" : ""}`}>
-                      <td className="px-3 py-3.5 w-10">
+                    <tr key={member.id} className={`border-b border-border last:border-0 transition-colors duration-150 hover:bg-muted/50 ${rowHighlight} ${isSelected ? "bg-primary/10 hover:bg-primary/15 shadow-[inset_3px_0_0_0_var(--color-primary)]" : ""}`}>
+                      <td className="px-3 py-3.5 w-10 text-center align-middle">
                         <input
                           type="checkbox"
                           aria-label={`Select ${member.name}`}
-                          className="h-4 w-4 cursor-pointer accent-primary"
-                          checked={selectedMembers.includes(member.id)}
+                          className="h-4 w-4 cursor-pointer accent-primary align-middle"
+                          checked={isSelected}
                           onChange={() => toggleMemberSelection(member.id)}
                         />
                       </td>

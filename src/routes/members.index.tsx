@@ -114,6 +114,40 @@ function MembersPage() {
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
+
+  const exportSelectedCSV = () => {
+    const selected = members.filter((m) => selectedMembers.includes(m.id));
+    if (selected.length === 0) return;
+    const now = new Date();
+    const weeks = getWeeksInMonth(now.getMonth() + 1, now.getFullYear());
+    const esc = (v: unknown) => {
+      const s = v === null || v === undefined ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const headers = ["name", "email", "phone", "payment_status", "last_payment", "amount_due"];
+    const rows = selected.map((m) => {
+      const expected = (Number(m.weekly_contribution_usd) || 0) * weeks;
+      const due = Math.max(expected - (m.monthly_total || 0), 0);
+      return [
+        m.name ?? "",
+        m.email ?? "",
+        m.phone ?? "",
+        m.payment_status ?? "",
+        m.last_payment_date ?? "",
+        due.toFixed(2),
+      ].map(esc).join(",");
+    });
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `members-${now.toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
   const { isSuperAdmin } = useUserRole();
 
   const handleExport = async (format: "csv" | "xlsx") => {

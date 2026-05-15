@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { supabase } from "@/integrations/supabase/client";
+import { getMonthlyRevenueSeries } from "@/lib/finance";
 
 interface MonthlyPoint {
   month: string;
@@ -15,33 +15,14 @@ export function DonationsChart() {
 
   useEffect(() => {
     async function fetchData() {
-      // Last 12 months window
-      const now = new Date();
-      const startDate = new Date(now.getFullYear(), now.getMonth() - 11, 1);
-      const startStr = startDate.toISOString().split("T")[0];
-
-      const { data: payments } = await supabase
-        .from("payments")
-        .select("amount, payment_date")
-        .gte("payment_date", startStr)
-        .eq("status", "paid");
-
-      // Build 12-month bucket
-      const buckets: MonthlyPoint[] = [];
-      for (let i = 0; i < 12; i++) {
-        const d = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
-        buckets.push({ month: MONTH_LABELS[d.getMonth()], amount: 0 });
-      }
-
-      for (const p of payments || []) {
-        const d = new Date(p.payment_date);
-        const monthsDiff = (d.getFullYear() - startDate.getFullYear()) * 12 + (d.getMonth() - startDate.getMonth());
-        if (monthsDiff >= 0 && monthsDiff < 12) {
-          buckets[monthsDiff].amount += Number(p.amount);
-        }
-      }
-
-      setData(buckets);
+      const series = await getMonthlyRevenueSeries(12);
+      const points: MonthlyPoint[] = series.map((s) => ({
+        month: MONTH_LABELS[s.month - 1],
+        amount: s.total,
+      }));
+      // eslint-disable-next-line no-console
+      console.log("monthlyRevenue", points);
+      setData(points);
       setLoading(false);
     }
     fetchData();

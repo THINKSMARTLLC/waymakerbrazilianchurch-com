@@ -90,6 +90,10 @@ function MemberDashboard() {
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
+  const [showPayerModal, setShowPayerModal] = useState(false);
+  const [paidByOther, setPaidByOther] = useState(false);
+  const [payerName, setPayerName] = useState("");
+  const [payerRelationship, setPayerRelationship] = useState("father");
 
   const loadActivities = async (mid: string) => {
     const { data } = await supabase

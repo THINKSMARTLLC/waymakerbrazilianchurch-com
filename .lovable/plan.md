@@ -1,90 +1,81 @@
-## Goal
-Add payer/beneficiary separation so one member can contribute on behalf of others (family, spouse, kids, sponsorship) without changing any layout.
+## Family Grouping — Financial Module
 
-## 1. Database (migration)
+Add an explicit "family" concept on top of the existing payer/beneficiary system, so members can be grouped, and totals can be rolled up per family on the Members page and dashboard.
 
-Add columns to `payments`:
-- `payer_member_id uuid` — who actually paid (defaults to `member_id` for back-compat)
-- `beneficiary_member_id uuid` — who the contribution counts toward (defaults to `member_id`)
+### 1. Database (migration)
 
-Backfill: `payer_member_id = member_id`, `beneficiary_member_id = member_id` for all existing rows.
+New table `families`:
+- `name` (text, required) — e.g. "Família Santos"
+- `created_by` (uuid, optional)
+- standard `id`, `created_at`, `updated_at`
 
-Create `payment_relationships` table (reusable saved links):
-- `id uuid pk`
-- `payer_member_id uuid not null`
-- `beneficiary_member_id uuid not null`
-- `stripe_customer_id text`
-- `stripe_subscription_id text`
-- `contribution_type contribution_type`
-- `relationship_label text` (optional: spouse, child, sponsored…)
-- `created_at`, `updated_at`
-- unique(payer_member_id, beneficiary_member_id, contribution_type)
+Add to `members`:
+- `family_id` (uuid, nullable, references `families.id`, on delete set null)
+- `family_role` (enum: `individual` | `family_owner` | `family_member` | `sponsored`, default `individual`)
 
 RLS:
-- Active staff: full access
-- Members: SELECT/INSERT/UPDATE/DELETE rows where `payer_member_id` belongs to them (via `members.user_id = auth.uid()`)
-- Beneficiary can view rows where they are the beneficiary
+- `families`: active staff full access; members can SELECT their own family (`id IN (SELECT family_id FROM members WHERE user_id = auth.uid())`).
+- New `members.family_id` / `family_role` columns inherit existing members RLS.
 
-Indexes on payer_member_id, beneficiary_member_id on both tables.
+No changes to `payments`, `payment_relationships`, or any Stripe field.
 
-## 2. Server functions
+### 2. Members page (`src/routes/members.index.tsx`)
 
-Update `src/lib/stripe-subscriptions.functions.ts`:
-- `createSubscriptionSession` accepts `{ payerMemberId, beneficiaryMemberId, contributionType? }`
-- Validates payer.user_id === auth user
-- Allows beneficiary to be any member (search-driven)
-- Stripe metadata: `payer_member_id`, `beneficiary_member_id`, `contribution_type`
-- On finalize, upsert `payment_relationships` row and set beneficiary's subscription state (not payer's)
+Fetch families alongside members, build a `familyById` map.
 
-Add `src/lib/member-search.functions.ts`:
-- `searchMembers({ query })` — staff or any authenticated member can search by name/email/phone (returns minimal `{id, name, email, phone}`); members get a small result list (no PII beyond minimum needed to identify).
+New per-row badge:
+- Family owner → `👑 Família X`
+- Family member → `👨‍👩‍👧 Família X`
+- Sponsored → `💝 Patrocinado`
+- Individual → no badge
 
-## 3. Stripe webhook
+New toggle above the table: **"Group by Family"**.
 
-`src/routes/api/public/stripe-webhook.ts`:
-- Read `payer_member_id` + `beneficiary_member_id` from metadata
-- Resolve beneficiary first (fallback to legacy single member resolution)
-- Insert `payments` with `payer_member_id`, `beneficiary_member_id`, and `member_id = beneficiary_member_id` (legacy field stays = beneficiary so totals remain correct)
-- Update beneficiary's subscription/last-payment state, not payer's
+When ON, render the table grouped:
+- One header row per family with: name, member count, expected, paid, pending, expand/collapse chevron.
+- Children rows = the existing member rows, indented, hidden when collapsed.
+- Members with no `family_id` go under a "Individual Members" group (always expanded).
 
-## 4. Checkout flow UI (no layout change)
+Family totals are derived from the per-member fields already computed last turn:
+- `family.expected = Σ monthly_expected`
+- `family.paid     = Σ monthly_paid`
+- `family.pending  = Σ monthly_pending`
+- `family.count    = members in family`
 
-`src/components/RecordPaymentModal.tsx` — add a compact selector inside the existing form (no layout shift):
-- "Who is this contribution for?" → Myself / Another member / Family member
-- When "Another/Family": inline search input (name/email/phone) hitting `searchMembers`, pick beneficiary
-- Sets `payer_member_id` (current member) + `beneficiary_member_id`
+### 3. Top financial cards
 
-Portal `src/routes/portal.index.tsx`:
-- Subscribe button passes `{ payerMemberId, beneficiaryMemberId }` (defaults both to current member)
-- New small inline action under the Pastor Salary card: "Pay for someone else" → opens a lightweight beneficiary picker that calls the same `createSubscriptionSession`
+Replace the current 3 secondary cards on the dashboard (and add equivalents on `/members`) with real data computed from `members.family_role` + existing `payment_relationships`:
+- **Famílias Ativas** = count of distinct `family_id` with at least one active member.
+- **Pagando pela Família** = members with `family_role = family_owner`.
+- **Patrocinados** = members with `family_role = sponsored` (or appearing as `beneficiary_member_id` with a different payer — keep current logic as fallback).
+- **Pagamentos Familiares (mês)** = sum of `monthly_paid` for all members in any family.
 
-## 5. Dashboard / history display
+Existing 5 Stripe-aligned status cards (paid / past_due / failed / unpaid / cancelled) remain unchanged.
 
-`src/routes/portal.contributions.tsx` and `src/components/ContributionsModal.tsx`:
-- Add columns "Paid by" and "Benefiting" — show member names by joining payer/beneficiary
-- For member portal show all rows where they're payer OR beneficiary, with badges
+### 4. Family management UI (minimal)
 
-## 6. Reports
+In the Edit Member modal, add:
+- "Family" select (existing families + "Create new…" inline input)
+- "Role in family" select (individual / owner / member / sponsored)
 
-`src/routes/reports.tsx`: add a toggle "Group by: Beneficiary | Payer" that aggregates totals from the new columns.
+This is the only write surface in this iteration — no separate "Families" page yet.
 
-## 7. i18n
+### 5. Out of scope (explicit)
 
-Add keys for: relationship labels, "Paid by", "Benefiting", "Pay for someone else", "Search by name, email or phone", "Who is this contribution for?".
+- No changes to Stripe sync, webhooks, or payment recording flow.
+- No automatic creation of `payment_relationships` from `family_id` (the two systems coexist; we can reconcile later if needed).
+- No bulk family assignment / drag-drop UI.
+- The `Group by Family` toggle does not change export behavior in this iteration.
 
-## Out of scope
-- No layout/styling changes anywhere
-- No changes to auth, roles, or admin pages beyond the report toggle
-- No new Stripe products/prices
+### Files touched
 
-## Files to touch
-- migration (new)
-- `src/lib/stripe-subscriptions.functions.ts`
-- `src/lib/member-search.functions.ts` (new)
-- `src/routes/api/public/stripe-webhook.ts`
-- `src/components/RecordPaymentModal.tsx`
-- `src/components/ContributionsModal.tsx`
-- `src/routes/portal.index.tsx`
-- `src/routes/portal.contributions.tsx`
-- `src/routes/reports.tsx`
-- `src/i18n/locales/{en,pt}.json`
+- New migration (families table + members columns + RLS)
+- `src/routes/members.index.tsx` — fetch families, badge, toggle, grouped rendering, derived family totals
+- `src/components/EditMemberModal.tsx` — family picker + role
+- `src/routes/dashboard.tsx` — wire the 3 family cards to real `family_role` counts
+- `src/i18n/locales/{en,pt,es}.json` — labels (Family, Owner, Sponsored, Group by Family, etc.)
+
+### Verification
+
+- Console table from last turn already prints per-member `monthly_expected/paid/pending`. Family rollups must equal the sum of their children rows in that table.
+- Toggling "Group by Family" off must restore the exact same list as today (no row gained or lost).

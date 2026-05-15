@@ -107,6 +107,13 @@ function MembersPage() {
   const [showImport, setShowImport] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [whatsappTarget, setWhatsappTarget] = useState<WhatsAppMember | null>(null);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+
+  const toggleMemberSelection = (id: string) => {
+    setSelectedMembers((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
   const { isSuperAdmin } = useUserRole();
 
   const handleExport = async (format: "csv" | "xlsx") => {
@@ -494,6 +501,21 @@ function MembersPage() {
         );
       })()}
 
+      {selectedMembers.length > 0 && (
+        <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-4 py-2 text-sm">
+          <span className="font-medium text-foreground">
+            {selectedMembers.length} {selectedMembers.length === 1 ? "selecionado" : "selecionados"}
+          </span>
+          <button
+            type="button"
+            onClick={() => setSelectedMembers([])}
+            className="text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            Limpar seleção
+          </button>
+        </div>
+      )}
+
       <div className="card-elevated overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -508,6 +530,29 @@ function MembersPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
+                  <th className="table-header px-3 py-3 text-left w-10">
+                    <input
+                      type="checkbox"
+                      aria-label="Select all"
+                      className="h-4 w-4 cursor-pointer accent-primary"
+                      checked={filtered.length > 0 && filtered.every((m) => selectedMembers.includes(m.id))}
+                      ref={(el) => {
+                        if (el) {
+                          const someSelected = filtered.some((m) => selectedMembers.includes(m.id));
+                          const allSelected = filtered.length > 0 && filtered.every((m) => selectedMembers.includes(m.id));
+                          el.indeterminate = someSelected && !allSelected;
+                        }
+                      }}
+                      onChange={(e) => {
+                        const visibleIds = filtered.map((m) => m.id);
+                        if (e.target.checked) {
+                          setSelectedMembers((prev) => Array.from(new Set([...prev, ...visibleIds])));
+                        } else {
+                          setSelectedMembers((prev) => prev.filter((id) => !visibleIds.includes(id)));
+                        }
+                      }}
+                    />
+                  </th>
                   <th className="table-header px-5 py-3 text-left">Name</th>
                   <th className="table-header px-5 py-3 text-left hidden lg:table-cell">Email</th>
                   <th className="table-header px-5 py-3 text-left hidden xl:table-cell">Phone</th>
@@ -531,7 +576,16 @@ function MembersPage() {
                     ? "bg-red-50/40 dark:bg-red-950/20"
                     : "";
                   return (
-                    <tr key={member.id} className={`border-b border-border last:border-0 hover:bg-muted/60 transition-colors ${rowHighlight}`}>
+                    <tr key={member.id} className={`border-b border-border last:border-0 hover:bg-muted/60 transition-colors ${rowHighlight} ${selectedMembers.includes(member.id) ? "bg-primary/5" : ""}`}>
+                      <td className="px-3 py-3.5 w-10">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${member.name}`}
+                          className="h-4 w-4 cursor-pointer accent-primary"
+                          checked={selectedMembers.includes(member.id)}
+                          onChange={() => toggleMemberSelection(member.id)}
+                        />
+                      </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-primary overflow-hidden">

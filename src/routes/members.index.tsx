@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check, AlertTriangle, Archive, Download, Upload, Cake, MessageCircle } from "lucide-react";
+import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check, AlertTriangle, Archive, Download, Upload, Cake, MessageCircle, CheckCircle2, Clock, AlertCircle, CircleDashed, CreditCard } from "lucide-react";
 import { WhatsAppMessageModal, type WhatsAppMember } from "@/components/WhatsAppMessageModal";
 import { getBirthdayInfo, type BirthdayWindow } from "@/lib/birthday";
 import { exportMembersCSV, exportMembersXLSX } from "@/lib/dataExportImport";
@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatUSD, toTitleCase } from "@/lib/format";
-import { calculateExpectedMonthlyAmount } from "@/lib/settings";
+import { calculateExpectedMonthlyAmount, getWeeksInMonth } from "@/lib/settings";
 import { RecordPaymentModal } from "@/components/RecordPaymentModal";
 import { ContributionsModal } from "@/components/ContributionsModal";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, FREQUENCY_LABEL, type MemberPaymentStatus, type ContributionFrequency } from "@/lib/memberStatus";
@@ -58,6 +58,25 @@ interface MemberWithStatus extends Member {
   monthly_total: number;
 }
 
+type FinBucket = "on_time" | "late" | "defaulter" | "no_payment" | "stripe_failure";
+
+function finBucketOf(m: MemberWithStatus): FinBucket | null {
+  // Stripe failure: had a subscription but it's no longer active.
+  if (m.stripe_subscription_id && !m.subscription_active) return "stripe_failure";
+  if (m.payment_status === "no_payment") return "no_payment";
+  if (m.payment_status === "late") {
+    if (m.last_payment_date) {
+      const days = (Date.now() - new Date(m.last_payment_date).getTime()) / 86_400_000;
+      if (days >= 30) return "defaulter";
+    } else {
+      return "defaulter";
+    }
+    return "late";
+  }
+  if (m.payment_status === "on_time" || m.payment_status === "active") return "on_time";
+  return null;
+}
+
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
   cash: "Cash",
   zelle: "Zelle",
@@ -74,6 +93,7 @@ function MembersPage() {
   const [search, setSearch] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<MemberPaymentStatus | "all">(statusParam ?? "all");
+  const [finFilter, setFinFilter] = useState<FinBucket | "all">("all");
   const [lifecycleFilter, setLifecycleFilter] = useState<LifecycleFilter>(lifecycleParam ?? "active");
   const [birthdayFilter, setBirthdayFilter] = useState<"all" | BirthdayWindow>("all");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -204,6 +224,7 @@ function MembersPage() {
         if (lifecycleFilter === "inactive" && m.status !== "inactive") return false;
         if (selectedMemberId && m.id !== selectedMemberId) return false;
         if (statusFilter !== "all" && m.payment_status !== statusFilter) return false;
+        if (finFilter !== "all" && finBucketOf(m) !== finFilter) return false;
         if (birthdayFilter !== "all") {
           const bi = getBirthdayInfo(m.date_of_birth);
           if (!bi) return false;
@@ -224,7 +245,7 @@ function MembersPage() {
         }
         return false;
       }),
-    [members, search, statusFilter, selectedMemberId, lifecycleFilter, birthdayFilter]
+    [members, search, statusFilter, finFilter, selectedMemberId, lifecycleFilter, birthdayFilter]
   );
 
   const inactiveCount = useMemo(
@@ -378,6 +399,101 @@ function MembersPage() {
         );
       })()}
 
+      {(() => {
+        const now = new Date();
+        const weeks = getWeeksInMonth(now.getMonth() + 1, now.getFullYear());
+        const todayYMD = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+        const visible = members.filter((m) => {
+          if (lifecycleFilter === "active" && m.status !== "active") return false;
+          if (lifecycleFilter === "inactive" && m.status !== "inactive") return false;
+          return true;
+        });
+        const buckets: Record<FinBucket, MemberWithStatus[]> = {
+          on_time: [], late: [], defaulter: [], no_payment: [], stripe_failure: [],
+        };
+        for (const m of visible) {
+          const b = finBucketOf(m);
+          if (b) buckets[b].push(m);
+        }
+        const expectedFor = (m: MemberWithStatus) => (Number(m.weekly_contribution_usd) || 0) * weeks;
+        const pendingFor = (m: MemberWithStatus) => Math.max(expectedFor(m) - m.monthly_total, 0);
+        const sumPending = (arr: MemberWithStatus[]) => arr.reduce((s, m) => s + pendingFor(m), 0);
+        const sumPaid = (arr: MemberWithStatus[]) => arr.reduce((s, m) => s + m.monthly_total, 0);
+        const sumExpected = (arr: MemberWithStatus[]) => arr.reduce((s, m) => s + expectedFor(m), 0);
+
+        const total = visible.length || 1;
+        const todayCount = visible.filter((m) => m.last_payment_date === todayYMD).length;
+        const stripeFailures = buckets.stripe_failure.length;
+        const pendingCharges = buckets.late.length + buckets.defaulter.length + buckets.no_payment.length;
+
+        const cards: Array<{ key: FinBucket; label: string; count: number; amount: number; amountLabel: string; tone: "emerald" | "amber" | "red" | "slate" | "rose"; Icon: typeof CheckCircle2 }> = [
+          { key: "on_time", label: "On Time", count: buckets.on_time.length, amount: sumPaid(buckets.on_time), amountLabel: "received", tone: "emerald", Icon: CheckCircle2 },
+          { key: "late", label: "Late", count: buckets.late.length, amount: sumPending(buckets.late), amountLabel: "pending", tone: "amber", Icon: Clock },
+          { key: "defaulter", label: "Defaulters", count: buckets.defaulter.length, amount: sumPending(buckets.defaulter), amountLabel: "overdue", tone: "red", Icon: AlertCircle },
+          { key: "no_payment", label: "No Payment", count: buckets.no_payment.length, amount: sumExpected(buckets.no_payment), amountLabel: "expected", tone: "slate", Icon: CircleDashed },
+          { key: "stripe_failure", label: "Stripe Failure", count: buckets.stripe_failure.length, amount: sumPending(buckets.stripe_failure), amountLabel: "pending", tone: "rose", Icon: CreditCard },
+        ];
+
+        const toneClasses: Record<typeof cards[number]["tone"], { ring: string; bg: string; icon: string; text: string }> = {
+          emerald: { ring: "ring-emerald-500/40", bg: "bg-emerald-500/10", icon: "text-emerald-600 dark:text-emerald-400", text: "text-emerald-700 dark:text-emerald-300" },
+          amber:   { ring: "ring-amber-500/40",   bg: "bg-amber-500/10",   icon: "text-amber-600 dark:text-amber-400",     text: "text-amber-700 dark:text-amber-300" },
+          red:     { ring: "ring-red-500/40",     bg: "bg-red-500/10",     icon: "text-red-600 dark:text-red-400",         text: "text-red-700 dark:text-red-300" },
+          slate:   { ring: "ring-slate-500/40",   bg: "bg-muted",          icon: "text-muted-foreground",                  text: "text-foreground" },
+          rose:    { ring: "ring-rose-500/40",    bg: "bg-rose-500/10",    icon: "text-rose-600 dark:text-rose-400",       text: "text-rose-700 dark:text-rose-300" },
+        };
+
+        return (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {cards.map((c) => {
+                const active = finFilter === c.key;
+                const pct = Math.round((c.count / total) * 100);
+                const cls = toneClasses[c.tone];
+                return (
+                  <button
+                    key={c.key}
+                    type="button"
+                    onClick={() => setFinFilter(active ? "all" : c.key)}
+                    className={`card-elevated text-left p-4 transition-all hover:shadow-md ${active ? `ring-2 ${cls.ring}` : ""}`}
+                    aria-pressed={active}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${cls.bg}`}>
+                        <c.Icon className={`h-4 w-4 ${cls.icon}`} />
+                      </div>
+                      <span className="text-[11px] font-medium text-muted-foreground">{pct}%</span>
+                    </div>
+                    <div className="mt-3">
+                      <p className="text-xs font-medium text-muted-foreground">{c.label}</p>
+                      <p className={`text-2xl font-semibold font-display ${cls.text}`}>{c.count}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        <span className="font-medium text-foreground">{formatUSD(c.amount)}</span> {c.amountLabel}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1">
+                <Clock className="h-3 w-3" /> Due today: <span className="font-semibold text-foreground">{todayCount}</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1">
+                <CreditCard className="h-3 w-3" /> Stripe failures: <span className="font-semibold text-foreground">{stripeFailures}</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1">
+                <AlertCircle className="h-3 w-3" /> Pending charges: <span className="font-semibold text-foreground">{pendingCharges}</span>
+              </span>
+              {finFilter !== "all" && (
+                <button type="button" onClick={() => setFinFilter("all")} className="ml-auto text-xs font-medium text-primary hover:underline">
+                  Clear card filter
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="card-elevated overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -408,8 +524,14 @@ function MembersPage() {
                 {filtered.map((member) => {
                   const weekly = Number(member.weekly_contribution_usd) || 0;
                   const dupGroup = groupByMemberId.get(member.id);
+                  const bucket = finBucketOf(member);
+                  const rowHighlight = dupGroup
+                    ? "bg-amber-50/50 dark:bg-amber-950/20"
+                    : bucket === "defaulter" || bucket === "stripe_failure"
+                    ? "bg-red-50/40 dark:bg-red-950/20"
+                    : "";
                   return (
-                    <tr key={member.id} className={`border-b border-border last:border-0 hover:bg-muted/50 transition-colors ${dupGroup ? "bg-amber-50/50 dark:bg-amber-950/20" : ""}`}>
+                    <tr key={member.id} className={`border-b border-border last:border-0 hover:bg-muted/60 transition-colors ${rowHighlight}`}>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-primary overflow-hidden">

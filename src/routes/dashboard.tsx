@@ -10,7 +10,7 @@ import { BirthdayLoginAlert } from "@/components/BirthdayLoginAlert";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatUSD } from "@/lib/format";
-import { getWeeklyExpectedTarget } from "@/lib/settings";
+import { getWeeklyExpectedTarget, calculateExpectedMonthlyAmount } from "@/lib/settings";
 import { getMonthlyRevenue } from "@/lib/finance";
 
 export const Route = createFileRoute("/dashboard")({
@@ -46,7 +46,8 @@ function DashboardPage() {
         supabase.from("payments").select("payer_member_id, beneficiary_member_id").not("payer_member_id", "is", null).not("beneficiary_member_id", "is", null),
       ]);
 
-      const outstanding = Math.max(weeklyExpected * 4 - collectedThisMonth, 0);
+      const monthlyExpected = calculateExpectedMonthlyAmount(weeklyExpected, now.getMonth() + 1, now.getFullYear());
+      const outstanding = Math.max(monthlyExpected - collectedThisMonth, 0);
 
       const beneficiaries = new Set<string>();
       const payers = new Set<string>();

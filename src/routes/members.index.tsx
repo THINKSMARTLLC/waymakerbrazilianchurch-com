@@ -1049,6 +1049,12 @@ function MembersPage() {
         onOpenChange={(open) => { if (!open) setWhatsappTarget(null); }}
         member={whatsappTarget}
       />
+      <FinancialRelationshipsDrawer
+        memberId={relationsDrawerFor}
+        open={!!relationsDrawerFor}
+        onClose={() => setRelationsDrawerFor(null)}
+        onChanged={fetchMembers}
+      />
     </div>
   );
 }

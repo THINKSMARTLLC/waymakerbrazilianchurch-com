@@ -745,7 +745,35 @@ function MembersPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((member) => {
+                {displayItems.map((item) => {
+                  if (item.kind === "family") {
+                    return (
+                      <tr key={`fam-${item.familyId}`} className="bg-muted/40 border-b border-border">
+                        <td colSpan={11} className="px-3 py-2.5">
+                          <button
+                            type="button"
+                            onClick={() => toggleFamilyCollapse(item.familyId)}
+                            className="flex w-full items-center gap-3 text-left"
+                          >
+                            {item.collapsed ? (
+                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            )}
+                            <Users className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-semibold text-foreground">{item.familyName}</span>
+                            <span className="text-xs text-muted-foreground">{item.count} {item.count === 1 ? "member" : "members"}</span>
+                            <div className="ml-auto flex items-center gap-4 text-xs tabular-nums">
+                              <span className="text-muted-foreground">Expected: <span className="font-semibold text-foreground">{formatUSD(item.expected)}</span></span>
+                              <span className="text-emerald-700 dark:text-emerald-400">Paid: <span className="font-semibold">{formatUSD(item.paid)}</span></span>
+                              <span className="text-amber-700 dark:text-amber-400">Pending: <span className="font-semibold">{formatUSD(item.pending)}</span></span>
+                            </div>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  }
+                  const member = item.member;
                   const weekly = Number(member.weekly_contribution_usd) || 0;
                   const dupGroup = groupByMemberId.get(member.id);
                   const bucket = finBucketOf(member);

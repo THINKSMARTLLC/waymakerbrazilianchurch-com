@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check, AlertTriangle, Archive, Download, Upload, Cake, MessageCircle, CheckCircle2, Clock, AlertCircle, CircleDashed, CreditCard } from "lucide-react";
+import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check, AlertTriangle, Archive, Download, Upload, Cake, MessageCircle, CheckCircle2, Clock, AlertCircle, CircleDashed, CreditCard, Users, ChevronDown, ChevronRight, Crown, Heart } from "lucide-react";
 import { WhatsAppMessageModal, type WhatsAppMember } from "@/components/WhatsAppMessageModal";
 import { getBirthdayInfo, type BirthdayWindow } from "@/lib/birthday";
 import { exportMembersCSV, exportMembersXLSX } from "@/lib/dataExportImport";
@@ -126,6 +126,9 @@ function MembersPage() {
   const [exporting, setExporting] = useState(false);
   const [whatsappTarget, setWhatsappTarget] = useState<WhatsAppMember | null>(null);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [families, setFamilies] = useState<Map<string, string>>(new Map());
+  const [groupByFamily, setGroupByFamily] = useState(false);
+  const [collapsedFamilies, setCollapsedFamilies] = useState<Set<string>>(new Set());
 
   const toggleMemberSelection = (id: string) => {
     setSelectedMembers((prev) =>
@@ -187,10 +190,11 @@ function MembersPage() {
   }, [lifecycleParam]);
 
   const fetchMembers = async () => {
-    const { data: membersData } = await supabase
-      .from("members")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const [{ data: membersData }, { data: familiesData }] = await Promise.all([
+      supabase.from("members").select("*").order("created_at", { ascending: false }),
+      supabase.from("families").select("id, name"),
+    ]);
+    setFamilies(new Map((familiesData ?? []).map((f) => [f.id as string, f.name as string])));
 
     // Hide archived (merged/trashed) members from the main list.
     const list = (membersData || []).filter((m) => !(m as { archived?: boolean }).archived);
@@ -316,6 +320,71 @@ function MembersPage() {
       }),
     [members, search, statusFilter, finFilter, selectedMemberId, lifecycleFilter, birthdayFilter]
   );
+
+  // Build the displayable list: optionally grouped by family, with header rows.
+  type DisplayItem =
+    | { kind: "member"; member: MemberWithStatus }
+    | {
+        kind: "family";
+        familyId: string;
+        familyName: string;
+        count: number;
+        expected: number;
+        paid: number;
+        pending: number;
+        memberIds: string[];
+        collapsed: boolean;
+      };
+
+  const displayItems = useMemo<DisplayItem[]>(() => {
+    if (!groupByFamily) return filtered.map((m) => ({ kind: "member" as const, member: m }));
+
+    // Group filtered members by family. Members without a family go into a synthetic group.
+    const NONE = "__none__";
+    const byFam = new Map<string, MemberWithStatus[]>();
+    for (const m of filtered) {
+      const key = m.family_id ?? NONE;
+      if (!byFam.has(key)) byFam.set(key, []);
+      byFam.get(key)!.push(m);
+    }
+
+    // Sort: real families first by name, then "Individual Members" last.
+    const entries = Array.from(byFam.entries()).sort(([a], [b]) => {
+      if (a === NONE) return 1;
+      if (b === NONE) return -1;
+      const an = families.get(a) ?? "";
+      const bn = families.get(b) ?? "";
+      return an.localeCompare(bn, undefined, { sensitivity: "base" });
+    });
+
+    const out: DisplayItem[] = [];
+    for (const [famKey, mems] of entries) {
+      const familyName = famKey === NONE ? "Individual Members" : families.get(famKey) ?? "Unknown family";
+      const collapsed = collapsedFamilies.has(famKey);
+      out.push({
+        kind: "family",
+        familyId: famKey,
+        familyName,
+        count: mems.length,
+        expected: mems.reduce((s, m) => s + m.monthly_expected, 0),
+        paid: mems.reduce((s, m) => s + m.monthly_paid, 0),
+        pending: mems.reduce((s, m) => s + m.monthly_pending, 0),
+        memberIds: mems.map((m) => m.id),
+        collapsed,
+      });
+      if (!collapsed) for (const m of mems) out.push({ kind: "member", member: m });
+    }
+    return out;
+  }, [filtered, groupByFamily, families, collapsedFamilies]);
+
+  const toggleFamilyCollapse = (famKey: string) => {
+    setCollapsedFamilies((prev) => {
+      const next = new Set(prev);
+      if (next.has(famKey)) next.delete(famKey);
+      else next.add(famKey);
+      return next;
+    });
+  };
 
   const inactiveCount = useMemo(
     () => members.filter((m) => m.status === "inactive").length,
@@ -586,15 +655,28 @@ function MembersPage() {
         );
       })()}
 
-      {selectedMembers.length > 0 && (
-        <div className="sticky top-2 z-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/10 px-4 py-2.5 text-sm shadow-md backdrop-blur animate-in fade-in slide-in-from-top-2 duration-200">
-          <span className="font-medium text-foreground flex items-center gap-2">
-            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
-              {selectedMembers.length}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => setGroupByFamily((v) => !v)}
+          className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+            groupByFamily
+              ? "border-primary/40 bg-primary/10 text-primary"
+              : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}
+          aria-pressed={groupByFamily}
+        >
+          <Users className="h-3.5 w-3.5" />
+          Group by Family
+        </button>
+        {selectedMembers.length > 0 && (
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-3 rounded-lg border border-primary/40 bg-primary/10 px-4 py-2 text-sm shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
+            <span className="font-medium text-foreground flex items-center gap-2">
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
+                {selectedMembers.length}
+              </span>
+              {selectedMembers.length === 1 ? "selecionado" : "selecionados"}
             </span>
-            {selectedMembers.length === 1 ? "selecionado" : "selecionados"}
-          </span>
-          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={exportSelectedCSV}
@@ -610,8 +692,8 @@ function MembersPage() {
               Clear Selection
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="card-elevated overflow-hidden">
         {loading ? (
@@ -663,7 +745,35 @@ function MembersPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((member) => {
+                {displayItems.map((item) => {
+                  if (item.kind === "family") {
+                    return (
+                      <tr key={`fam-${item.familyId}`} className="bg-muted/40 border-b border-border">
+                        <td colSpan={11} className="px-3 py-2.5">
+                          <button
+                            type="button"
+                            onClick={() => toggleFamilyCollapse(item.familyId)}
+                            className="flex w-full items-center gap-3 text-left"
+                          >
+                            {item.collapsed ? (
+                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            )}
+                            <Users className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-semibold text-foreground">{item.familyName}</span>
+                            <span className="text-xs text-muted-foreground">{item.count} {item.count === 1 ? "member" : "members"}</span>
+                            <div className="ml-auto flex items-center gap-4 text-xs tabular-nums">
+                              <span className="text-muted-foreground">Expected: <span className="font-semibold text-foreground">{formatUSD(item.expected)}</span></span>
+                              <span className="text-emerald-700 dark:text-emerald-400">Paid: <span className="font-semibold">{formatUSD(item.paid)}</span></span>
+                              <span className="text-amber-700 dark:text-amber-400">Pending: <span className="font-semibold">{formatUSD(item.pending)}</span></span>
+                            </div>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  }
+                  const member = item.member;
                   const weekly = Number(member.weekly_contribution_usd) || 0;
                   const dupGroup = groupByMemberId.get(member.id);
                   const bucket = finBucketOf(member);
@@ -709,6 +819,22 @@ function MembersPage() {
                                     <Cake className="h-3 w-3" /> {t("birthdays.today")}
                                   </span>
                                 ) : null;
+                              })()}
+                              {member.family_id && (() => {
+                                const famName = families.get(member.family_id) ?? "Family";
+                                const role = member.family_role;
+                                const Icon = role === "family_owner" ? Crown : role === "sponsored" ? Heart : Users;
+                                const cls =
+                                  role === "family_owner"
+                                    ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-200"
+                                    : role === "sponsored"
+                                    ? "bg-pink-100 text-pink-800 dark:bg-pink-950/60 dark:text-pink-200"
+                                    : "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-200";
+                                return (
+                                  <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${cls}`} title={`${famName} · ${role}`}>
+                                    <Icon className="h-3 w-3" /> {famName}
+                                  </span>
+                                );
                               })()}
                               {member.phone && (
                                 <button

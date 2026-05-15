@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,8 @@ import { parseEmergencyContact, serializeEmergencyContact } from "@/lib/emergenc
 import { formatUSPhoneInput } from "@/lib/phone";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
+type FamilyRole = Database["public"]["Enums"]["family_role"];
+interface FamilyOption { id: string; name: string }
 
 interface EditMemberModalProps {
   member: Member;
@@ -25,13 +27,49 @@ export function EditMemberModal({ member, onClose, onSaved }: EditMemberModalPro
   const [emergency, setEmergency] = useState(() => parseEmergencyContact(member.emergency_contact));
   const [memberRole, setMemberRole] = useState(member.member_role ?? "");
   const [department, setDepartment] = useState(member.department ?? "");
+  const [familyId, setFamilyId] = useState<string>(member.family_id ?? "");
+  const [familyRole, setFamilyRole] = useState<FamilyRole>((member.family_role ?? "individual") as FamilyRole);
+  const [newFamilyName, setNewFamilyName] = useState("");
+  const [families, setFamilies] = useState<FamilyOption[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.from("families").select("id, name").order("name").then(({ data }) => {
+      setFamilies((data ?? []) as FamilyOption[]);
+    });
+  }, []);
+
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
+
+    let resolvedFamilyId: string | null = familyId || null;
+
+    // Create-on-the-fly family if requested.
+    if (familyId === "__new__") {
+      const trimmed = newFamilyName.trim();
+      if (!trimmed) {
+        setSaving(false);
+        setError("Family name is required.");
+        return;
+      }
+      const { data: created, error: famErr } = await supabase
+        .from("families")
+        .insert({ name: trimmed })
+        .select("id")
+        .single();
+      if (famErr || !created) {
+        setSaving(false);
+        setError(famErr?.message ?? "Could not create family.");
+        return;
+      }
+      resolvedFamilyId = created.id;
+    }
+
+    const effectiveFamilyRole: FamilyRole = resolvedFamilyId ? familyRole : "individual";
 
     const { error: updateError } = await supabase
       .from("members")
@@ -44,6 +82,8 @@ export function EditMemberModal({ member, onClose, onSaved }: EditMemberModalPro
         emergency_contact: serializeEmergencyContact(emergency),
         member_role: memberRole.trim() || null,
         department: department.trim() || null,
+        family_id: resolvedFamilyId,
+        family_role: effectiveFamilyRole,
       })
       .eq("id", member.id);
 
@@ -118,6 +158,49 @@ export function EditMemberModal({ member, onClose, onSaved }: EditMemberModalPro
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">{t("auth.department")}</label>
                 <input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm" />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Family</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Family</label>
+                <select
+                  value={familyId}
+                  onChange={(e) => setFamilyId(e.target.value)}
+                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">— None (individual)</option>
+                  {families.map((f) => (
+                    <option key={f.id} value={f.id}>{f.name}</option>
+                  ))}
+                  <option value="__new__">+ Create new family…</option>
+                </select>
+                {familyId === "__new__" && (
+                  <input
+                    type="text"
+                    placeholder="New family name"
+                    value={newFamilyName}
+                    onChange={(e) => setNewFamilyName(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
+                  />
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Role in family</label>
+                <select
+                  value={familyRole}
+                  onChange={(e) => setFamilyRole(e.target.value as FamilyRole)}
+                  disabled={!familyId}
+                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm disabled:opacity-50"
+                >
+                  <option value="individual">Individual</option>
+                  <option value="family_owner">Family owner (pays)</option>
+                  <option value="family_member">Family member</option>
+                  <option value="sponsored">Sponsored</option>
+                </select>
               </div>
             </div>
           </div>

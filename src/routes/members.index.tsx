@@ -27,6 +27,7 @@ import { findDuplicates, findDuplicateGroups, generateTempAccessCode, loadDismis
 import { DuplicateWarning } from "@/components/DuplicateWarning";
 import { MergeMembersModal } from "@/components/MergeMembersModal";
 import { DuplicateResolutionModal } from "@/components/DuplicateResolutionModal";
+import { FinancialRelationshipsDrawer } from "@/components/FinancialRelationshipsDrawer";
 
 type LifecycleFilter = "active" | "inactive" | "all";
 

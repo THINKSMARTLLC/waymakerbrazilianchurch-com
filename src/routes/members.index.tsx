@@ -820,6 +820,22 @@ function MembersPage() {
                                   </span>
                                 ) : null;
                               })()}
+                              {member.family_id && (() => {
+                                const famName = families.get(member.family_id) ?? "Family";
+                                const role = member.family_role;
+                                const Icon = role === "family_owner" ? Crown : role === "sponsored" ? Heart : Users;
+                                const cls =
+                                  role === "family_owner"
+                                    ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-200"
+                                    : role === "sponsored"
+                                    ? "bg-pink-100 text-pink-800 dark:bg-pink-950/60 dark:text-pink-200"
+                                    : "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-200";
+                                return (
+                                  <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${cls}`} title={`${famName} · ${role}`}>
+                                    <Icon className="h-3 w-3" /> {famName}
+                                  </span>
+                                );
+                              })()}
                               {member.phone && (
                                 <button
                                   type="button"

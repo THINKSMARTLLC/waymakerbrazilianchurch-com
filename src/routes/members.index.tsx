@@ -501,6 +501,21 @@ function MembersPage() {
         );
       })()}
 
+      {selectedMembers.length > 0 && (
+        <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-4 py-2 text-sm">
+          <span className="font-medium text-foreground">
+            {selectedMembers.length} {selectedMembers.length === 1 ? "selecionado" : "selecionados"}
+          </span>
+          <button
+            type="button"
+            onClick={() => setSelectedMembers([])}
+            className="text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            Limpar seleção
+          </button>
+        </div>
+      )}
+
       <div className="card-elevated overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12">

@@ -224,6 +224,7 @@ function MembersPage() {
         if (lifecycleFilter === "inactive" && m.status !== "inactive") return false;
         if (selectedMemberId && m.id !== selectedMemberId) return false;
         if (statusFilter !== "all" && m.payment_status !== statusFilter) return false;
+        if (finFilter !== "all" && finBucketOf(m) !== finFilter) return false;
         if (birthdayFilter !== "all") {
           const bi = getBirthdayInfo(m.date_of_birth);
           if (!bi) return false;

@@ -221,6 +221,7 @@ export const finalizeSubscriptionSession = createServerFn({ method: "POST" })
           stripe_customer_id: stripeCustomerId,
           stripe_subscription_id: stripeSubscriptionId,
           contribution_type: contributionType as never,
+          relationship_label: relationshipLabel,
         },
         { onConflict: "payer_member_id,beneficiary_member_id,contribution_type" },
       );

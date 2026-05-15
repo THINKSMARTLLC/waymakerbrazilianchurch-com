@@ -131,23 +131,14 @@ export const createSubscriptionSession = createServerFn({ method: "POST" })
 
     const contributionType = data.contributionType ?? "pastor_salary";
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      customer: customerId,
-      line_items: [{ price: PRICE_ID, quantity: 1 }],
-      success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/cancel?member_id=${beneficiary.id}`,
-      metadata: {
-        // legacy
-        memberId: beneficiary.id,
-        member_id: beneficiary.id,
-        // new
-        payer_member_id: payer.id,
-        beneficiary_member_id: beneficiary.id,
-        contribution_type: contributionType,
-        relationship_label: data.relationshipLabel ?? "",
-      },
-      subscription_data: {
+    let session;
+    try {
+      session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        customer: customerId,
+        line_items: [{ price: PRICE_ID, quantity: 1 }],
+        success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/cancel?member_id=${beneficiary.id}`,
         metadata: {
           memberId: beneficiary.id,
           member_id: beneficiary.id,
@@ -156,10 +147,28 @@ export const createSubscriptionSession = createServerFn({ method: "POST" })
           contribution_type: contributionType,
           relationship_label: data.relationshipLabel ?? "",
         },
-      },
-    });
+        subscription_data: {
+          metadata: {
+            memberId: beneficiary.id,
+            member_id: beneficiary.id,
+            payer_member_id: payer.id,
+            beneficiary_member_id: beneficiary.id,
+            contribution_type: contributionType,
+            relationship_label: data.relationshipLabel ?? "",
+          },
+        },
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Stripe checkout failed.";
+      console.error("[createSubscriptionSession] Stripe error:", message);
+      throw new Error(`Payment provider error: ${message}`);
+    }
 
-    return { url: session.url };
+    if (!session.url) {
+      throw new Error("Stripe did not return a checkout URL.");
+    }
+
+    return { url: session.url, sessionId: session.id };
   });
 
 export const finalizeSubscriptionSession = createServerFn({ method: "POST" })

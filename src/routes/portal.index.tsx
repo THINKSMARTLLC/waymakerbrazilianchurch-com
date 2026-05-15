@@ -357,7 +357,7 @@ function MemberDashboard() {
             <div className="space-y-3">
               <button
                 disabled={!memberId || billingStatus?.subscription_active || subscribing}
-                onClick={handleSubscribe}
+                onClick={() => setShowPayerModal(true)}
                 className="flex w-full items-center justify-center rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {billingStatus?.subscription_active ? t("portal.subscriptionActive") : subscribing ? t("portal.redirecting") : t("portal.subscribeWeekly")}

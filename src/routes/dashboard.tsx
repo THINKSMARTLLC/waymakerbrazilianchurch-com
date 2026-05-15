@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatUSD } from "@/lib/format";
 import { getWeeklyExpectedTarget } from "@/lib/settings";
+import { getMonthlyRevenue } from "@/lib/finance";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({

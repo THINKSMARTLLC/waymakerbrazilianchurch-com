@@ -515,6 +515,29 @@ function MembersPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
+                  <th className="table-header px-3 py-3 text-left w-10">
+                    <input
+                      type="checkbox"
+                      aria-label="Select all"
+                      className="h-4 w-4 cursor-pointer accent-primary"
+                      checked={filtered.length > 0 && filtered.every((m) => selectedMembers.includes(m.id))}
+                      ref={(el) => {
+                        if (el) {
+                          const someSelected = filtered.some((m) => selectedMembers.includes(m.id));
+                          const allSelected = filtered.length > 0 && filtered.every((m) => selectedMembers.includes(m.id));
+                          el.indeterminate = someSelected && !allSelected;
+                        }
+                      }}
+                      onChange={(e) => {
+                        const visibleIds = filtered.map((m) => m.id);
+                        if (e.target.checked) {
+                          setSelectedMembers((prev) => Array.from(new Set([...prev, ...visibleIds])));
+                        } else {
+                          setSelectedMembers((prev) => prev.filter((id) => !visibleIds.includes(id)));
+                        }
+                      }}
+                    />
+                  </th>
                   <th className="table-header px-5 py-3 text-left">Name</th>
                   <th className="table-header px-5 py-3 text-left hidden lg:table-cell">Email</th>
                   <th className="table-header px-5 py-3 text-left hidden xl:table-cell">Phone</th>

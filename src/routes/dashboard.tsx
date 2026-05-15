@@ -109,9 +109,24 @@ function DashboardPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard title={t("payerBeneficiary.activeFamilies")} value={String(stats.activeFamilies)} icon={Users} />
-        <StatCard title={t("payerBeneficiary.payingForFamily")} value={String(stats.payingForFamily)} icon={Users} />
-        <StatCard title={t("payerBeneficiary.totalSponsored")} value={String(stats.sponsored)} icon={Users} />
+        <StatCard
+          title={t("payerBeneficiary.activeFamilies")}
+          value={String(stats.activeFamilies)}
+          icon={Users}
+          onClick={() => navigate({ to: "/members", search: { group: "family" } as never })}
+        />
+        <StatCard
+          title={t("payerBeneficiary.payingForFamily")}
+          value={String(stats.payingForFamily)}
+          icon={Users}
+          onClick={() => navigate({ to: "/members", search: { group: "family" } as never })}
+        />
+        <StatCard
+          title={t("payerBeneficiary.totalSponsored")}
+          value={String(stats.sponsored)}
+          icon={Users}
+          onClick={() => navigate({ to: "/members", search: { group: "family" } as never })}
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

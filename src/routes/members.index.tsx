@@ -31,15 +31,21 @@ import { FinancialRelationshipsDrawer } from "@/components/FinancialRelationship
 
 type LifecycleFilter = "active" | "inactive" | "all";
 
+type FinFilterParam = "paid" | "past_due" | "failed" | "unpaid" | "cancelled";
+
 interface MembersSearch {
   status?: MemberPaymentStatus;
   lifecycle?: LifecycleFilter;
+  fin?: FinFilterParam;
+  group?: "family";
 }
 
 export const Route = createFileRoute("/members/")({
   validateSearch: (search: Record<string, unknown>): MembersSearch => ({
     status: (search.status as MemberPaymentStatus | undefined) ?? undefined,
     lifecycle: (search.lifecycle as LifecycleFilter | undefined) ?? undefined,
+    fin: (search.fin as FinFilterParam | undefined) ?? undefined,
+    group: search.group === "family" ? "family" : undefined,
   }),
   head: () => ({
     meta: [
@@ -108,11 +114,11 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
 
 function MembersPage() {
   const { t } = useTranslation();
-  const { status: statusParam, lifecycle: lifecycleParam } = Route.useSearch();
+  const { status: statusParam, lifecycle: lifecycleParam, fin: finParam, group: groupParam } = Route.useSearch();
   const [search, setSearch] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<MemberPaymentStatus | "all">(statusParam ?? "all");
-  const [finFilter, setFinFilter] = useState<FinBucket | "all">("all");
+  const [finFilter, setFinFilter] = useState<FinBucket | "all">(finParam ?? "all");
   const [lifecycleFilter, setLifecycleFilter] = useState<LifecycleFilter>(lifecycleParam ?? "active");
   const [birthdayFilter, setBirthdayFilter] = useState<"all" | BirthdayWindow>("all");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -128,7 +134,7 @@ function MembersPage() {
   const [whatsappTarget, setWhatsappTarget] = useState<WhatsAppMember | null>(null);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [families, setFamilies] = useState<Map<string, string>>(new Map());
-  const [groupByFamily, setGroupByFamily] = useState(false);
+  const [groupByFamily, setGroupByFamily] = useState(groupParam === "family");
   const [collapsedFamilies, setCollapsedFamilies] = useState<Set<string>>(new Set());
   const [paidByMap, setPaidByMap] = useState<Map<string, { payerName: string; relationship: string | null }>>(new Map());
   const [relationsDrawerFor, setRelationsDrawerFor] = useState<string | null>(null);

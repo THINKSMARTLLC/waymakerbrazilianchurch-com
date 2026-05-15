@@ -865,6 +865,16 @@ function MembersPage() {
                                   </span>
                                 );
                               })()}
+                              {(() => {
+                                const pb = paidByMap.get(member.id);
+                                if (!pb) return null;
+                                const label = pb.relationship ? `${pb.payerName} · ${pb.relationship}` : pb.payerName;
+                                return (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 dark:bg-violet-950/60 px-1.5 py-0.5 text-[10px] font-semibold text-violet-800 dark:text-violet-200" title={`${t("portal.paidBy")}: ${label}`}>
+                                    <CreditCard className="h-3 w-3" /> {t("portal.paidBy")}: {label}
+                                  </span>
+                                );
+                              })()}
                               {member.phone && (
                                 <button
                                   type="button"

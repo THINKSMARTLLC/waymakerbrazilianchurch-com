@@ -524,8 +524,14 @@ function MembersPage() {
                 {filtered.map((member) => {
                   const weekly = Number(member.weekly_contribution_usd) || 0;
                   const dupGroup = groupByMemberId.get(member.id);
+                  const bucket = finBucketOf(member);
+                  const rowHighlight = dupGroup
+                    ? "bg-amber-50/50 dark:bg-amber-950/20"
+                    : bucket === "defaulter" || bucket === "stripe_failure"
+                    ? "bg-red-50/40 dark:bg-red-950/20"
+                    : "";
                   return (
-                    <tr key={member.id} className={`border-b border-border last:border-0 hover:bg-muted/50 transition-colors ${dupGroup ? "bg-amber-50/50 dark:bg-amber-950/20" : ""}`}>
+                    <tr key={member.id} className={`border-b border-border last:border-0 hover:bg-muted/60 transition-colors ${rowHighlight}`}>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-primary overflow-hidden">

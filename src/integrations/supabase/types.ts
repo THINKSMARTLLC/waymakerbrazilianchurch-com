@@ -443,6 +443,30 @@ export type Database = {
         }
         Relationships: []
       }
+      families: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       member_activities: {
         Row: {
           activity_date: string
@@ -619,6 +643,8 @@ export type Database = {
           discipleship_stage: Database["public"]["Enums"]["discipleship_stage"]
           email: string | null
           emergency_contact: string | null
+          family_id: string | null
+          family_role: Database["public"]["Enums"]["family_role"]
           id: string
           in_small_group: boolean
           inactivated_at: string | null
@@ -658,6 +684,8 @@ export type Database = {
           discipleship_stage?: Database["public"]["Enums"]["discipleship_stage"]
           email?: string | null
           emergency_contact?: string | null
+          family_id?: string | null
+          family_role?: Database["public"]["Enums"]["family_role"]
           id?: string
           in_small_group?: boolean
           inactivated_at?: string | null
@@ -697,6 +725,8 @@ export type Database = {
           discipleship_stage?: Database["public"]["Enums"]["discipleship_stage"]
           email?: string | null
           emergency_contact?: string | null
+          family_id?: string | null
+          family_role?: Database["public"]["Enums"]["family_role"]
           id?: string
           in_small_group?: boolean
           inactivated_at?: string | null
@@ -725,6 +755,13 @@ export type Database = {
             columns: ["assigned_leader_id"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "members_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
             referencedColumns: ["id"]
           },
         ]
@@ -1159,6 +1196,7 @@ export type Database = {
         | "serving"
         | "leader"
       engagement_status: "pending" | "approved" | "rejected"
+      family_role: "individual" | "family_owner" | "family_member" | "sponsored"
       member_status: "active" | "inactive"
       payment_frequency: "weekly" | "monthly"
       payment_method:
@@ -1348,6 +1386,7 @@ export const Constants = {
         "leader",
       ],
       engagement_status: ["pending", "approved", "rejected"],
+      family_role: ["individual", "family_owner", "family_member", "sponsored"],
       member_status: ["active", "inactive"],
       payment_frequency: ["weekly", "monthly"],
       payment_method: [

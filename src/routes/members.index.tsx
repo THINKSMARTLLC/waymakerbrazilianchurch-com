@@ -126,6 +126,9 @@ function MembersPage() {
   const [exporting, setExporting] = useState(false);
   const [whatsappTarget, setWhatsappTarget] = useState<WhatsAppMember | null>(null);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [families, setFamilies] = useState<Map<string, string>>(new Map());
+  const [groupByFamily, setGroupByFamily] = useState(false);
+  const [collapsedFamilies, setCollapsedFamilies] = useState<Set<string>>(new Set());
 
   const toggleMemberSelection = (id: string) => {
     setSelectedMembers((prev) =>

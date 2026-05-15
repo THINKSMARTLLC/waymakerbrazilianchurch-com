@@ -621,14 +621,15 @@ function MembersPage() {
                     : bucket === "defaulter" || bucket === "stripe_failure"
                     ? "bg-red-50/40 dark:bg-red-950/20"
                     : "";
+                  const isSelected = selectedMembers.includes(member.id);
                   return (
-                    <tr key={member.id} className={`border-b border-border last:border-0 hover:bg-muted/60 transition-colors ${rowHighlight} ${selectedMembers.includes(member.id) ? "bg-primary/5" : ""}`}>
-                      <td className="px-3 py-3.5 w-10">
+                    <tr key={member.id} className={`border-b border-border last:border-0 transition-colors duration-150 hover:bg-muted/50 ${rowHighlight} ${isSelected ? "bg-primary/10 hover:bg-primary/15 shadow-[inset_3px_0_0_0_var(--color-primary)]" : ""}`}>
+                      <td className="px-3 py-3.5 w-10 text-center align-middle">
                         <input
                           type="checkbox"
                           aria-label={`Select ${member.name}`}
-                          className="h-4 w-4 cursor-pointer accent-primary"
-                          checked={selectedMembers.includes(member.id)}
+                          className="h-4 w-4 cursor-pointer accent-primary align-middle"
+                          checked={isSelected}
                           onChange={() => toggleMemberSelection(member.id)}
                         />
                       </td>

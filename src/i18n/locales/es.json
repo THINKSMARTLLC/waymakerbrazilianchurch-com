@@ -180,5 +180,10 @@
         "description": "Categorías adicionales de contribución"
       }
     }
+  },
+  "payerBeneficiary": {
+    "activeFamilies": "Familias Activas",
+    "payingForFamily": "Pagando por la Familia",
+    "totalSponsored": "Miembros Patrocinados"
   }
 }

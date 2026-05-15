@@ -273,6 +273,34 @@ function MembersPage() {
     });
 
     setMembers(withStatus);
+
+    // Fetch active payer relationships (where payer != beneficiary) to show "Paid by" badge.
+    if (ids.length > 0) {
+      const { data: rels } = await supabase
+        .from("payment_relationships")
+        .select("beneficiary_member_id, payer_member_id, relationship_label")
+        .in("beneficiary_member_id", ids);
+      const payerIds = Array.from(new Set((rels ?? []).map((r) => r.payer_member_id).filter(Boolean)));
+      const nameById = new Map<string, string>();
+      if (payerIds.length > 0) {
+        const { data: payers } = await supabase.from("members").select("id, name").in("id", payerIds);
+        for (const p of payers ?? []) nameById.set(p.id as string, p.name as string);
+      }
+      const map = new Map<string, { payerName: string; relationship: string | null }>();
+      for (const r of rels ?? []) {
+        if (!r.beneficiary_member_id || r.payer_member_id === r.beneficiary_member_id) {
+          // Self-payer with a freeform label still counts.
+          if (r.relationship_label && r.beneficiary_member_id) {
+            map.set(r.beneficiary_member_id as string, { payerName: r.relationship_label as string, relationship: null });
+          }
+          continue;
+        }
+        const payerName = nameById.get(r.payer_member_id as string) ?? "—";
+        map.set(r.beneficiary_member_id as string, { payerName, relationship: (r.relationship_label as string) ?? null });
+      }
+      setPaidByMap(map);
+    }
+
     const dismissed = await loadDismissedGroupKeys();
     setDuplicateGroups(findDuplicateGroups(list).filter((g) => !dismissed.has(g.key)));
     setLoading(false);

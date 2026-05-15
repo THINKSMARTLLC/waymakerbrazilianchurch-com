@@ -46,7 +46,8 @@ function DashboardPage() {
         supabase.from("payments").select("payer_member_id, beneficiary_member_id").not("payer_member_id", "is", null).not("beneficiary_member_id", "is", null),
       ]);
 
-      const outstanding = Math.max(weeklyExpected * 4 - collectedThisMonth, 0);
+      const monthlyExpected = calculateExpectedMonthlyAmount(weeklyExpected, now.getMonth() + 1, now.getFullYear());
+      const outstanding = Math.max(monthlyExpected - collectedThisMonth, 0);
 
       const beneficiaries = new Set<string>();
       const payers = new Set<string>();

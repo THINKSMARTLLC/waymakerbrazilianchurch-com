@@ -58,22 +58,32 @@ interface MemberWithStatus extends Member {
   monthly_total: number;
 }
 
-type FinBucket = "on_time" | "late" | "defaulter" | "no_payment" | "stripe_failure";
+// Stripe-aligned financial buckets. Mirrors Stripe subscription/charge statuses
+// so dashboard totals match Stripe exactly.
+//   paid      → Stripe charge succeeded / member is current for the month
+//   past_due  → Stripe subscription past_due / member has paid before but is behind
+//   failed    → Stripe last charge failed
+//   unpaid    → Stripe unpaid / member has never paid
+//   cancelled → Stripe subscription cancelled
+type FinBucket = "paid" | "past_due" | "failed" | "unpaid" | "cancelled";
 
 function finBucketOf(m: MemberWithStatus): FinBucket | null {
-  // Stripe failure: had a subscription but it's no longer active.
-  if (m.stripe_subscription_id && !m.subscription_active) return "stripe_failure";
-  if (m.payment_status === "no_payment") return "no_payment";
-  if (m.payment_status === "late") {
-    if (m.last_payment_date) {
-      const days = (Date.now() - new Date(m.last_payment_date).getTime()) / 86_400_000;
-      if (days >= 30) return "defaulter";
-    } else {
-      return "defaulter";
-    }
-    return "late";
-  }
-  if (m.payment_status === "on_time" || m.payment_status === "active") return "on_time";
+  const sp = (m.status_payment || "").toLowerCase();
+
+  // Honor explicit Stripe-synced statuses first.
+  if (sp === "paid") return "paid";
+  if (sp === "failed") return "failed";
+  if (sp === "past_due") return "past_due";
+  if (sp === "unpaid") return "unpaid";
+  if (sp === "cancelled" || sp === "canceled") return "cancelled";
+
+  // Stripe subscription that is no longer active → failed.
+  if (m.stripe_subscription_id && !m.subscription_active) return "failed";
+
+  // Derive from internal computed status.
+  if (m.payment_status === "on_time" || m.payment_status === "active") return "paid";
+  if (m.payment_status === "late") return "past_due";
+  if (m.payment_status === "no_payment") return "unpaid";
   return null;
 }
 
@@ -450,7 +460,7 @@ function MembersPage() {
           return true;
         });
         const buckets: Record<FinBucket, MemberWithStatus[]> = {
-          on_time: [], late: [], defaulter: [], no_payment: [], stripe_failure: [],
+          paid: [], past_due: [], failed: [], unpaid: [], cancelled: [],
         };
         for (const m of visible) {
           const b = finBucketOf(m);
@@ -464,15 +474,15 @@ function MembersPage() {
 
         const total = visible.length || 1;
         const todayCount = visible.filter((m) => m.last_payment_date === todayYMD).length;
-        const stripeFailures = buckets.stripe_failure.length;
-        const pendingCharges = buckets.late.length + buckets.defaulter.length + buckets.no_payment.length;
+        const stripeFailures = buckets.failed.length;
+        const pendingCharges = buckets.past_due.length + buckets.unpaid.length + buckets.failed.length;
 
         const cards: Array<{ key: FinBucket; label: string; count: number; amount: number; amountLabel: string; tone: "emerald" | "amber" | "red" | "slate" | "rose"; Icon: typeof CheckCircle2 }> = [
-          { key: "on_time", label: "On Time", count: buckets.on_time.length, amount: sumPaid(buckets.on_time), amountLabel: "received", tone: "emerald", Icon: CheckCircle2 },
-          { key: "late", label: "Late", count: buckets.late.length, amount: sumPending(buckets.late), amountLabel: "pending", tone: "amber", Icon: Clock },
-          { key: "defaulter", label: "Defaulters", count: buckets.defaulter.length, amount: sumPending(buckets.defaulter), amountLabel: "overdue", tone: "red", Icon: AlertCircle },
-          { key: "no_payment", label: "No Payment", count: buckets.no_payment.length, amount: sumExpected(buckets.no_payment), amountLabel: "expected", tone: "slate", Icon: CircleDashed },
-          { key: "stripe_failure", label: "Stripe Failure", count: buckets.stripe_failure.length, amount: sumPending(buckets.stripe_failure), amountLabel: "pending", tone: "rose", Icon: CreditCard },
+          { key: "paid",      label: "Paid",      count: buckets.paid.length,      amount: sumPaid(buckets.paid),          amountLabel: "received", tone: "emerald", Icon: CheckCircle2 },
+          { key: "past_due",  label: "Past Due",  count: buckets.past_due.length,  amount: sumPending(buckets.past_due),   amountLabel: "pending",  tone: "amber",   Icon: Clock },
+          { key: "failed",    label: "Failed",    count: buckets.failed.length,    amount: sumPending(buckets.failed),     amountLabel: "pending",  tone: "rose",    Icon: CreditCard },
+          { key: "unpaid",    label: "Unpaid",    count: buckets.unpaid.length,    amount: sumExpected(buckets.unpaid),    amountLabel: "expected", tone: "slate",   Icon: CircleDashed },
+          { key: "cancelled", label: "Cancelled", count: buckets.cancelled.length, amount: sumExpected(buckets.cancelled), amountLabel: "expected", tone: "red",     Icon: AlertCircle },
         ];
 
         const toneClasses: Record<typeof cards[number]["tone"], { ring: string; bg: string; icon: string; text: string }> = {
@@ -618,7 +628,7 @@ function MembersPage() {
                   const bucket = finBucketOf(member);
                   const rowHighlight = dupGroup
                     ? "bg-amber-50/50 dark:bg-amber-950/20"
-                    : bucket === "defaulter" || bucket === "stripe_failure"
+                    : bucket === "failed" || bucket === "cancelled"
                     ? "bg-red-50/40 dark:bg-red-950/20"
                     : "";
                   const isSelected = selectedMembers.includes(member.id);

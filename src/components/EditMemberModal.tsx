@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,8 @@ import { parseEmergencyContact, serializeEmergencyContact } from "@/lib/emergenc
 import { formatUSPhoneInput } from "@/lib/phone";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
+type FamilyRole = Database["public"]["Enums"]["family_role"];
+interface FamilyOption { id: string; name: string }
 
 interface EditMemberModalProps {
   member: Member;
@@ -25,8 +27,19 @@ export function EditMemberModal({ member, onClose, onSaved }: EditMemberModalPro
   const [emergency, setEmergency] = useState(() => parseEmergencyContact(member.emergency_contact));
   const [memberRole, setMemberRole] = useState(member.member_role ?? "");
   const [department, setDepartment] = useState(member.department ?? "");
+  const [familyId, setFamilyId] = useState<string>(member.family_id ?? "");
+  const [familyRole, setFamilyRole] = useState<FamilyRole>((member.family_role ?? "individual") as FamilyRole);
+  const [newFamilyName, setNewFamilyName] = useState("");
+  const [families, setFamilies] = useState<FamilyOption[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.from("families").select("id, name").order("name").then(({ data }) => {
+      setFamilies((data ?? []) as FamilyOption[]);
+    });
+  }, []);
+
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

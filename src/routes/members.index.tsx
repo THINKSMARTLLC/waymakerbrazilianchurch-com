@@ -190,10 +190,11 @@ function MembersPage() {
   }, [lifecycleParam]);
 
   const fetchMembers = async () => {
-    const { data: membersData } = await supabase
-      .from("members")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const [{ data: membersData }, { data: familiesData }] = await Promise.all([
+      supabase.from("members").select("*").order("created_at", { ascending: false }),
+      supabase.from("families").select("id, name"),
+    ]);
+    setFamilies(new Map((familiesData ?? []).map((f) => [f.id as string, f.name as string])));
 
     // Hide archived (merged/trashed) members from the main list.
     const list = (membersData || []).filter((m) => !(m as { archived?: boolean }).archived);

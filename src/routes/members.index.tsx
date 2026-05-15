@@ -237,16 +237,26 @@ function MembersPage() {
       }
     }
 
+    const weeksInCurrentMonth = getWeeksInMonth(now.getMonth() + 1, now.getFullYear());
+
     const withStatus: MemberWithStatus[] = list.map((m) => {
       const last = lastByMember.get(m.id);
       const freq = (m as Member & { contribution_frequency?: ContributionFrequency }).contribution_frequency ?? "weekly";
+      const weeklyAmount = Number(m.weekly_contribution_usd) || 0;
+      const monthlyPaid = monthlyTotalByMember.get(m.id) ?? 0;
+      const monthlyExpected = weeklyAmount * weeksInCurrentMonth;
+      const monthlyPending = Math.max(monthlyExpected - monthlyPaid, 0);
       return {
         ...m,
         name: toTitleCase(m.name),
         last_payment_date: last?.payment_date ?? null,
         last_payment_method: last?.payment_method ?? null,
         payment_status: computeMemberStatus(last?.payment_date ?? null, freq, monthsByMember.get(m.id) ?? null),
-        monthly_total: monthlyTotalByMember.get(m.id) ?? 0,
+        monthly_total: monthlyPaid,
+        weekly_amount: weeklyAmount,
+        monthly_expected: monthlyExpected,
+        monthly_paid: monthlyPaid,
+        monthly_pending: monthlyPending,
       };
     });
 

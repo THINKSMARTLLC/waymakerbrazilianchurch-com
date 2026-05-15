@@ -179,6 +179,7 @@ export const finalizeSubscriptionSession = createServerFn({ method: "POST" })
       session.metadata?.beneficiary_member_id ?? session.metadata?.memberId ?? session.metadata?.member_id ?? null;
     const payerId = session.metadata?.payer_member_id ?? beneficiaryId;
     const contributionType = session.metadata?.contribution_type ?? "pastor_salary";
+    const relationshipLabel = session.metadata?.relationship_label || null;
 
     if (!beneficiaryId || !payerId) {
       throw new Error("Subscription metadata is missing.");

@@ -659,7 +659,7 @@ function MemberFormModal({ member, onClose, onSaved }: { member?: Member; onClos
   };
 
   const weeklyNum = Number(weekly) || 0;
-  const monthlyNum = weeklyNum * 4;
+  const monthlyNum = calculateExpectedMonthlyAmount(weeklyNum);
 
   const runDuplicateCheck = async (email: string | null, phone: string | null, name: string | null) => {
     if (!email && !phone) {

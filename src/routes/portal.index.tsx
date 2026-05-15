@@ -200,6 +200,10 @@ function MemberDashboard() {
 
   const handleSubscribe = async () => {
     if (!memberId || billingStatus?.subscription_active) return;
+    if (paidByOther && !payerName.trim()) {
+      toast.error(t("portal.payerNameRequired"));
+      return;
+    }
     setSubscribing(true);
     try {
       const { data } = await supabase.auth.getSession();
@@ -207,8 +211,12 @@ function MemberDashboard() {
 
       if (!token) throw new Error("Please sign in again.");
 
+      const relationshipLabel = paidByOther
+        ? `${payerName.trim()} (${t(`emergencyContact.relationships.${payerRelationship}`)})`
+        : undefined;
+
       const result = await createSubscriptionSession({
-        data: { memberId },
+        data: { memberId, relationshipLabel },
         headers: { authorization: `Bearer ${token}` },
       });
 

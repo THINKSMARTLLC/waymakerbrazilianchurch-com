@@ -561,7 +561,16 @@ function MembersPage() {
                     ? "bg-red-50/40 dark:bg-red-950/20"
                     : "";
                   return (
-                    <tr key={member.id} className={`border-b border-border last:border-0 hover:bg-muted/60 transition-colors ${rowHighlight}`}>
+                    <tr key={member.id} className={`border-b border-border last:border-0 hover:bg-muted/60 transition-colors ${rowHighlight} ${selectedMembers.includes(member.id) ? "bg-primary/5" : ""}`}>
+                      <td className="px-3 py-3.5 w-10">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${member.name}`}
+                          className="h-4 w-4 cursor-pointer accent-primary"
+                          checked={selectedMembers.includes(member.id)}
+                          onChange={() => toggleMemberSelection(member.id)}
+                        />
+                      </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-primary overflow-hidden">

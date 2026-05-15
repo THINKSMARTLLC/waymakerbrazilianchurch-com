@@ -321,6 +321,71 @@ function MembersPage() {
     [members, search, statusFilter, finFilter, selectedMemberId, lifecycleFilter, birthdayFilter]
   );
 
+  // Build the displayable list: optionally grouped by family, with header rows.
+  type DisplayItem =
+    | { kind: "member"; member: MemberWithStatus }
+    | {
+        kind: "family";
+        familyId: string;
+        familyName: string;
+        count: number;
+        expected: number;
+        paid: number;
+        pending: number;
+        memberIds: string[];
+        collapsed: boolean;
+      };
+
+  const displayItems = useMemo<DisplayItem[]>(() => {
+    if (!groupByFamily) return filtered.map((m) => ({ kind: "member" as const, member: m }));
+
+    // Group filtered members by family. Members without a family go into a synthetic group.
+    const NONE = "__none__";
+    const byFam = new Map<string, MemberWithStatus[]>();
+    for (const m of filtered) {
+      const key = m.family_id ?? NONE;
+      if (!byFam.has(key)) byFam.set(key, []);
+      byFam.get(key)!.push(m);
+    }
+
+    // Sort: real families first by name, then "Individual Members" last.
+    const entries = Array.from(byFam.entries()).sort(([a], [b]) => {
+      if (a === NONE) return 1;
+      if (b === NONE) return -1;
+      const an = families.get(a) ?? "";
+      const bn = families.get(b) ?? "";
+      return an.localeCompare(bn, undefined, { sensitivity: "base" });
+    });
+
+    const out: DisplayItem[] = [];
+    for (const [famKey, mems] of entries) {
+      const familyName = famKey === NONE ? "Individual Members" : families.get(famKey) ?? "Unknown family";
+      const collapsed = collapsedFamilies.has(famKey);
+      out.push({
+        kind: "family",
+        familyId: famKey,
+        familyName,
+        count: mems.length,
+        expected: mems.reduce((s, m) => s + m.monthly_expected, 0),
+        paid: mems.reduce((s, m) => s + m.monthly_paid, 0),
+        pending: mems.reduce((s, m) => s + m.monthly_pending, 0),
+        memberIds: mems.map((m) => m.id),
+        collapsed,
+      });
+      if (!collapsed) for (const m of mems) out.push({ kind: "member", member: m });
+    }
+    return out;
+  }, [filtered, groupByFamily, families, collapsedFamilies]);
+
+  const toggleFamilyCollapse = (famKey: string) => {
+    setCollapsedFamilies((prev) => {
+      const next = new Set(prev);
+      if (next.has(famKey)) next.delete(famKey);
+      else next.add(famKey);
+      return next;
+    });
+  };
+
   const inactiveCount = useMemo(
     () => members.filter((m) => m.status === "inactive").length,
     [members],

@@ -444,20 +444,23 @@ function MembersPage() {
 
     const out: DisplayItem[] = [];
     for (const [famKey, mems] of entries) {
+      const sortedMembers = sortMembersByComputedFamilyRole(
+        mems.map((member) => ({ ...member, computedFamilyRole: member.computed_family_role })),
+      ).map(({ computedFamilyRole, ...member }) => member);
       const familyName = famKey === NONE ? "Individual Members" : families.get(famKey) ?? "Unknown family";
       const collapsed = collapsedFamilies.has(famKey);
       out.push({
         kind: "family",
         familyId: famKey,
         familyName,
-        count: mems.length,
-        expected: mems.reduce((s, m) => s + m.monthly_expected, 0),
-        paid: mems.reduce((s, m) => s + m.monthly_paid, 0),
-        pending: mems.reduce((s, m) => s + m.monthly_pending, 0),
-        memberIds: mems.map((m) => m.id),
+        count: sortedMembers.length,
+        expected: sortedMembers.reduce((s, m) => s + m.monthly_expected, 0),
+        paid: sortedMembers.reduce((s, m) => s + m.monthly_paid, 0),
+        pending: sortedMembers.reduce((s, m) => s + m.monthly_pending, 0),
+        memberIds: sortedMembers.map((m) => m.id),
         collapsed,
       });
-      if (!collapsed) for (const m of mems) out.push({ kind: "member", member: m });
+      if (!collapsed) for (const m of sortedMembers) out.push({ kind: "member", member: m });
     }
     return out;
   }, [filtered, groupByFamily, families, collapsedFamilies]);

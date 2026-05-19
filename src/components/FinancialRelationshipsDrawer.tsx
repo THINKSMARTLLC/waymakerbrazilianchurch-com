@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { Crown, Heart, Users, ChevronDown, ChevronRight, Trash2, UserPlus, CreditCard, Loader2, X } from "lucide-react";
 import { formatUSD, toTitleCase } from "@/lib/format";
+import { computeFamilyRoleMap, getComputedFamilyRoleLabel } from "@/lib/familyComputedRoles";
+import { emitFamilyFinancialsUpdated } from "@/lib/familySync";
 import { toast } from "sonner";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
@@ -25,6 +27,8 @@ interface Node {
   id: string;
   name: string;
   family_role: FamilyRole | null;
+  computed_role: "sponsor" | "individual_sponsor" | "dependent" | "individual";
+  sponsored_by: string | null;
   subscription_active: boolean;
   status_payment: string | null;
   stripe_subscription_id: string | null;
@@ -80,10 +84,18 @@ export function FinancialRelationshipsDrawer({ memberId, open, onClose, onChange
             paidMap.set(k, (paidMap.get(k) ?? 0) + Number(p.amount ?? 0));
           }
         }
+        const { data: relationshipRows } = await supabase
+          .from("payment_relationships")
+          .select("payer_member_id, beneficiary_member_id")
+          .in("beneficiary_member_id", ids);
+        const roleMap = computeFamilyRoleMap((rows || []) as Member[], (relationshipRows || []) as Array<{ payer_member_id: string; beneficiary_member_id: string }>);
+
         sibs = (rows || []).map((r) => ({
           id: r.id as string,
           name: r.name as string,
           family_role: r.family_role as FamilyRole,
+          computed_role: roleMap.get(r.id as string)?.computedRole ?? "individual",
+          sponsored_by: roleMap.get(r.id as string)?.sponsoredBy ?? null,
           subscription_active: !!r.subscription_active,
           status_payment: (r.status_payment as string) ?? null,
           stripe_subscription_id: (r.stripe_subscription_id as string) ?? null,
@@ -112,6 +124,8 @@ export function FinancialRelationshipsDrawer({ memberId, open, onClose, onChange
             id: payer.id as string,
             name: payer.name as string,
             family_role: payer.family_role as FamilyRole,
+            computed_role: "individual",
+            sponsored_by: null,
             subscription_active: !!payer.subscription_active,
             status_payment: (payer.status_payment as string) ?? null,
             stripe_subscription_id: (payer.stripe_subscription_id as string) ?? null,
@@ -129,11 +143,8 @@ export function FinancialRelationshipsDrawer({ memberId, open, onClose, onChange
     if (open && memberId) reload();
   }, [open, memberId]);
 
-  const owner = useMemo(() => siblings.find((s) => s.family_role === "family_owner") ?? null, [siblings]);
-  const dependents = useMemo(
-    () => siblings.filter((s) => s.id !== owner?.id),
-    [siblings, owner],
-  );
+  const owner = useMemo(() => siblings.find((s) => s.computed_role === "sponsor") ?? null, [siblings]);
+  const dependents = useMemo(() => siblings.filter((s) => s.id !== owner?.id), [siblings, owner]);
   const totalExpected = siblings.length * Number(member?.weekly_contribution_usd ?? 0) * 4;
   const totalPaid = siblings.reduce((s, n) => s + n.monthly_paid, 0);
 
@@ -144,6 +155,7 @@ export function FinancialRelationshipsDrawer({ memberId, open, onClose, onChange
     if (error) toast.error(error.message);
     else {
       toast.success("Updated");
+      emitFamilyFinancialsUpdated({ memberId: id, action: "set-role" });
       await reload();
       onChanged?.();
     }
@@ -160,6 +172,7 @@ export function FinancialRelationshipsDrawer({ memberId, open, onClose, onChange
     if (error) toast.error(error.message);
     else {
       toast.success("Removed");
+      emitFamilyFinancialsUpdated({ memberId: id, action: "remove-from-family" });
       await reload();
       onChanged?.();
     }
@@ -177,6 +190,7 @@ export function FinancialRelationshipsDrawer({ memberId, open, onClose, onChange
     if (error) toast.error(error.message);
     else {
       toast.success("Payer updated");
+      emitFamilyFinancialsUpdated({ memberId: id, action: "set-payer" });
       await reload();
       onChanged?.();
     }
@@ -211,18 +225,23 @@ export function FinancialRelationshipsDrawer({ memberId, open, onClose, onChange
       setShowAdd(false);
       setSearchQ("");
       setSearchResults([]);
+      emitFamilyFinancialsUpdated({ memberId: m.id, action: "add-dependent" });
       await reload();
       onChanged?.();
     }
   };
 
   const renderNode = (n: Node, isOwner: boolean) => {
-    const Icon = isOwner ? Crown : n.family_role === "sponsored" ? Heart : Users;
+    const isIndividualSponsor = n.computed_role === "individual_sponsor";
+    const isDependent = n.computed_role === "dependent";
+    const Icon = isOwner || isIndividualSponsor ? Crown : isDependent ? Heart : Users;
     const tone = isOwner
       ? "text-amber-600"
-      : n.family_role === "sponsored"
-      ? "text-pink-600"
-      : "text-blue-600";
+      : isIndividualSponsor
+      ? "text-violet-600"
+      : isDependent
+      ? "text-blue-600"
+      : "text-muted-foreground";
     return (
       <div key={n.id} className="rounded-lg border border-border bg-background p-3">
         <div className="flex items-start justify-between gap-3">
@@ -235,6 +254,9 @@ export function FinancialRelationshipsDrawer({ memberId, open, onClose, onChange
                   n.subscription_active ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
                 }`}>
                   {n.stripe_subscription_id ? (n.subscription_active ? "Stripe active" : "Stripe inactive") : "No Stripe"}
+                </span>
+                <span className="inline-flex items-center rounded-full bg-background px-1.5 py-0.5 text-[10px] font-semibold text-foreground border border-border">
+                  {getComputedFamilyRoleLabel(n.computed_role)}
                 </span>
                 {n.status_payment && (
                   <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">

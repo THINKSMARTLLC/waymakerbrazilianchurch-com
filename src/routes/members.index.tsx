@@ -592,60 +592,81 @@ function MembersPage() {
 
       {(() => {
         const now = new Date();
-        const weeks = getWeeksInMonth(now.getMonth() + 1, now.getFullYear());
         const todayYMD = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
         const visible = members.filter((m) => {
           if (lifecycleFilter === "active" && m.status !== "active") return false;
           if (lifecycleFilter === "inactive" && m.status !== "inactive") return false;
           return true;
         });
-        const buckets: Record<FinBucket, MemberWithStatus[]> = {
-          paid: [], past_due: [], failed: [], unpaid: [], cancelled: [],
-        };
-        for (const m of visible) {
-          const b = finBucketOf(m);
-          if (b) buckets[b].push(m);
-        }
-        // Use the explicit per-member fields (single source of truth).
-        const sumPending  = (arr: MemberWithStatus[]) => arr.reduce((s, m) => s + m.monthly_pending,  0);
-        const sumPaid     = (arr: MemberWithStatus[]) => arr.reduce((s, m) => s + m.monthly_paid,     0);
-        const sumExpected = (arr: MemberWithStatus[]) => arr.reduce((s, m) => s + m.monthly_expected, 0);
 
-        // Temporary diagnostic logs — verify the math member-by-member.
-        // eslint-disable-next-line no-console
-        console.log("[finance] weeks_in_month", weeks, "visible_members", visible.length);
-        // eslint-disable-next-line no-console
-        console.table(
-          visible.map((m) => ({
-            name: m.name,
-            bucket: finBucketOf(m),
-            weekly_amount: m.weekly_amount,
-            weeks,
-            monthly_expected: m.monthly_expected,
-            monthly_paid: m.monthly_paid,
-            monthly_pending: m.monthly_pending,
-          }))
-        );
-        // eslint-disable-next-line no-console
-        console.log("[finance] bucket totals", {
-          paid:      { count: buckets.paid.length,      paid: sumPaid(buckets.paid) },
-          past_due:  { count: buckets.past_due.length,  pending: sumPending(buckets.past_due) },
-          failed:    { count: buckets.failed.length,    pending: sumPending(buckets.failed) },
-          unpaid:    { count: buckets.unpaid.length,    expected: sumExpected(buckets.unpaid) },
-          cancelled: { count: buckets.cancelled.length, expected: sumExpected(buckets.cancelled) },
-        });
+        // Ledger-based aggregation (single source of truth).
+        // Each member is counted ONCE — no inflation from Stripe retries.
+        const paidMembers: MemberWithStatus[] = [];
+        const pastDueMembers: MemberWithStatus[] = [];
+        const unpaidMembers: MemberWithStatus[] = [];
+        const failedMembers: MemberWithStatus[] = [];
+        const cancelledMembers: MemberWithStatus[] = [];
+
+        let paidAmount = 0;
+        let pastDueAmount = 0;
+        let pastDueWeeks = 0;
+        let unpaidAmount = 0;
+        let unpaidWeeks = 0;
+        let failedAmount = 0;
+        let failedWeeks = 0;
+
+        for (const m of visible) {
+          const sp = (m.status_payment || "").toLowerCase();
+          if (sp === "cancelled" || sp === "canceled") {
+            cancelledMembers.push(m);
+            continue;
+          }
+          const l = m.ledger;
+          if (!l) {
+            // No ledger row yet → treat as unpaid placeholder, contributes nothing.
+            unpaidMembers.push(m);
+            continue;
+          }
+          if (l.status === "paid") {
+            paidMembers.push(m);
+            paidAmount += l.totalPaid;
+          } else if (l.status === "unpaid") {
+            unpaidMembers.push(m);
+            unpaidWeeks += l.weeksOverdue;
+            unpaidAmount += Math.max(-l.balance, 0);
+          } else {
+            // overdue / late / critical
+            pastDueMembers.push(m);
+            pastDueWeeks += l.weeksOverdue;
+            pastDueAmount += Math.max(-l.balance, 0);
+          }
+          // Failed = ledger row marked failed OR active Stripe subscription gone bad.
+          const hasStripeFailure = !!(m.stripe_subscription_id && !m.subscription_active);
+          if (l.failedWeeks > 0 || hasStripeFailure) {
+            failedMembers.push(m);
+            failedWeeks += l.failedWeeks;
+            failedAmount += Math.max(-l.balance, 0);
+          }
+        }
 
         const total = visible.length || 1;
         const todayCount = visible.filter((m) => m.last_payment_date === todayYMD).length;
-        const stripeFailures = buckets.failed.length;
-        const pendingCharges = buckets.past_due.length + buckets.unpaid.length + buckets.failed.length;
 
-        const cards: Array<{ key: FinBucket; label: string; count: number; amount: number; amountLabel: string; tone: "emerald" | "amber" | "red" | "slate" | "rose"; Icon: typeof CheckCircle2 }> = [
-          { key: "paid",      label: "Paid",      count: buckets.paid.length,      amount: sumPaid(buckets.paid),          amountLabel: "received", tone: "emerald", Icon: CheckCircle2 },
-          { key: "past_due",  label: "Past Due",  count: buckets.past_due.length,  amount: sumPending(buckets.past_due),   amountLabel: "pending",  tone: "amber",   Icon: Clock },
-          { key: "failed",    label: "Failed",    count: buckets.failed.length,    amount: sumPending(buckets.failed),     amountLabel: "pending",  tone: "rose",    Icon: CreditCard },
-          { key: "unpaid",    label: "Unpaid",    count: buckets.unpaid.length,    amount: sumExpected(buckets.unpaid),    amountLabel: "expected", tone: "slate",   Icon: CircleDashed },
-          { key: "cancelled", label: "Cancelled", count: buckets.cancelled.length, amount: sumExpected(buckets.cancelled), amountLabel: "expected", tone: "red",     Icon: AlertCircle },
+        const cards: Array<{
+          key: FinBucket;
+          label: string;
+          count: number;
+          amount: number;
+          amountLabel: string;
+          tone: "emerald" | "amber" | "red" | "slate" | "rose";
+          Icon: typeof CheckCircle2;
+          subtitle?: string;
+        }> = [
+          { key: "paid",      label: "Paid",      count: paidMembers.length,     amount: paidAmount,    amountLabel: "received", tone: "emerald", Icon: CheckCircle2 },
+          { key: "past_due",  label: "Past Due",  count: pastDueMembers.length,  amount: pastDueAmount, amountLabel: "owed",     tone: "amber",   Icon: Clock,        subtitle: `${pastDueWeeks} weeks overdue` },
+          { key: "failed",    label: "Failed",    count: failedMembers.length,   amount: failedAmount,  amountLabel: "owed",     tone: "rose",    Icon: CreditCard,   subtitle: `${failedWeeks} failed weeks` },
+          { key: "unpaid",    label: "Unpaid",    count: unpaidMembers.length,   amount: unpaidAmount,  amountLabel: "owed",     tone: "slate",   Icon: CircleDashed, subtitle: `${unpaidWeeks} weeks accumulated` },
+          { key: "cancelled", label: "Cancelled", count: cancelledMembers.length, amount: 0,            amountLabel: "members",  tone: "red",     Icon: AlertCircle },
         ];
 
         const toneClasses: Record<typeof cards[number]["tone"], { ring: string; bg: string; icon: string; text: string }> = {
@@ -667,9 +688,13 @@ function MembersPage() {
                   <button
                     key={c.key}
                     type="button"
-                    onClick={() => setFinFilter(active ? "all" : c.key)}
-                    className={`card-elevated text-left p-4 transition-all hover:shadow-md ${active ? `ring-2 ${cls.ring}` : ""}`}
+                    onClick={() => {
+                      setFinFilter(active ? "all" : c.key);
+                      if (c.key === "failed" && !active) setFailedDrawerOpen(true);
+                    }}
+                    className={`card-elevated text-left p-4 transition-all hover:shadow-md cursor-pointer ${active ? `ring-2 ${cls.ring}` : ""}`}
                     aria-pressed={active}
+                    title={c.key === "failed" ? "Click to see detailed Stripe breakdown" : `Filter table by ${c.label}`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${cls.bg}`}>
@@ -683,6 +708,9 @@ function MembersPage() {
                       <p className="text-xs text-muted-foreground mt-0.5">
                         <span className="font-medium text-foreground">{formatUSD(c.amount)}</span> {c.amountLabel}
                       </p>
+                      {c.subtitle && (
+                        <p className="text-[11px] text-muted-foreground mt-1">{c.subtitle}</p>
+                      )}
                     </div>
                   </button>
                 );
@@ -692,12 +720,14 @@ function MembersPage() {
               <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1">
                 <Clock className="h-3 w-3" /> Due today: <span className="font-semibold text-foreground">{todayCount}</span>
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1">
-                <CreditCard className="h-3 w-3" /> Stripe failures: <span className="font-semibold text-foreground">{stripeFailures}</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1">
-                <AlertCircle className="h-3 w-3" /> Pending charges: <span className="font-semibold text-foreground">{pendingCharges}</span>
-              </span>
+              <button
+                type="button"
+                onClick={() => setFailedDrawerOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 hover:bg-muted/70 transition-colors"
+                title="Open detailed breakdown"
+              >
+                <CreditCard className="h-3 w-3" /> Stripe failures: <span className="font-semibold text-foreground">{failedMembers.length}</span>
+              </button>
               {finFilter !== "all" && (
                 <button type="button" onClick={() => setFinFilter("all")} className="ml-auto text-xs font-medium text-primary hover:underline">
                   Clear card filter
@@ -707,6 +737,7 @@ function MembersPage() {
           </div>
         );
       })()}
+
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button

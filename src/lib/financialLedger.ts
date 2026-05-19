@@ -186,11 +186,11 @@ export async function getFailedMembersDetail(activeMemberIds: string[]): Promise
   if (activeMemberIds.length === 0) return [];
   const summaries = await getMemberFinancialSummaries(activeMemberIds);
 
-  // Count Stripe attempts per member (failed payment rows)
+  // Count Stripe attempts per member (past_due payment rows = failed Stripe attempts)
   const { data: failedPayments } = await supabase
     .from("payments")
     .select("member_id")
-    .eq("status", "failed")
+    .eq("status", "past_due")
     .in("member_id", activeMemberIds);
 
   const attemptsByMember = new Map<string, number>();

@@ -106,7 +106,7 @@ export function MemberFinancialDrawer({ memberId, onClose }: Props) {
                 </div>
                 <div className="rounded-lg border border-border bg-muted/30 p-3">
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total paid</p>
-                  <p className="mt-1 text-sm font-semibold tabular-nums">{formatUSD(summary.totalPaid)}</p>
+                  <p className="mt-1 text-sm font-semibold tabular-nums">{formatUSD(totalPaid)}</p>
                 </div>
                 <div className="rounded-lg border border-border bg-muted/30 p-3">
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Overdue weeks</p>

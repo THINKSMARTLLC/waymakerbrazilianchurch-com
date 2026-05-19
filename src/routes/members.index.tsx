@@ -360,11 +360,13 @@ function MembersPage() {
 
   useEffect(() => {
     fetchMembers();
+    getThisMonthSummary().then(setMonthSummary).catch(() => setMonthSummary(null));
   }, []);
 
   useEffect(() => {
     return subscribeToFamilyFinancialsUpdated(() => {
       fetchMembers();
+      getThisMonthSummary().then(setMonthSummary).catch(() => setMonthSummary(null));
     });
   }, []);
 

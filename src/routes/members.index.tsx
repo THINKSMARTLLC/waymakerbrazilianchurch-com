@@ -152,7 +152,7 @@ function MembersPage() {
   const [whatsappTarget, setWhatsappTarget] = useState<WhatsAppMember | null>(null);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [families, setFamilies] = useState<Map<string, string>>(new Map());
-  const [groupByFamily, setGroupByFamily] = useState(groupParam === "family");
+  const [groupByFamily] = useState(false);
   const [collapsedFamilies, setCollapsedFamilies] = useState<Set<string>>(new Set());
   const [paidByMap, setPaidByMap] = useState<Map<string, { payerName: string; relationship: string | null }>>(new Map());
   const [relationsDrawerFor, setRelationsDrawerFor] = useState<string | null>(null);

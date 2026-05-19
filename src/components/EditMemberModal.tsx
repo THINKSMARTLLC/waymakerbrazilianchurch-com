@@ -196,11 +196,14 @@ export function EditMemberModal({ member, onClose, onSaved }: EditMemberModalPro
                   disabled={!familyId}
                   className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm disabled:opacity-50"
                 >
-                  <option value="individual">Individual</option>
-                  <option value="family_owner">Family owner (pays)</option>
-                  <option value="family_member">Family member</option>
-                  <option value="sponsored">Sponsored</option>
+                  <option value="family_owner">👑 Sponsor (pays for family)</option>
+                  <option value="family_member">👑 Individual Sponsor (pays own subscription)</option>
+                  <option value="sponsored">👤 Dependent (paid by sponsor)</option>
+                  <option value="individual">Individual (not in family)</option>
                 </select>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Members with an active Stripe subscription are automatically treated as sponsors and never shown as dependents.
+                </p>
               </div>
             </div>
           </div>

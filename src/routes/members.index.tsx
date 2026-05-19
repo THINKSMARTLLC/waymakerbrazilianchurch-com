@@ -1104,12 +1104,8 @@ function MembersPage() {
         onOpenChange={(open) => { if (!open) setWhatsappTarget(null); }}
         member={whatsappTarget}
       />
-      <FinancialRelationshipsDrawer
-        memberId={relationsDrawerFor}
-        open={!!relationsDrawerFor}
-        onClose={() => setRelationsDrawerFor(null)}
-        onChanged={fetchMembers}
-      />
+      {/* Financial Relationships drawer removed — individual members only */}
+
       <FailedPaymentsDrawer
         open={failedDrawerOpen}
         activeMemberIds={members.filter((m) => m.status === "active").map((m) => m.id)}

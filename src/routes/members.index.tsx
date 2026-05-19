@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check, AlertTriangle, Archive, Download, Upload, Cake, MessageCircle, CheckCircle2, Clock, AlertCircle, CircleDashed, CreditCard, Users, ChevronDown, ChevronRight, Crown, Heart } from "lucide-react";
+import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check, AlertTriangle, Archive, Download, Upload, Cake, MessageCircle, CheckCircle2, Clock, AlertCircle, CircleDashed, CreditCard, Users, ChevronDown, ChevronRight, Crown } from "lucide-react";
 import { WhatsAppMessageModal, type WhatsAppMember } from "@/components/WhatsAppMessageModal";
 import { getBirthdayInfo, type BirthdayWindow } from "@/lib/birthday";
 import { exportMembersCSV, exportMembersXLSX } from "@/lib/dataExportImport";
@@ -228,6 +228,15 @@ function MembersPage() {
     const list = (membersData || []).filter((m) => !(m as { archived?: boolean }).archived);
     const ids = list.map((m) => m.id);
 
+    let computedRoleMap = new Map<string, { computedRole: ComputedFamilyRole; sponsoredBy: string | null; paysFor: string[] }>();
+    if (ids.length > 0) {
+      const { data: relationshipRows } = await supabase
+        .from("payment_relationships")
+        .select("payer_member_id, beneficiary_member_id")
+        .or(ids.map((id) => `payer_member_id.eq.${id},beneficiary_member_id.eq.${id}`).join(","));
+      computedRoleMap = computeFamilyRoleMap(list, (relationshipRows ?? []) as Array<{ payer_member_id: string; beneficiary_member_id: string }>);
+    }
+
     let lastByMember = new Map<string, { payment_date: string; payment_method: string }>();
     const monthsByMember = new Map<string, Set<string>>();
     const monthlyTotalByMember = new Map<string, number>();
@@ -290,6 +299,9 @@ function MembersPage() {
         monthly_paid: monthlyPaid,
         monthly_pending: monthlyPending,
         ledger: null,
+        computed_family_role: computedRoleMap.get(m.id)?.computedRole ?? "individual",
+        sponsored_by: computedRoleMap.get(m.id)?.sponsoredBy ?? null,
+        pays_for: computedRoleMap.get(m.id)?.paysFor ?? [],
       };
     });
 
@@ -346,6 +358,12 @@ function MembersPage() {
 
   useEffect(() => {
     fetchMembers();
+  }, []);
+
+  useEffect(() => {
+    return subscribeToFamilyFinancialsUpdated(() => {
+      fetchMembers();
+    });
   }, []);
 
   const toggleStatus = async (member: Member) => {

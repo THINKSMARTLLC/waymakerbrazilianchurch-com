@@ -775,19 +775,7 @@ function MembersPage() {
 
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() => setGroupByFamily((v) => !v)}
-          className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-            groupByFamily
-              ? "border-primary/40 bg-primary/10 text-primary"
-              : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
-          }`}
-          aria-pressed={groupByFamily}
-        >
-          <Users className="h-3.5 w-3.5" />
-          Group by Family
-        </button>
+        <div />
         {selectedMembers.length > 0 && (
           <div className="ml-auto flex flex-wrap items-center justify-end gap-3 rounded-lg border border-primary/40 bg-primary/10 px-4 py-2 text-sm shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
             <span className="font-medium text-foreground flex items-center gap-2">
@@ -813,6 +801,7 @@ function MembersPage() {
           </div>
         )}
       </div>
+
 
       <div className="card-elevated overflow-hidden">
         {loading ? (

@@ -1117,6 +1117,11 @@ function MembersPage() {
         onClose={() => setRelationsDrawerFor(null)}
         onChanged={fetchMembers}
       />
+      <FailedPaymentsDrawer
+        open={failedDrawerOpen}
+        activeMemberIds={members.filter((m) => m.status === "active").map((m) => m.id)}
+        onClose={() => setFailedDrawerOpen(false)}
+      />
     </div>
   );
 }

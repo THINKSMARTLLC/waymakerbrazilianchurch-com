@@ -830,6 +830,7 @@ function MembersPage() {
                   <th className="table-header px-5 py-3 text-left hidden xl:table-cell">Phone</th>
                   <th className="table-header px-5 py-3 text-right">Weekly</th>
                   <th className="table-header px-5 py-3 text-right hidden md:table-cell">Monthly</th>
+                  <th className="table-header px-5 py-3 text-right hidden md:table-cell" title="Ledger balance (paid − due across all weeks)">Balance</th>
                   <th className="table-header px-5 py-3 text-left hidden md:table-cell">Last Payment</th>
                   <th className="table-header px-5 py-3 text-left hidden sm:table-cell">Method</th>
                   <th className="table-header px-5 py-3 text-left">Status</th>

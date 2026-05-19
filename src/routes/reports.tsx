@@ -214,7 +214,7 @@ function ReportsPage() {
 
   // Filter payments by name/method/status/member dropdown
   const filteredPayments = useMemo(() => {
-    return payments.filter((p) => {
+    const rows = payments.filter((p) => {
       if (memberIdFilter !== "all" && p.members?.id !== memberIdFilter) return false;
       if (nameFilter) {
         const q = nameFilter.toLowerCase();
@@ -237,6 +237,14 @@ function ReportsPage() {
         } else if (s !== statusFilter) return false;
       }
       return true;
+    });
+    // Alphabetical by member name, then most recent first as tiebreaker
+    return rows.sort((a, b) => {
+      const an = toTitleCase(a.members?.name ?? "");
+      const bn = toTitleCase(b.members?.name ?? "");
+      const cmp = an.localeCompare(bn);
+      if (cmp !== 0) return cmp;
+      return b.payment_date.localeCompare(a.payment_date);
     });
   }, [payments, memberIdFilter, nameFilter, methodFilter, statusFilter, statusByMember]);
 

@@ -72,17 +72,75 @@ async function logStripeSync(action: string, metadata: Record<string, unknown>) 
   ]);
 }
 
-async function paymentAlreadyRegistered(memberId: string, externalPaymentId: string) {
-  const { data, error } = await supabaseAdmin
-    .from("payments")
-    .select("id")
-    .eq("member_id", memberId)
-    .eq("payment_method", "stripe")
-    .ilike("notes", `%${externalPaymentId}%`)
-    .limit(1);
+async function findExistingStripePayment(
+  memberId: string,
+  externalIds: { piId?: string | null; chargeId?: string | null; invoiceId?: string | null },
+): Promise<string | null> {
+  // Try strongest identifiers first.
+  if (externalIds.piId) {
+    const { data } = await supabaseAdmin
+      .from("payments")
+      .select("id")
+      .eq("stripe_payment_intent_id", externalIds.piId)
+      .limit(1);
+    if (data?.[0]?.id) return data[0].id;
+  }
+  if (externalIds.chargeId) {
+    const { data } = await supabaseAdmin
+      .from("payments")
+      .select("id")
+      .eq("stripe_charge_id", externalIds.chargeId)
+      .limit(1);
+    if (data?.[0]?.id) return data[0].id;
+  }
+  // Backward-compat: previously stored only "Stripe payment ID: <invoiceId>" in notes.
+  const fallbackId = externalIds.invoiceId ?? externalIds.piId ?? externalIds.chargeId;
+  if (fallbackId) {
+    const { data } = await supabaseAdmin
+      .from("payments")
+      .select("id")
+      .eq("member_id", memberId)
+      .eq("payment_method", "stripe")
+      .ilike("notes", `%${fallbackId}%`)
+      .limit(1);
+    if (data?.[0]?.id) return data[0].id;
+  }
+  return null;
+}
 
-  if (error) throw new Error(error.message);
-  return (data?.length ?? 0) > 0;
+type StripeEnrichment = {
+  stripe_payment_intent_id: string | null;
+  stripe_charge_id: string | null;
+  card_last4: string | null;
+  card_brand: string | null;
+  payment_method_type: string | null;
+  receipt_url: string | null;
+};
+
+function extractEnrichmentFromCharge(charge: Stripe.Charge | null | undefined): StripeEnrichment {
+  if (!charge) {
+    return {
+      stripe_payment_intent_id: null,
+      stripe_charge_id: null,
+      card_last4: null,
+      card_brand: null,
+      payment_method_type: null,
+      receipt_url: null,
+    };
+  }
+  const pmd = charge.payment_method_details;
+  const card = pmd?.card;
+  const piId = typeof charge.payment_intent === "string"
+    ? charge.payment_intent
+    : charge.payment_intent?.id ?? null;
+  return {
+    stripe_payment_intent_id: piId,
+    stripe_charge_id: charge.id,
+    card_last4: card?.last4 ?? null,
+    card_brand: card?.brand ?? null,
+    payment_method_type: pmd?.type ?? null,
+    receipt_url: charge.receipt_url ?? null,
+  };
 }
 
 function createMemberResolver(membersAll: MemberRow[], stats: { mappingErrors: number; membersUnmatched: number }) {
@@ -248,6 +306,17 @@ export const resyncStripeData = createServerFn({ method: "POST" })
           }
         }
 
+        // Load charges once per customer to enrich invoices with card details.
+        // In some Stripe API versions `Charge.invoice` is typed away — we read it defensively.
+        const chargesList = await stripe.charges.list({ customer: customer.id, limit: 100 });
+        const chargesByInvoice = new Map<string, Stripe.Charge>();
+        for (const ch of chargesList.data) {
+          if (ch.status !== "succeeded") continue;
+          const rawInv = (ch as unknown as { invoice?: string | { id: string } | null }).invoice ?? null;
+          const invId = typeof rawInv === "string" ? rawInv : rawInv?.id ?? null;
+          if (invId && !chargesByInvoice.has(invId)) chargesByInvoice.set(invId, ch);
+        }
+
         const invoices = await stripe.invoices.list({ customer: customer.id, limit: 100 });
         for (const inv of invoices.data) {
           const invoiceFrequency = getInvoiceFrequency(inv, memberFreq);
@@ -256,8 +325,24 @@ export const resyncStripeData = createServerFn({ method: "POST" })
             const paidAtUnix = inv.status_transitions?.paid_at ?? inv.created;
             const date = nyDate(paidAtUnix);
             const amount = (inv.amount_paid ?? 0) / 100;
+            const charge = externalId ? chargesByInvoice.get(externalId) : undefined;
+            const enrichment = extractEnrichmentFromCharge(charge);
 
-            if (await paymentAlreadyRegistered(member.id, externalId)) {
+            const existingId = await findExistingStripePayment(member.id, {
+              piId: enrichment.stripe_payment_intent_id,
+              chargeId: enrichment.stripe_charge_id,
+              invoiceId: externalId,
+            });
+
+            if (existingId) {
+              // Backfill Stripe transaction details on previously imported payments.
+              const updatePayload: Partial<StripeEnrichment> = {};
+              for (const [k, v] of Object.entries(enrichment) as Array<[keyof StripeEnrichment, string | null]>) {
+                if (v !== null && v !== undefined) updatePayload[k] = v;
+              }
+              if (Object.keys(updatePayload).length > 0) {
+                await supabaseAdmin.from("payments").update(updatePayload).eq("id", existingId);
+              }
               stats.paymentsSkipped += 1;
             } else {
               const { data: ins, error: insErr } = await supabaseAdmin
@@ -275,6 +360,7 @@ export const resyncStripeData = createServerFn({ method: "POST" })
                   reference_month: null,
                   status: "paid",
                   stripe_subscription_id: subId,
+                  ...enrichment,
                 }])
                 .select("id")
                 .single();

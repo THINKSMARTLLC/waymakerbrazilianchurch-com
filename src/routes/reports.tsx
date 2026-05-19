@@ -364,6 +364,18 @@ function ReportsPage() {
     setGroupBy("member");
   };
 
+  const handleMethodCardClick = (method: "card" | "cash") => {
+    setMethodFilter((cur) => (cur === method ? "all" : method));
+    setStatusFilter("all");
+    setShowAllMembers(false);
+    setGroupBy("transactions");
+  };
+
+  const handleTotalPaymentsClick = () => {
+    setGroupBy((cur) => (cur === "transactions" ? "member" : "transactions"));
+    setShowAllMembers(true);
+  };
+
   const hasActiveFilter =
     memberIdFilter !== "all" ||
     nameFilter.trim() !== "" ||

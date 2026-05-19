@@ -919,6 +919,8 @@ export type Database = {
           amount: number
           base_amount: number | null
           beneficiary_member_id: string | null
+          card_brand: string | null
+          card_last4: string | null
           contribution_type: Database["public"]["Enums"]["contribution_type"]
           created_at: string
           extra_amount: number
@@ -929,15 +931,21 @@ export type Database = {
           payment_date: string
           payment_frequency: Database["public"]["Enums"]["payment_frequency"]
           payment_method: Database["public"]["Enums"]["payment_method"]
+          payment_method_type: string | null
+          receipt_url: string | null
           recorded_by: string | null
           reference_month: string | null
           status: Database["public"]["Enums"]["payment_status"]
+          stripe_charge_id: string | null
+          stripe_payment_intent_id: string | null
           stripe_subscription_id: string | null
         }
         Insert: {
           amount: number
           base_amount?: number | null
           beneficiary_member_id?: string | null
+          card_brand?: string | null
+          card_last4?: string | null
           contribution_type?: Database["public"]["Enums"]["contribution_type"]
           created_at?: string
           extra_amount?: number
@@ -948,15 +956,21 @@ export type Database = {
           payment_date?: string
           payment_frequency?: Database["public"]["Enums"]["payment_frequency"]
           payment_method?: Database["public"]["Enums"]["payment_method"]
+          payment_method_type?: string | null
+          receipt_url?: string | null
           recorded_by?: string | null
           reference_month?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
+          stripe_charge_id?: string | null
+          stripe_payment_intent_id?: string | null
           stripe_subscription_id?: string | null
         }
         Update: {
           amount?: number
           base_amount?: number | null
           beneficiary_member_id?: string | null
+          card_brand?: string | null
+          card_last4?: string | null
           contribution_type?: Database["public"]["Enums"]["contribution_type"]
           created_at?: string
           extra_amount?: number
@@ -967,9 +981,13 @@ export type Database = {
           payment_date?: string
           payment_frequency?: Database["public"]["Enums"]["payment_frequency"]
           payment_method?: Database["public"]["Enums"]["payment_method"]
+          payment_method_type?: string | null
+          receipt_url?: string | null
           recorded_by?: string | null
           reference_month?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
+          stripe_charge_id?: string | null
+          stripe_payment_intent_id?: string | null
           stripe_subscription_id?: string | null
         }
         Relationships: [

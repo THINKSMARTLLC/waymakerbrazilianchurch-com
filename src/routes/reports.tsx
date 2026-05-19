@@ -805,6 +805,7 @@ function ReportsPage() {
       {editing && (
         <EditPaymentModal payment={editing} onClose={() => setEditing(null)} onSaved={refresh} />
       )}
+      <MemberFinancialDrawer memberId={drawerMemberId} onClose={() => setDrawerMemberId(null)} />
     </div>
   );
 }

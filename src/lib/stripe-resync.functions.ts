@@ -336,8 +336,8 @@ export const resyncStripeData = createServerFn({ method: "POST" })
 
             if (existingId) {
               // Backfill Stripe transaction details on previously imported payments.
-              const updatePayload: Record<string, unknown> = {};
-              for (const [k, v] of Object.entries(enrichment)) {
+              const updatePayload: Partial<StripeEnrichment> = {};
+              for (const [k, v] of Object.entries(enrichment) as Array<[keyof StripeEnrichment, string | null]>) {
                 if (v !== null && v !== undefined) updatePayload[k] = v;
               }
               if (Object.keys(updatePayload).length > 0) {

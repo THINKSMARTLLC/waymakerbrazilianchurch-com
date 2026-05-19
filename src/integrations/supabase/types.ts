@@ -467,6 +467,38 @@ export type Database = {
         }
         Relationships: []
       }
+      ledger_payment_applications: {
+        Row: {
+          amount_applied: number
+          created_at: string
+          id: string
+          ledger_id: string
+          payment_id: string
+        }
+        Insert: {
+          amount_applied: number
+          created_at?: string
+          id?: string
+          ledger_id: string
+          payment_id: string
+        }
+        Update: {
+          amount_applied?: number
+          created_at?: string
+          id?: string
+          ledger_id?: string
+          payment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ledger_payment_applications_ledger_id_fkey"
+            columns: ["ledger_id"]
+            isOneToOne: false
+            referencedRelation: "member_financial_ledger"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_activities: {
         Row: {
           activity_date: string
@@ -541,6 +573,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      member_financial_ledger: {
+        Row: {
+          amount_due: number
+          amount_paid: number
+          balance: number | null
+          created_at: string
+          id: string
+          member_id: string
+          payment_status: Database["public"]["Enums"]["ledger_status"]
+          stripe_payment_intent: string | null
+          updated_at: string
+          week_reference: string
+        }
+        Insert: {
+          amount_due?: number
+          amount_paid?: number
+          balance?: number | null
+          created_at?: string
+          id?: string
+          member_id: string
+          payment_status?: Database["public"]["Enums"]["ledger_status"]
+          stripe_payment_intent?: string | null
+          updated_at?: string
+          week_reference: string
+        }
+        Update: {
+          amount_due?: number
+          amount_paid?: number
+          balance?: number | null
+          created_at?: string
+          id?: string
+          member_id?: string
+          payment_status?: Database["public"]["Enums"]["ledger_status"]
+          stripe_payment_intent?: string | null
+          updated_at?: string
+          week_reference?: string
+        }
+        Relationships: []
       }
       member_merge_history: {
         Row: {
@@ -1121,6 +1192,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_payment_to_ledger: {
+        Args: { _payment_id: string }
+        Returns: undefined
+      }
+      backfill_member_ledger: { Args: { _member_id: string }; Returns: number }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -1129,6 +1205,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      generate_weekly_ledger_entries: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1162,8 +1239,17 @@ export type Database = {
           read_ct: number
         }[]
       }
+      refresh_ledger_row_status: {
+        Args: { _ledger_id: string }
+        Returns: undefined
+      }
       restore_archived_member: { Args: { _member_id: string }; Returns: string }
+      reverse_payment_from_ledger: {
+        Args: { _payment_id: string }
+        Returns: undefined
+      }
       undo_merge: { Args: { _history_id: string }; Returns: string }
+      week_monday: { Args: { _d: string }; Returns: string }
     }
     Enums: {
       account_status: "pending" | "active" | "suspended"
@@ -1197,6 +1283,7 @@ export type Database = {
         | "leader"
       engagement_status: "pending" | "approved" | "rejected"
       family_role: "individual" | "family_owner" | "family_member" | "sponsored"
+      ledger_status: "paid" | "partial" | "pending" | "overdue" | "failed"
       member_status: "active" | "inactive"
       payment_frequency: "weekly" | "monthly"
       payment_method:
@@ -1387,6 +1474,7 @@ export const Constants = {
       ],
       engagement_status: ["pending", "approved", "rejected"],
       family_role: ["individual", "family_owner", "family_member", "sponsored"],
+      ledger_status: ["paid", "partial", "pending", "overdue", "failed"],
       member_status: ["active", "inactive"],
       payment_frequency: ["weekly", "monthly"],
       payment_method: [

@@ -28,6 +28,15 @@ import { DuplicateWarning } from "@/components/DuplicateWarning";
 import { MergeMembersModal } from "@/components/MergeMembersModal";
 import { DuplicateResolutionModal } from "@/components/DuplicateResolutionModal";
 import { FinancialRelationshipsDrawer } from "@/components/FinancialRelationshipsDrawer";
+import { FailedPaymentsDrawer } from "@/components/FailedPaymentsDrawer";
+import {
+  getMemberFinancialSummaries,
+  getFinancialCardStats,
+  FIN_STATUS_LABEL,
+  finStatusClasses,
+  type MemberFinancialSummary,
+  type FinancialCardStats,
+} from "@/lib/financialLedger";
 
 type LifecycleFilter = "active" | "inactive" | "all";
 
@@ -71,15 +80,10 @@ interface MemberWithStatus extends Member {
   monthly_expected: number;
   monthly_paid: number;
   monthly_pending: number;
+  // Ledger-based financial truth (independent of Stripe retries).
+  ledger: MemberFinancialSummary | null;
 }
 
-// Stripe-aligned financial buckets. Mirrors Stripe subscription/charge statuses
-// so dashboard totals match Stripe exactly.
-//   paid      → Stripe charge succeeded / member is current for the month
-//   past_due  → Stripe subscription past_due / member has paid before but is behind
-//   failed    → Stripe last charge failed
-//   unpaid    → Stripe unpaid / member has never paid
-//   cancelled → Stripe subscription cancelled
 type FinBucket = "paid" | "past_due" | "failed" | "unpaid" | "cancelled";
 
 function finBucketOf(m: MemberWithStatus): FinBucket | null {
@@ -270,6 +274,7 @@ function MembersPage() {
         monthly_expected: monthlyExpected,
         monthly_paid: monthlyPaid,
         monthly_pending: monthlyPending,
+        ledger: null,
       };
     });
 
@@ -280,7 +285,17 @@ function MembersPage() {
       return aFirst.localeCompare(bFirst, undefined, { sensitivity: "base" });
     });
 
+    // Attach ledger-based financial summaries (single source of truth for debt).
+    try {
+      const summaries = await getMemberFinancialSummaries(ids);
+      for (const m of withStatus) m.ledger = summaries.get(m.id) ?? null;
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("[finance] ledger summaries failed", e);
+    }
+
     setMembers(withStatus);
+
 
     // Fetch active payer relationships (where payer != beneficiary) to show "Paid by" badge.
     if (ids.length > 0) {

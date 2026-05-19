@@ -1,81 +1,90 @@
-## Family Grouping — Financial Module
+# Correção Estrutural do Módulo Financeiro
 
-Add an explicit "family" concept on top of the existing payer/beneficiary system, so members can be grouped, and totals can be rolled up per family on the Members page and dashboard.
+## Problema
 
-### 1. Database (migration)
+Os cards (Paid / Past Due / Failed / Unpaid) hoje somam tentativas Stripe e retries, inflando valores. Precisamos separar **dívida do membro** (semanal fixa de $20) de **eventos Stripe** (tentativas/falhas).
 
-New table `families`:
-- `name` (text, required) — e.g. "Família Santos"
-- `created_by` (uuid, optional)
-- standard `id`, `created_at`, `updated_at`
+## Solução: Ledger semanal por membro
 
-Add to `members`:
-- `family_id` (uuid, nullable, references `families.id`, on delete set null)
-- `family_role` (enum: `individual` | `family_owner` | `family_member` | `sponsored`, default `individual`)
+### 1. Nova tabela `member_financial_ledger`
 
-RLS:
-- `families`: active staff full access; members can SELECT their own family (`id IN (SELECT family_id FROM members WHERE user_id = auth.uid())`).
-- New `members.family_id` / `family_role` columns inherit existing members RLS.
+Uma linha por membro × semana (segunda-feira como `week_reference`):
 
-No changes to `payments`, `payment_relationships`, or any Stripe field.
+| Campo | Tipo |
+|---|---|
+| id | uuid |
+| member_id | uuid |
+| week_reference | date (segunda da semana) |
+| amount_due | numeric (default 20) |
+| amount_paid | numeric (default 0) |
+| balance | numeric generated (`amount_paid - amount_due`) |
+| payment_status | enum: `paid`, `partial`, `pending`, `overdue`, `failed` |
+| stripe_payment_intent | text nullable |
+| created_at, updated_at | timestamptz |
 
-### 2. Members page (`src/routes/members.index.tsx`)
+Unique `(member_id, week_reference)`. RLS: staff manage all; member SELECT próprio.
 
-Fetch families alongside members, build a `familyById` map.
+### 2. Geração automática semanal
 
-New per-row badge:
-- Family owner → `👑 Família X`
-- Family member → `👨‍👩‍👧 Família X`
-- Sponsored → `💝 Patrocinado`
-- Individual → no badge
+- Função `generate_weekly_ledger_entries()`: para cada membro `active` (não arquivado), garante 1 entrada para a semana atual com `amount_due = weekly_contribution_usd OR 20`, status `pending`.
+- Função `backfill_member_ledger(member_id)`: cria entradas desde `created_at` (ou ativação) do membro até hoje.
+- Aplicação de pagamentos: função `apply_payment_to_ledger(payment_id)` que distribui `amount` em ordem cronológica nas semanas em débito, atualizando `amount_paid` e `payment_status`.
+- Trigger em `payments` (INSERT/UPDATE para status `paid`) chama `apply_payment_to_ledger`.
+- Trigger em `members` (INSERT active) chama backfill.
+- Backfill inicial via migration para todos os membros ativos atuais.
 
-New toggle above the table: **"Group by Family"**.
+Stripe retries **não** criam entradas no ledger — apenas atualizam `stripe_payment_intent` da última semana em aberto e marcam `failed` se a tentativa falhou definitivamente.
 
-When ON, render the table grouped:
-- One header row per family with: name, member count, expected, paid, pending, expand/collapse chevron.
-- Children rows = the existing member rows, indented, hidden when collapsed.
-- Members with no `family_id` go under a "Individual Members" group (always expanded).
+### 3. Status calculado
 
-Family totals are derived from the per-member fields already computed last turn:
-- `family.expected = Σ monthly_expected`
-- `family.paid     = Σ monthly_paid`
-- `family.pending  = Σ monthly_pending`
-- `family.count    = members in family`
+Por membro, agregando ledger:
+- `weeks_overdue` = count de linhas com `balance < 0`
+- `balance_total` = sum(amount_paid) − sum(amount_due)
+- `status_financeiro`:
+  - `paid` se balance ≥ 0
+  - `overdue` se −20 ≥ balance > −60 (1–2 semanas)
+  - `late` se −60 ≥ balance > −120 (3–5 semanas)
+  - `critical` se balance ≤ −120 (6+ semanas)
 
-### 3. Top financial cards
+### 4. Cards do dashboard/members
 
-Replace the current 3 secondary cards on the dashboard (and add equivalents on `/members`) with real data computed from `members.family_role` + existing `payment_relationships`:
-- **Famílias Ativas** = count of distinct `family_id` with at least one active member.
-- **Pagando pela Família** = members with `family_role = family_owner`.
-- **Patrocinados** = members with `family_role = sponsored` (or appearing as `beneficiary_member_id` with a different payer — keep current logic as fallback).
-- **Pagamentos Familiares (mês)** = sum of `monthly_paid` for all members in any family.
+Recalcular usando agregações do ledger (membros únicos, nunca tentativas Stripe):
 
-Existing 5 Stripe-aligned status cards (paid / past_due / failed / unpaid / cancelled) remain unchanged.
+- **Paid**: count de membros com balance ≥ 0; sum de `amount_paid` confirmado.
+- **Past Due**: count membros com balance < 0; sum de `weeks_overdue`; valor real devido (`−sum(balance<0)`).
+- **Failed**: count membros únicos com pelo menos 1 ledger `failed`; count tentativas Stripe (de `payments` com status failed); count semanas vencidas com falha; valor devido real. Clicável → abre tabela detalhada (Nome | Tentativas | Semanas | Devido).
+- **Unpaid**: membros com `amount_paid` total = 0 e pelo menos 1 semana acumulada.
 
-### 4. Family management UI (minimal)
+### 5. Tabela de membros
 
-In the Edit Member modal, add:
-- "Family" select (existing families + "Create new…" inline input)
-- "Role in family" select (individual / owner / member / sponsored)
+Substituir colunas `Weekly`/`Monthly` por:
 
-This is the only write surface in this iteration — no separate "Families" page yet.
+| Nome | Weekly Due | Balance | Status | Last Payment |
 
-### 5. Out of scope (explicit)
+Status colorido conforme regras acima (verde/amarelo/vermelho/vermelho-escuro).
 
-- No changes to Stripe sync, webhooks, or payment recording flow.
-- No automatic creation of `payment_relationships` from `family_id` (the two systems coexist; we can reconcile later if needed).
-- No bulk family assignment / drag-drop UI.
-- The `Group by Family` toggle does not change export behavior in this iteration.
+### 6. Drawer "Failed" detalhado
 
-### Files touched
+Ao clicar no card Failed, abrir modal com tabela de membros afetados e suas métricas reais (separa retries de dívida real).
 
-- New migration (families table + members columns + RLS)
-- `src/routes/members.index.tsx` — fetch families, badge, toggle, grouped rendering, derived family totals
-- `src/components/EditMemberModal.tsx` — family picker + role
-- `src/routes/dashboard.tsx` — wire the 3 family cards to real `family_role` counts
-- `src/i18n/locales/{en,pt,es}.json` — labels (Family, Owner, Sponsored, Group by Family, etc.)
+## Arquivos a alterar/criar
 
-### Verification
+1. **Migration** — `member_financial_ledger` + enum + RLS + funções `generate_weekly_ledger_entries`, `backfill_member_ledger`, `apply_payment_to_ledger` + triggers + backfill inicial.
+2. **`src/lib/financialLedger.ts`** (novo) — helpers de leitura: `getMemberBalance`, `getFinancialCardStats`, `getFailedMembersDetail`, classificador de status.
+3. **`src/routes/dashboard.tsx`** — cards Paid/Past Due/Failed/Unpaid usando novos stats; cards clicáveis com navegação.
+4. **`src/routes/members.index.tsx`** — colunas Weekly Due / Balance / Status / Last Payment; modal detalhado quando filtro `fin=failed`.
+5. **`src/components/FailedPaymentsDrawer.tsx`** (novo) — tabela detalhada por membro.
+6. **i18n** (en/pt/es) — novas chaves: `weeklyDue`, `balance`, `weeksOverdue`, `stripeAttempts`, `membersAffected`, status labels.
 
-- Console table from last turn already prints per-member `monthly_expected/paid/pending`. Family rollups must equal the sum of their children rows in that table.
-- Toggling "Group by Family" off must restore the exact same list as today (no row gained or lost).
+## Fora do escopo (não tocar)
+
+- Autenticação / login
+- Arquitetura Stripe / webhook / checkout
+- Relações familiares / `payment_relationships`
+- Outras rotas (portal, reports, engagement, etc.)
+
+## Observações técnicas
+
+- Triggers usam `SECURITY DEFINER` + `SET search_path = public`.
+- `week_reference` é sempre a segunda-feira (`date_trunc('week', current_date)::date`).
+- `apply_payment_to_ledger` é idempotente (usa `payment_id` para evitar dupla aplicação — coluna `applied_payment_ids uuid[]` no ledger ou tabela `ledger_payment_applications`).

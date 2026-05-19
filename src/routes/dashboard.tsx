@@ -45,7 +45,7 @@ function DashboardPage() {
       const now = new Date();
 
       const [membersRes, collectedThisMonth] = await Promise.all([
-        supabase.from("members").select("id, family_id, family_role, status"),
+        supabase.from("members").select("id, name, family_id, family_role, subscription_active, stripe_subscription_id, created_at, status"),
         getMonthlyRevenue(now.getMonth() + 1, now.getFullYear()),
       ]);
 
@@ -54,7 +54,7 @@ function DashboardPage() {
 
       const list = membersRes.data || [];
       const ids = list.map((member) => member.id as string);
-      let computedRoleMap = new Map<string, { computedRole: string }>();
+      let computedRoleMap = new Map<string, { computedRole: "sponsor" | "individual_sponsor" | "dependent" | "individual" }>();
       if (ids.length > 0) {
         const { data: relationshipRows } = await supabase
           .from("payment_relationships")

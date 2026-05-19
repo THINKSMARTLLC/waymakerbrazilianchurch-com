@@ -701,7 +701,7 @@ function MembersPage() {
           Icon: typeof CheckCircle2;
           subtitle?: string;
         }> = [
-          { key: "paid",      label: "Paid",      count: paidMembers.length,     amount: paidAmount,    amountLabel: "received", tone: "emerald", Icon: CheckCircle2 },
+          { key: "paid",      label: "Paid",      count: monthSummary?.paidMemberCount ?? paidMembers.length, amount: monthSummary?.total ?? paidAmount, amountLabel: "collected this month", tone: "emerald", Icon: CheckCircle2 },
           { key: "past_due",  label: "Past Due",  count: pastDueMembers.length,  amount: pastDueAmount, amountLabel: "owed",     tone: "amber",   Icon: Clock,        subtitle: `${pastDueWeeks} weeks overdue` },
           { key: "failed",    label: "Failed",    count: failedMembers.length,   amount: failedAmount,  amountLabel: "owed",     tone: "rose",    Icon: CreditCard,   subtitle: `${failedWeeks} failed weeks` },
           { key: "unpaid",    label: "Unpaid",    count: unpaidMembers.length,   amount: unpaidAmount,  amountLabel: "owed",     tone: "slate",   Icon: CircleDashed, subtitle: `${unpaidWeeks} weeks accumulated` },

@@ -394,6 +394,68 @@ export const resyncStripeData = createServerFn({ method: "POST" })
           }
         }
 
+        // Process succeeded charges WITHOUT an invoice (Payment Links, one-off charges).
+        for (const ch of chargesList.data) {
+          if (ch.status !== "succeeded") continue;
+          const rawInv = (ch as unknown as { invoice?: string | { id: string } | null }).invoice ?? null;
+          const invId = typeof rawInv === "string" ? rawInv : rawInv?.id ?? null;
+          if (invId) continue; // already handled in the invoices loop
+
+          const enrichment = extractEnrichmentFromCharge(ch);
+          const paidAtUnix = ch.created;
+          const date = nyDate(paidAtUnix);
+          const amount = (ch.amount ?? 0) / 100;
+          if (amount <= 0) continue;
+
+          const existingId = await findExistingStripePayment(member.id, {
+            piId: enrichment.stripe_payment_intent_id,
+            chargeId: enrichment.stripe_charge_id,
+            invoiceId: null,
+          });
+
+          if (existingId) {
+            const updatePayload: Partial<StripeEnrichment> = {};
+            for (const [k, v] of Object.entries(enrichment) as Array<[keyof StripeEnrichment, string | null]>) {
+              if (v !== null && v !== undefined) updatePayload[k] = v;
+            }
+            if (Object.keys(updatePayload).length > 0) {
+              await supabaseAdmin.from("payments").update(updatePayload).eq("id", existingId);
+            }
+            stats.paymentsSkipped += 1;
+          } else {
+            const { data: ins, error: insErr } = await supabaseAdmin
+              .from("payments")
+              .insert([{
+                amount,
+                base_amount: amount,
+                contribution_type: "pastor_salary",
+                extra_amount: 0,
+                member_id: member.id,
+                notes: `Stripe charge ID: ${ch.id} | Event: resync.charge.succeeded`,
+                payment_date: date,
+                payment_frequency: memberFreq,
+                payment_method: "stripe",
+                reference_month: null,
+                status: "paid",
+                stripe_subscription_id: subId,
+                ...enrichment,
+              }])
+              .select("id")
+              .single();
+            if (insErr) throw new Error(insErr.message);
+            await supabaseAdmin.from("payment_contributions").insert({
+              amount,
+              contribution_type: "pastor_salary",
+              destination: null,
+              payment_id: ins.id,
+            });
+            stats.paymentsInserted += 1;
+          }
+
+          const currentLast = lastPaidAtByMember.get(member.id) ?? 0;
+          if (paidAtUnix && paidAtUnix > currentLast) lastPaidAtByMember.set(member.id, paidAtUnix);
+        }
+
         const paymentIntents = await stripe.paymentIntents.list({ customer: customer.id, limit: 100 });
         for (const paymentIntent of paymentIntents.data) {
           if (

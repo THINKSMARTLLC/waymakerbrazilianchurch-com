@@ -285,7 +285,17 @@ function MembersPage() {
       return aFirst.localeCompare(bFirst, undefined, { sensitivity: "base" });
     });
 
+    // Attach ledger-based financial summaries (single source of truth for debt).
+    try {
+      const summaries = await getMemberFinancialSummaries(ids);
+      for (const m of withStatus) m.ledger = summaries.get(m.id) ?? null;
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("[finance] ledger summaries failed", e);
+    }
+
     setMembers(withStatus);
+
 
     // Fetch active payer relationships (where payer != beneficiary) to show "Paid by" badge.
     if (ids.length > 0) {

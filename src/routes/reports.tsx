@@ -3,13 +3,14 @@ import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { DollarSign, CreditCard, Users, AlertTriangle, Receipt, Pencil, Trash2, UserX, Download } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { exportPaymentsCSV, exportPaymentsXLSX } from "@/lib/dataExportImport";
+import { exportPaymentsCSV, exportPaymentsXLSX, type PaymentsExportOpts } from "@/lib/dataExportImport";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { formatUSD, toTitleCase } from "@/lib/format";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, type MemberPaymentStatus } from "@/lib/memberStatus";
 import { PAYMENT_METHOD_LABEL } from "@/components/RecordPaymentModal";
 import { EditPaymentModal } from "@/components/EditPaymentModal";
+import { MemberFinancialDrawer } from "@/components/MemberFinancialDrawer";
 import type { Database } from "@/integrations/supabase/types";
 
 interface ReportsSearch {
@@ -82,12 +83,28 @@ function ReportsPage() {
   const { isSuperAdmin } = useUserRole();
   const [exportingPayments, setExportingPayments] = useState(false);
   const [resyncing, setResyncing] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [drawerMemberId, setDrawerMemberId] = useState<string | null>(null);
 
-  const handleExportPayments = async (format: "csv" | "xlsx") => {
+  const buildExportOpts = (mode: "all" | "filtered" | "selected"): PaymentsExportOpts => {
+    if (mode === "all") return {};
+    const { start, end } = getDateRange(filter, customStart, customEnd);
+    const opts: PaymentsExportOpts = { start, end };
+    if (methodFilter !== "all") opts.method = methodFilter;
+    if (mode === "selected") opts.memberIds = Array.from(selectedIds);
+    else if (mode === "filtered") {
+      // visible member ids in the current member view
+      opts.memberIds = filteredMembers.map((m) => m.id);
+    }
+    return opts;
+  };
+
+  const handleExportPayments = async (format: "csv" | "xlsx", mode: "all" | "filtered" | "selected" = "all") => {
     setExportingPayments(true);
     try {
-      if (format === "csv") await exportPaymentsCSV();
-      else await exportPaymentsXLSX();
+      const opts = buildExportOpts(mode);
+      if (format === "csv") await exportPaymentsCSV(opts);
+      else await exportPaymentsXLSX(opts);
     } finally {
       setExportingPayments(false);
     }
@@ -347,12 +364,25 @@ function ReportsPage() {
     setGroupBy("member");
   };
 
+  const handleMethodCardClick = (method: "card" | "cash") => {
+    setMethodFilter((cur) => (cur === method ? "all" : method));
+    setStatusFilter("all");
+    setShowAllMembers(false);
+    setGroupBy("transactions");
+  };
+
+  const handleTotalPaymentsClick = () => {
+    setGroupBy((cur) => (cur === "transactions" ? "member" : "transactions"));
+    setShowAllMembers(true);
+  };
+
   const hasActiveFilter =
     memberIdFilter !== "all" ||
     nameFilter.trim() !== "" ||
     methodFilter !== "all" ||
     statusFilter !== "all" ||
-    showAllMembers;
+    showAllMembers ||
+    groupBy === "transactions";
 
   const clearFilters = () => {
     setMemberIdFilter("all");
@@ -360,6 +390,8 @@ function ReportsPage() {
     setMethodFilter("all");
     setStatusFilter("all");
     setShowAllMembers(false);
+    setGroupBy("member");
+    setSelectedIds(new Set());
   };
 
   return (
@@ -419,12 +451,24 @@ function ReportsPage() {
                   className="inline-flex items-center gap-2 rounded-xl border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
                 >
                   <Download className="h-4 w-4" />
-                  Export Payments
+                  {exportingPayments ? "Exporting…" : selectedIds.size > 0 ? `Export (${selectedIds.size} selected)` : hasActiveFilter ? "Export filtered" : "Export Payments"}
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleExportPayments("csv")}>CSV (.csv)</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExportPayments("xlsx")}>Excel (.xlsx)</DropdownMenuItem>
+                {selectedIds.size > 0 && (
+                  <>
+                    <DropdownMenuItem onClick={() => handleExportPayments("csv", "selected")}>Selected — CSV</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExportPayments("xlsx", "selected")}>Selected — Excel</DropdownMenuItem>
+                  </>
+                )}
+                {hasActiveFilter && (
+                  <>
+                    <DropdownMenuItem onClick={() => handleExportPayments("csv", "filtered")}>Filtered — CSV</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExportPayments("xlsx", "filtered")}>Filtered — Excel</DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuItem onClick={() => handleExportPayments("csv", "all")}>All — CSV</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportPayments("xlsx", "all")}>All — Excel</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -447,10 +491,13 @@ function ReportsPage() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Users className="h-4 w-4" />Paid Members</div>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">{distinctPaidMembers}</p>
         </button>
-        <div className="stat-card">
+        <button
+          onClick={handleTotalPaymentsClick}
+          className={`stat-card text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${groupBy === "transactions" ? "ring-2 ring-primary" : ""}`}
+        >
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Receipt className="h-4 w-4" />Total Payments</div>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">{totalPayments}</p>
-        </div>
+        </button>
         <button
           onClick={() => handleStatusCardClick("late")}
           className={`stat-card text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${statusFilter === "late" ? "ring-2 ring-destructive" : ""}`}
@@ -465,14 +512,20 @@ function ReportsPage() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><UserX className="h-4 w-4" />No Payment Yet</div>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">{noPaymentCount}</p>
         </button>
-        <div className="stat-card">
+        <button
+          onClick={() => handleMethodCardClick("card")}
+          className={`stat-card text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${methodFilter === "card" ? "ring-2 ring-sky-500" : ""}`}
+        >
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><CreditCard className="h-4 w-4" />Card</div>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">{formatUSD(cardTotal)}</p>
-        </div>
-        <div className="stat-card">
+        </button>
+        <button
+          onClick={() => handleMethodCardClick("cash")}
+          className={`stat-card text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${methodFilter === "cash" ? "ring-2 ring-emerald-600" : ""}`}
+        >
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><DollarSign className="h-4 w-4" />Cash</div>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">{formatUSD(cashTotal)}</p>
-        </div>
+        </button>
       </div>
 
       {/* Filters */}
@@ -635,6 +688,20 @@ function ReportsPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
+                      <th className="table-header px-3 py-3 text-left w-8">
+                        <input
+                          type="checkbox"
+                          aria-label="Select all"
+                          checked={memberRows.length > 0 && memberRows.every((g) => selectedIds.has(g.id))}
+                          onChange={(e) => {
+                            const next = new Set(selectedIds);
+                            if (e.target.checked) memberRows.forEach((g) => next.add(g.id));
+                            else memberRows.forEach((g) => next.delete(g.id));
+                            setSelectedIds(next);
+                          }}
+                          className="h-4 w-4 rounded border-input"
+                        />
+                      </th>
                       <th className="table-header px-5 py-3 text-left">Name</th>
                       <th className="table-header px-5 py-3 text-left">Status</th>
                       <th className="table-header px-5 py-3 text-right">Payments</th>
@@ -644,7 +711,25 @@ function ReportsPage() {
                   </thead>
                   <tbody>
                     {memberRows.map((g) => (
-                      <tr key={g.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                      <tr
+                        key={g.id}
+                        className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer"
+                        onClick={() => setDrawerMemberId(g.id)}
+                      >
+                        <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${g.name}`}
+                            checked={selectedIds.has(g.id)}
+                            onChange={(e) => {
+                              const next = new Set(selectedIds);
+                              if (e.target.checked) next.add(g.id);
+                              else next.delete(g.id);
+                              setSelectedIds(next);
+                            }}
+                            className="h-4 w-4 rounded border-input"
+                          />
+                        </td>
                         <td className="px-5 py-3 text-sm font-medium text-foreground">{g.name}</td>
                         <td className="px-5 py-3">
                           <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClasses(g.status)}`}>
@@ -678,7 +763,15 @@ function ReportsPage() {
                 <tbody>
                   {filteredPayments.map((p) => (
                     <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
-                      <td className="px-5 py-3 text-sm font-medium text-foreground">{toTitleCase(p.members?.name) || "—"}</td>
+                      <td className="px-5 py-3 text-sm font-medium text-foreground">
+                        {p.members?.id ? (
+                          <button onClick={() => setDrawerMemberId(p.members!.id)} className="text-left hover:underline">
+                            {toTitleCase(p.members?.name) || "—"}
+                          </button>
+                        ) : (
+                          toTitleCase(p.members?.name) || "—"
+                        )}
+                      </td>
                       <td className="px-5 py-3 text-sm text-foreground text-right tabular-nums">{formatUSD(p.amount)}</td>
                       <td className="px-5 py-3 text-sm text-muted-foreground hidden sm:table-cell">{PAYMENT_METHOD_LABEL[p.payment_method] ?? p.payment_method}</td>
                       <td className="px-5 py-3 text-sm text-muted-foreground hidden sm:table-cell">{new Date(p.payment_date).toLocaleDateString("en-US")}</td>
@@ -712,6 +805,7 @@ function ReportsPage() {
       {editing && (
         <EditPaymentModal payment={editing} onClose={() => setEditing(null)} onSaved={refresh} />
       )}
+      <MemberFinancialDrawer memberId={drawerMemberId} onClose={() => setDrawerMemberId(null)} />
     </div>
   );
 }

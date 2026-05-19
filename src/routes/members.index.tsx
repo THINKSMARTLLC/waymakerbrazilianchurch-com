@@ -80,16 +80,9 @@ interface MemberWithStatus extends Member {
   monthly_expected: number;
   monthly_paid: number;
   monthly_pending: number;
+  // Ledger-based financial truth (independent of Stripe retries).
+  ledger: MemberFinancialSummary | null;
 }
-
-// Stripe-aligned financial buckets. Mirrors Stripe subscription/charge statuses
-// so dashboard totals match Stripe exactly.
-//   paid      → Stripe charge succeeded / member is current for the month
-//   past_due  → Stripe subscription past_due / member has paid before but is behind
-//   failed    → Stripe last charge failed
-//   unpaid    → Stripe unpaid / member has never paid
-//   cancelled → Stripe subscription cancelled
-type FinBucket = "paid" | "past_due" | "failed" | "unpaid" | "cancelled";
 
 function finBucketOf(m: MemberWithStatus): FinBucket | null {
   const sp = (m.status_payment || "").toLowerCase();

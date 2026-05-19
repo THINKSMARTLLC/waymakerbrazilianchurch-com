@@ -3,13 +3,14 @@ import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { DollarSign, CreditCard, Users, AlertTriangle, Receipt, Pencil, Trash2, UserX, Download } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { exportPaymentsCSV, exportPaymentsXLSX } from "@/lib/dataExportImport";
+import { exportPaymentsCSV, exportPaymentsXLSX, type PaymentsExportOpts } from "@/lib/dataExportImport";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { formatUSD, toTitleCase } from "@/lib/format";
 import { computeMemberStatus, STATUS_LABEL, statusBadgeClasses, statusDotClasses, type MemberPaymentStatus } from "@/lib/memberStatus";
 import { PAYMENT_METHOD_LABEL } from "@/components/RecordPaymentModal";
 import { EditPaymentModal } from "@/components/EditPaymentModal";
+import { MemberFinancialDrawer } from "@/components/MemberFinancialDrawer";
 import type { Database } from "@/integrations/supabase/types";
 
 interface ReportsSearch {

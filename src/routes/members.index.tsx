@@ -39,6 +39,7 @@ import {
 } from "@/lib/financialLedger";
 import { computeFamilyRoleMap, getComputedFamilyRoleLabel, type ComputedFamilyRole, sortMembersByComputedFamilyRole } from "@/lib/familyComputedRoles";
 import { subscribeToFamilyFinancialsUpdated } from "@/lib/familySync";
+import { getThisMonthSummary, type FinancialSummary } from "@/lib/financialSummary";
 
 type LifecycleFilter = "active" | "inactive" | "all";
 
@@ -145,6 +146,7 @@ function MembersPage() {
   const [viewingHistoryFor, setViewingHistoryFor] = useState<Member | null>(null);
   const [members, setMembers] = useState<MemberWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
+  const [monthSummary, setMonthSummary] = useState<FinancialSummary | null>(null);
   const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[]>([]);
   const [activeDupGroup, setActiveDupGroup] = useState<DuplicateGroup | null>(null);
   const [showImport, setShowImport] = useState(false);
@@ -358,11 +360,13 @@ function MembersPage() {
 
   useEffect(() => {
     fetchMembers();
+    getThisMonthSummary().then(setMonthSummary).catch(() => setMonthSummary(null));
   }, []);
 
   useEffect(() => {
     return subscribeToFamilyFinancialsUpdated(() => {
       fetchMembers();
+      getThisMonthSummary().then(setMonthSummary).catch(() => setMonthSummary(null));
     });
   }, []);
 
@@ -697,7 +701,7 @@ function MembersPage() {
           Icon: typeof CheckCircle2;
           subtitle?: string;
         }> = [
-          { key: "paid",      label: "Paid",      count: paidMembers.length,     amount: paidAmount,    amountLabel: "received", tone: "emerald", Icon: CheckCircle2 },
+          { key: "paid",      label: "Paid",      count: monthSummary?.paidMemberCount ?? paidMembers.length, amount: monthSummary?.total ?? paidAmount, amountLabel: "collected this month", tone: "emerald", Icon: CheckCircle2 },
           { key: "past_due",  label: "Past Due",  count: pastDueMembers.length,  amount: pastDueAmount, amountLabel: "owed",     tone: "amber",   Icon: Clock,        subtitle: `${pastDueWeeks} weeks overdue` },
           { key: "failed",    label: "Failed",    count: failedMembers.length,   amount: failedAmount,  amountLabel: "owed",     tone: "rose",    Icon: CreditCard,   subtitle: `${failedWeeks} failed weeks` },
           { key: "unpaid",    label: "Unpaid",    count: unpaidMembers.length,   amount: unpaidAmount,  amountLabel: "owed",     tone: "slate",   Icon: CircleDashed, subtitle: `${unpaidWeeks} weeks accumulated` },

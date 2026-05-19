@@ -12,6 +12,7 @@ import { PAYMENT_METHOD_LABEL } from "@/components/RecordPaymentModal";
 import { EditPaymentModal } from "@/components/EditPaymentModal";
 import { MemberFinancialDrawer } from "@/components/MemberFinancialDrawer";
 import type { Database } from "@/integrations/supabase/types";
+import { getFinancialSummary, type FinancialSummary } from "@/lib/financialSummary";
 
 interface ReportsSearch {
   range?: "this_month" | "last_month" | "all" | "custom";
@@ -285,23 +286,25 @@ function ReportsPage() {
     [members, statusByMember],
   );
 
-  const distinctPaidMembers = useMemo(() => {
-    const ids = new Set<string>();
-    for (const p of filteredPayments) {
-      if (p.status === "paid" && p.members) ids.add(p.members.id);
+  // Canonical totals for the selected period (status='paid', dedup'd by stripe ids).
+  // Shared with Dashboard + Members so all three pages agree.
+  const [periodSummary, setPeriodSummary] = useState<FinancialSummary | null>(null);
+  useEffect(() => {
+    const { start, end } = getDateRange(filter, customStart, customEnd);
+    // Reports' getDateRange returns inclusive end; convert to exclusive for the helper.
+    let endExclusive: string | null = null;
+    if (end) {
+      const d = new Date(end);
+      d.setDate(d.getDate() + 1);
+      endExclusive = d.toISOString().split("T")[0];
     }
-    return ids.size;
-  }, [filteredPayments]);
+    getFinancialSummary(start, endExclusive).then(setPeriodSummary).catch(() => setPeriodSummary(null));
+  }, [filter, customStart, customEnd, payments]);
 
+  const distinctPaidMembers = periodSummary?.paidMemberCount ?? 0;
   const totalPayments = filteredPayments.length;
-
-  const cardTotal = filteredPayments
-    .filter((p) => p.status === "paid" && (p.payment_method === "stripe" || p.payment_method === "card"))
-    .reduce((s, p) => s + Number(p.amount), 0);
-
-  const cashTotal = filteredPayments
-    .filter((p) => p.status === "paid" && p.payment_method === "cash")
-    .reduce((s, p) => s + Number(p.amount), 0);
+  const cardTotal = periodSummary?.cardTotal ?? 0;
+  const cashTotal = periodSummary?.cashTotal ?? 0;
 
   // Per-member aggregation (includes members without payments)
   const memberRows = useMemo(() => {

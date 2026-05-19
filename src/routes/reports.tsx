@@ -367,13 +367,17 @@ function ReportsPage() {
   const handleMethodCardClick = (method: "card" | "cash") => {
     setMethodFilter((cur) => (cur === method ? "all" : method));
     setStatusFilter("all");
-    setShowAllMembers(false);
-    setGroupBy("transactions");
+    setShowAllMembers(true);
+    // Keep consolidated per-member view — never duplicate names from card clicks
+    setGroupBy("member");
   };
 
   const handleTotalPaymentsClick = () => {
-    setGroupBy((cur) => (cur === "transactions" ? "member" : "transactions"));
+    // Total Payments always shows the consolidated per-member summary
+    setGroupBy("member");
     setShowAllMembers(true);
+    setStatusFilter("all");
+    setMethodFilter("all");
   };
 
   const hasActiveFilter =

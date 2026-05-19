@@ -14,6 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatUSD } from "@/lib/format";
 import { getWeeklyExpectedTarget, calculateExpectedMonthlyAmount } from "@/lib/settings";
 import { getMonthlyRevenue } from "@/lib/finance";
+import { computeFamilyRoleMap } from "@/lib/familyComputedRoles";
+import { subscribeToFamilyFinancialsUpdated } from "@/lib/familySync";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -43,7 +45,7 @@ function DashboardPage() {
       const now = new Date();
 
       const [membersRes, collectedThisMonth] = await Promise.all([
-        supabase.from("members").select("id, family_id, family_role, status"),
+        supabase.from("members").select("id, name, family_id, family_role, subscription_active, stripe_subscription_id, created_at, status"),
         getMonthlyRevenue(now.getMonth() + 1, now.getFullYear()),
       ]);
 
@@ -51,13 +53,24 @@ function DashboardPage() {
       const outstanding = Math.max(monthlyExpected - collectedThisMonth, 0);
 
       const list = membersRes.data || [];
+      const ids = list.map((member) => member.id as string);
+      let computedRoleMap = new Map<string, { computedRole: "sponsor" | "individual_sponsor" | "dependent" | "individual" }>();
+      if (ids.length > 0) {
+        const { data: relationshipRows } = await supabase
+          .from("payment_relationships")
+          .select("payer_member_id, beneficiary_member_id")
+          .or(ids.map((id) => `payer_member_id.eq.${id},beneficiary_member_id.eq.${id}`).join(","));
+        computedRoleMap = computeFamilyRoleMap(list, (relationshipRows ?? []) as Array<{ payer_member_id: string; beneficiary_member_id: string }>);
+      }
+
       const activeFamilyIds = new Set<string>();
       let payingForFamily = 0;
       let sponsored = 0;
       for (const m of list) {
         if (m.status === "active" && m.family_id) activeFamilyIds.add(m.family_id as string);
-        if (m.family_role === "family_owner") payingForFamily += 1;
-        if (m.family_role === "sponsored") sponsored += 1;
+        const computedRole = computedRoleMap.get(m.id as string)?.computedRole;
+        if (computedRole === "sponsor") payingForFamily += 1;
+        if (computedRole === "dependent") sponsored += 1;
       }
 
       setStats({
@@ -70,6 +83,12 @@ function DashboardPage() {
       });
     }
     fetchStats();
+
+    const unsubscribe = subscribeToFamilyFinancialsUpdated(() => {
+      fetchStats();
+    });
+
+    return unsubscribe;
   }, [weeklyExpected]);
 
   return (

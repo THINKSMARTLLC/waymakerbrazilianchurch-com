@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check, AlertTriangle, Archive, Download, Upload, Cake, MessageCircle, CheckCircle2, Clock, AlertCircle, CircleDashed, CreditCard, Users, ChevronDown, ChevronRight, Crown, Heart } from "lucide-react";
+import { UserPlus, Search, Eye, Edit, MoreVertical, UserX, UserCheck, DollarSign, History, KeyRound, Copy, Check, AlertTriangle, Archive, Download, Upload, Cake, MessageCircle, CheckCircle2, Clock, AlertCircle, CircleDashed, CreditCard, Users, ChevronDown, ChevronRight, Crown } from "lucide-react";
 import { WhatsAppMessageModal, type WhatsAppMember } from "@/components/WhatsAppMessageModal";
 import { getBirthdayInfo, type BirthdayWindow } from "@/lib/birthday";
 import { exportMembersCSV, exportMembersXLSX } from "@/lib/dataExportImport";
@@ -37,6 +37,8 @@ import {
   type MemberFinancialSummary,
   type FinancialCardStats,
 } from "@/lib/financialLedger";
+import { computeFamilyRoleMap, getComputedFamilyRoleLabel, type ComputedFamilyRole, sortMembersByComputedFamilyRole } from "@/lib/familyComputedRoles";
+import { subscribeToFamilyFinancialsUpdated } from "@/lib/familySync";
 
 type LifecycleFilter = "active" | "inactive" | "all";
 
@@ -82,6 +84,9 @@ interface MemberWithStatus extends Member {
   monthly_pending: number;
   // Ledger-based financial truth (independent of Stripe retries).
   ledger: MemberFinancialSummary | null;
+  computed_family_role: ComputedFamilyRole;
+  sponsored_by: string | null;
+  pays_for: string[];
 }
 
 type FinBucket = "paid" | "past_due" | "failed" | "unpaid" | "cancelled";
@@ -223,6 +228,15 @@ function MembersPage() {
     const list = (membersData || []).filter((m) => !(m as { archived?: boolean }).archived);
     const ids = list.map((m) => m.id);
 
+    let computedRoleMap = new Map<string, { computedRole: ComputedFamilyRole; sponsoredBy: string | null; paysFor: string[] }>();
+    if (ids.length > 0) {
+      const { data: relationshipRows } = await supabase
+        .from("payment_relationships")
+        .select("payer_member_id, beneficiary_member_id")
+        .or(ids.map((id) => `payer_member_id.eq.${id},beneficiary_member_id.eq.${id}`).join(","));
+      computedRoleMap = computeFamilyRoleMap(list, (relationshipRows ?? []) as Array<{ payer_member_id: string; beneficiary_member_id: string }>);
+    }
+
     let lastByMember = new Map<string, { payment_date: string; payment_method: string }>();
     const monthsByMember = new Map<string, Set<string>>();
     const monthlyTotalByMember = new Map<string, number>();
@@ -285,6 +299,9 @@ function MembersPage() {
         monthly_paid: monthlyPaid,
         monthly_pending: monthlyPending,
         ledger: null,
+        computed_family_role: computedRoleMap.get(m.id)?.computedRole ?? "individual",
+        sponsored_by: computedRoleMap.get(m.id)?.sponsoredBy ?? null,
+        pays_for: computedRoleMap.get(m.id)?.paysFor ?? [],
       };
     });
 
@@ -341,6 +358,12 @@ function MembersPage() {
 
   useEffect(() => {
     fetchMembers();
+  }, []);
+
+  useEffect(() => {
+    return subscribeToFamilyFinancialsUpdated(() => {
+      fetchMembers();
+    });
   }, []);
 
   const toggleStatus = async (member: Member) => {
@@ -421,20 +444,23 @@ function MembersPage() {
 
     const out: DisplayItem[] = [];
     for (const [famKey, mems] of entries) {
+      const sortedMembers = sortMembersByComputedFamilyRole(
+        mems.map((member) => ({ ...member, computedFamilyRole: member.computed_family_role })),
+      ).map(({ computedFamilyRole, ...member }) => member);
       const familyName = famKey === NONE ? "Individual Members" : families.get(famKey) ?? "Unknown family";
       const collapsed = collapsedFamilies.has(famKey);
       out.push({
         kind: "family",
         familyId: famKey,
         familyName,
-        count: mems.length,
-        expected: mems.reduce((s, m) => s + m.monthly_expected, 0),
-        paid: mems.reduce((s, m) => s + m.monthly_paid, 0),
-        pending: mems.reduce((s, m) => s + m.monthly_pending, 0),
-        memberIds: mems.map((m) => m.id),
+        count: sortedMembers.length,
+        expected: sortedMembers.reduce((s, m) => s + m.monthly_expected, 0),
+        paid: sortedMembers.reduce((s, m) => s + m.monthly_paid, 0),
+        pending: sortedMembers.reduce((s, m) => s + m.monthly_pending, 0),
+        memberIds: sortedMembers.map((m) => m.id),
         collapsed,
       });
-      if (!collapsed) for (const m of mems) out.push({ kind: "member", member: m });
+      if (!collapsed) for (const m of sortedMembers) out.push({ kind: "member", member: m });
     }
     return out;
   }, [filtered, groupByFamily, families, collapsedFamilies]);
@@ -916,14 +942,16 @@ function MembersPage() {
                               })()}
                               {member.family_id && (() => {
                                 const famName = families.get(member.family_id) ?? "Family";
-                                const role = member.family_role;
-                                // Treat family_owner and sponsored as Sponsor; family_member as Dependent
-                                const isSponsor = role === "family_owner" || role === "sponsored";
-                                const Icon = isSponsor ? Crown : Users;
-                                const label = isSponsor ? "Sponsor" : "Dependent";
-                                const cls = isSponsor
+                                const role = member.computed_family_role;
+                                const label = getComputedFamilyRoleLabel(role);
+                                const Icon = role === "dependent" ? Users : Crown;
+                                const cls = role === "sponsor"
                                   ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-200 hover:bg-amber-200"
-                                  : "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-200 hover:bg-blue-200";
+                                  : role === "individual_sponsor"
+                                  ? "bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-200 hover:bg-violet-200"
+                                  : role === "dependent"
+                                  ? "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-200 hover:bg-blue-200"
+                                  : "bg-muted text-muted-foreground hover:bg-muted/80";
                                 return (
                                   <button
                                     type="button"

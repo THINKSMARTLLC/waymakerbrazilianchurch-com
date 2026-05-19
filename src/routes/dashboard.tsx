@@ -13,7 +13,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatUSD } from "@/lib/format";
 import { getWeeklyExpectedTarget, calculateExpectedMonthlyAmount } from "@/lib/settings";
-import { getMonthlyRevenue } from "@/lib/finance";
+import { getThisMonthSummary } from "@/lib/financialSummary";
 import { computeFamilyRoleMap } from "@/lib/familyComputedRoles";
 import { subscribeToFamilyFinancialsUpdated } from "@/lib/familySync";
 

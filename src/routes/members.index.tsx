@@ -274,6 +274,7 @@ function MembersPage() {
         monthly_expected: monthlyExpected,
         monthly_paid: monthlyPaid,
         monthly_pending: monthlyPending,
+        ledger: null,
       };
     });
 

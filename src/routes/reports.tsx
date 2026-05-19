@@ -763,7 +763,15 @@ function ReportsPage() {
                 <tbody>
                   {filteredPayments.map((p) => (
                     <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
-                      <td className="px-5 py-3 text-sm font-medium text-foreground">{toTitleCase(p.members?.name) || "—"}</td>
+                      <td className="px-5 py-3 text-sm font-medium text-foreground">
+                        {p.members?.id ? (
+                          <button onClick={() => setDrawerMemberId(p.members!.id)} className="text-left hover:underline">
+                            {toTitleCase(p.members?.name) || "—"}
+                          </button>
+                        ) : (
+                          toTitleCase(p.members?.name) || "—"
+                        )}
+                      </td>
                       <td className="px-5 py-3 text-sm text-foreground text-right tabular-nums">{formatUSD(p.amount)}</td>
                       <td className="px-5 py-3 text-sm text-muted-foreground hidden sm:table-cell">{PAYMENT_METHOD_LABEL[p.payment_method] ?? p.payment_method}</td>
                       <td className="px-5 py-3 text-sm text-muted-foreground hidden sm:table-cell">{new Date(p.payment_date).toLocaleDateString("en-US")}</td>

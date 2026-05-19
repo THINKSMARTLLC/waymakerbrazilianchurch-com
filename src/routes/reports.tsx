@@ -451,12 +451,24 @@ function ReportsPage() {
                   className="inline-flex items-center gap-2 rounded-xl border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
                 >
                   <Download className="h-4 w-4" />
-                  Export Payments
+                  {exportingPayments ? "Exporting…" : selectedIds.size > 0 ? `Export (${selectedIds.size} selected)` : hasActiveFilter ? "Export filtered" : "Export Payments"}
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleExportPayments("csv")}>CSV (.csv)</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExportPayments("xlsx")}>Excel (.xlsx)</DropdownMenuItem>
+                {selectedIds.size > 0 && (
+                  <>
+                    <DropdownMenuItem onClick={() => handleExportPayments("csv", "selected")}>Selected — CSV</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExportPayments("xlsx", "selected")}>Selected — Excel</DropdownMenuItem>
+                  </>
+                )}
+                {hasActiveFilter && (
+                  <>
+                    <DropdownMenuItem onClick={() => handleExportPayments("csv", "filtered")}>Filtered — CSV</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExportPayments("xlsx", "filtered")}>Filtered — Excel</DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuItem onClick={() => handleExportPayments("csv", "all")}>All — CSV</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportPayments("xlsx", "all")}>All — Excel</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

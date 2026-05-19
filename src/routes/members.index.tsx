@@ -88,23 +88,32 @@ type FinBucket = "paid" | "past_due" | "failed" | "unpaid" | "cancelled";
 
 function finBucketOf(m: MemberWithStatus): FinBucket | null {
   const sp = (m.status_payment || "").toLowerCase();
+  if (sp === "cancelled" || sp === "canceled") return "cancelled";
 
-  // Honor explicit Stripe-synced statuses first.
+  // Ledger is the source of truth when present.
+  if (m.ledger) {
+    const l = m.ledger;
+    const hasStripeFailure = !!(m.stripe_subscription_id && !m.subscription_active);
+    // 'failed' bucket is a SUPERSET (also appears in its primary bucket via
+    // the cards block). For filter purposes we still primary-bucket the member.
+    if (l.status === "paid") return "paid";
+    if (l.status === "unpaid") return "unpaid";
+    if (l.failedWeeks > 0 || hasStripeFailure) return "failed";
+    return "past_due";
+  }
+
+  // Fallback heuristics if no ledger row exists yet.
   if (sp === "paid") return "paid";
   if (sp === "failed") return "failed";
   if (sp === "past_due") return "past_due";
   if (sp === "unpaid") return "unpaid";
-  if (sp === "cancelled" || sp === "canceled") return "cancelled";
-
-  // Stripe subscription that is no longer active → failed.
   if (m.stripe_subscription_id && !m.subscription_active) return "failed";
-
-  // Derive from internal computed status.
   if (m.payment_status === "on_time" || m.payment_status === "active") return "paid";
   if (m.payment_status === "late") return "past_due";
   if (m.payment_status === "no_payment") return "unpaid";
   return null;
 }
+
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
   cash: "Cash",

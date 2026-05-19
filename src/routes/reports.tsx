@@ -94,7 +94,7 @@ function ReportsPage() {
     if (mode === "selected") opts.memberIds = Array.from(selectedIds);
     else if (mode === "filtered") {
       // visible member ids in the current member view
-      opts.memberIds = filteredMembersIds;
+      opts.memberIds = filteredMembers.map((m) => m.id);
     }
     return opts;
   };

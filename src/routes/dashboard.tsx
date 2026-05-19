@@ -7,6 +7,8 @@ import { QuickActions } from "@/components/QuickActions";
 import { NewSignupsBanner } from "@/components/NewSignupsBanner";
 import { UpcomingBirthdays } from "@/components/UpcomingBirthdays";
 import { BirthdayLoginAlert } from "@/components/BirthdayLoginAlert";
+import { AbsentMembers } from "@/components/AbsentMembers";
+import { RecentContributions } from "@/components/RecentContributions";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatUSD } from "@/lib/format";
@@ -101,38 +103,43 @@ function DashboardPage() {
         />
       </div>
 
+      {/* Chart + Absent Members (matches reference layout) */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <DonationsChart />
         </div>
-        <QuickActions />
+        <AbsentMembers />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          title={t("payerBeneficiary.activeFamilies")}
-          value={String(stats.activeFamilies)}
-          icon={Users}
-          onClick={() => navigate({ to: "/members", search: { group: "family" } as never })}
-        />
-        <StatCard
-          title={t("payerBeneficiary.payingForFamily")}
-          value={String(stats.payingForFamily)}
-          icon={Users}
-          onClick={() => navigate({ to: "/members", search: { group: "family" } as never })}
-        />
-        <StatCard
-          title={t("payerBeneficiary.totalSponsored")}
-          value={String(stats.sponsored)}
-          icon={Users}
-          onClick={() => navigate({ to: "/members", search: { group: "family" } as never })}
-        />
+      {/* Birthdays + Recent Contributions (matches reference layout) */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <UpcomingBirthdays />
+        <RecentContributions />
       </div>
 
+      {/* Family stats + quick actions (kept from previous version) */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-1">
-          <UpcomingBirthdays />
+        <div className="lg:col-span-2 grid gap-4 sm:grid-cols-3">
+          <StatCard
+            title={t("payerBeneficiary.activeFamilies")}
+            value={String(stats.activeFamilies)}
+            icon={Users}
+            onClick={() => navigate({ to: "/members", search: { group: "family" } as never })}
+          />
+          <StatCard
+            title={t("payerBeneficiary.payingForFamily")}
+            value={String(stats.payingForFamily)}
+            icon={Users}
+            onClick={() => navigate({ to: "/members", search: { group: "family" } as never })}
+          />
+          <StatCard
+            title={t("payerBeneficiary.totalSponsored")}
+            value={String(stats.sponsored)}
+            icon={Users}
+            onClick={() => navigate({ to: "/members", search: { group: "family" } as never })}
+          />
         </div>
+        <QuickActions />
       </div>
     </div>
   );

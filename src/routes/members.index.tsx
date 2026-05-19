@@ -84,6 +84,8 @@ interface MemberWithStatus extends Member {
   ledger: MemberFinancialSummary | null;
 }
 
+type FinBucket = "paid" | "past_due" | "failed" | "unpaid" | "cancelled";
+
 function finBucketOf(m: MemberWithStatus): FinBucket | null {
   const sp = (m.status_payment || "").toLowerCase();
 

@@ -720,12 +720,6 @@ function MemberProfilePage() {
           onSaved={fetchData}
         />
       )}
-      <FinancialRelationshipsDrawer
-        memberId={memberId}
-        open={showRelDrawer}
-        onClose={() => setShowRelDrawer(false)}
-        onChanged={fetchData}
-      />
     </div>
   );
 }

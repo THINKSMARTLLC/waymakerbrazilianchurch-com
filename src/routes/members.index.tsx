@@ -929,45 +929,8 @@ function MembersPage() {
                                   </span>
                                 ) : null;
                               })()}
-                              {member.family_id && (() => {
-                                const famName = families.get(member.family_id) ?? "Family";
-                                const role = member.computed_family_role;
-                                const label = getComputedFamilyRoleLabel(role);
-                                const Icon = role === "dependent" ? Users : Crown;
-                                const cls = role === "sponsor"
-                                  ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-200 hover:bg-amber-200"
-                                  : role === "individual_sponsor"
-                                  ? "bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-200 hover:bg-violet-200"
-                                  : role === "dependent"
-                                  ? "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-200 hover:bg-blue-200"
-                                  : "bg-muted text-muted-foreground hover:bg-muted/80";
-                                return (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); setRelationsDrawerFor(member.id); }}
-                                    className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${cls}`}
-                                    title={`${famName} · ${label}`}
-                                  >
-                                    <Icon className="h-3 w-3" /> {label} · {famName}
-                                  </button>
-                                );
-                              })()}
+                              {/* Family role / Paid-by badges removed — individual members only */}
 
-                              {(() => {
-                                const pb = paidByMap.get(member.id);
-                                if (!pb) return null;
-                                const label = pb.relationship ? `${pb.payerName} · ${pb.relationship}` : pb.payerName;
-                                return (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); setRelationsDrawerFor(member.id); }}
-                                    className="inline-flex items-center gap-1 rounded-full bg-violet-100 dark:bg-violet-950/60 hover:bg-violet-200 px-1.5 py-0.5 text-[10px] font-semibold text-violet-800 dark:text-violet-200 transition-colors cursor-pointer"
-                                    title={`${t("portal.paidBy")}: ${label}`}
-                                  >
-                                    <CreditCard className="h-3 w-3" /> {t("portal.paidBy")}: {label}
-                                  </button>
-                                );
-                              })()}
                               {member.phone && (
                                 <button
                                   type="button"

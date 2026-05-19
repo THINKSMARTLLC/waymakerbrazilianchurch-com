@@ -261,8 +261,8 @@ function SponsorCard({
 
       <div className="mt-3 grid grid-cols-4 gap-2 text-[11px]">
         <Metric label="Weekly Responsibility" value={formatUSD(sponsor.weekly_responsibility)} />
-        <Metric label="Personal Paid" value={formatUSD(sponsor.personal_paid)} />
-        <Metric label="Paid for Family" value={formatUSD(sponsor.paid_for_others)} />
+        <Metric label="Personal Paid" value={formatUSD(sponsor.personal_paid + sponsor.paid_by_others)} />
+        <Metric label="Dependents Paid" value={formatUSD(Math.max(0, sponsor.sponsor_total - (sponsor.personal_paid + sponsor.paid_by_others)))} />
         <Metric label="Sponsor Total" value={formatUSD(sponsor.sponsor_total)} highlight />
       </div>
     </div>
@@ -296,10 +296,9 @@ function IndividualSponsorCard({
         <BalancePill balance={sponsor.balance} weeksOverdue={sponsor.weeks_overdue} />
       </div>
       <p className="text-[11px] text-muted-foreground mt-1.5">Pays only for: <span className="text-foreground font-medium">{toTitleCase(sponsor.name)}</span></p>
-      <div className="mt-3 grid grid-cols-4 gap-2 text-[11px]">
+      <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
         <Metric label="Weekly Responsibility" value={formatUSD(sponsor.weekly_responsibility)} />
-        <Metric label="Personal Paid" value={formatUSD(sponsor.personal_paid)} />
-        <Metric label="Paid for Family" value={formatUSD(sponsor.paid_for_others)} />
+        <Metric label="Personal Paid" value={formatUSD(sponsor.personal_paid + sponsor.paid_by_others)} />
         <Metric label="Sponsor Total" value={formatUSD(sponsor.sponsor_total)} highlight />
       </div>
     </div>

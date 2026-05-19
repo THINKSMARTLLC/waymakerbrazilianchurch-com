@@ -269,6 +269,11 @@ export async function getFamilyHierarchy(memberId: string): Promise<FamilyHierar
   }
 
   // Compute pays_for, weekly_responsibility, sponsor_total.
+  // Sponsor Total = sponsor's own received payments (personal + paid_by_others)
+  //                 + every dependent's total received payments.
+  // This ensures Sponsor Total reflects total $ flowing through the sponsor's
+  // responsibility scope (matches the user-facing "responsável por" model),
+  // and the sum of all sponsor_totals equals totalFamilyPaid exactly.
   const memberById = new Map(partial.map((m) => [m.id, m]));
   for (const m of partial) {
     const set = paysFor.get(m.id);
@@ -281,7 +286,12 @@ export async function getFamilyHierarchy(memberId: string): Promise<FamilyHierar
       m.weekly_responsibility = m.weekly_due + depWeekly;
     }
     if (m.computed_role === "sponsor" || m.computed_role === "individual_sponsor") {
-      m.sponsor_total = m.personal_paid + m.paid_for_others;
+      const ownReceived = m.personal_paid + m.paid_by_others;
+      const depReceived = (m.pays_for ?? []).reduce((s, did) => {
+        const d = memberById.get(did);
+        return s + ((d?.personal_paid ?? 0) + (d?.paid_by_others ?? 0));
+      }, 0);
+      m.sponsor_total = ownReceived + depReceived;
     }
   }
 

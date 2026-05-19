@@ -44,12 +44,13 @@ function DashboardPage() {
     async function fetchStats() {
       const now = new Date();
 
-      const [membersRes, collectedThisMonth] = await Promise.all([
+      const [membersRes, summary] = await Promise.all([
         supabase.from("members").select("id, name, family_id, family_role, subscription_active, stripe_subscription_id, created_at, status"),
-        getMonthlyRevenue(now.getMonth() + 1, now.getFullYear()),
+        getThisMonthSummary(),
       ]);
 
       const monthlyExpected = calculateExpectedMonthlyAmount(weeklyExpected, now.getMonth() + 1, now.getFullYear());
+      const collectedThisMonth = summary.total;
       const outstanding = Math.max(monthlyExpected - collectedThisMonth, 0);
 
       const list = membersRes.data || [];

@@ -650,58 +650,133 @@ function MemberProfilePage() {
           <div className="py-8 text-center text-sm text-muted-foreground">{t("memberProfile.noPayments")}</div>
 
         ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="table-header px-5 py-3 text-left">{t("common.date")}</th>
-                <th className="table-header px-5 py-3 text-left">{t("common.amount")}</th>
-                <th className="table-header px-5 py-3 text-left">{t("common.method")}</th>
-                <th className="table-header px-5 py-3 text-left">{t("common.status")}</th>
-                <th className="table-header px-5 py-3 text-right">{t("common.actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.map((p) => (
-                <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                  <td className="px-5 py-3 text-sm text-foreground">
-                    {formatLocalDateOnly(p.payment_date)}
-                  </td>
-                  <td className="px-5 py-3 text-sm font-medium text-foreground">
-                    {formatUSD(p.amount)}
-                  </td>
-                  <td className="px-5 py-3 text-sm text-muted-foreground">
-                    {PAYMENT_METHOD_LABEL[p.payment_method] ?? p.payment_method}
-                  </td>
-                  <td className="px-5 py-3">
-                    <span className={`status-badge status-${p.status === "past_due" ? "past-due" : p.status}`}>
-                      {t(`paymentStatus.${p.status}`)}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => setEditingPayment(p)}
-                        className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                        title={t("memberProfile.editPayment")}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeletePayment(p.id)}
-                        disabled={deletingId === p.id}
-                        className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50"
-                        title={t("memberProfile.deletePayment")}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="table-header px-5 py-3 text-left">{t("common.date")}</th>
+                  <th className="table-header px-5 py-3 text-left">{t("common.amount")}</th>
+                  <th className="table-header px-5 py-3 text-left">{t("common.method")}</th>
+                  <th className="table-header px-5 py-3 text-left">Card</th>
+                  <th className="table-header px-5 py-3 text-left">Brand</th>
+                  <th className="table-header px-5 py-3 text-left">Payment ID</th>
+                  <th className="table-header px-5 py-3 text-left">{t("common.status")}</th>
+                  <th className="table-header px-5 py-3 text-right">{t("common.actions")}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {payments.map((p) => {
+                  const pAny = p as Payment & {
+                    card_last4?: string | null;
+                    card_brand?: string | null;
+                    stripe_payment_intent_id?: string | null;
+                    stripe_charge_id?: string | null;
+                    receipt_url?: string | null;
+                    payment_method_type?: string | null;
+                  };
+                  const isStripe = p.payment_method === "stripe";
+                  const last4 = pAny.card_last4;
+                  const brand = pAny.card_brand;
+                  const txId = pAny.stripe_payment_intent_id ?? pAny.stripe_charge_id ?? null;
+                  const shortTx = txId ? `${txId.slice(0, 14)}…` : null;
+                  return (
+                    <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                      <td className="px-5 py-3 text-sm text-foreground whitespace-nowrap">
+                        {formatLocalDateOnly(p.payment_date)}
+                      </td>
+                      <td className="px-5 py-3 text-sm font-medium text-foreground tabular-nums">
+                        {formatUSD(p.amount)}
+                      </td>
+                      <td className="px-5 py-3 text-sm text-muted-foreground capitalize">
+                        {PAYMENT_METHOD_LABEL[p.payment_method] ?? p.payment_method}
+                      </td>
+                      <td className="px-5 py-3 text-sm text-muted-foreground tabular-nums">
+                        {last4 ? `**** ${last4}` : <span className="text-muted-foreground/60">—</span>}
+                      </td>
+                      <td className="px-5 py-3 text-sm text-muted-foreground capitalize">
+                        {brand ?? (isStripe ? <span className="text-muted-foreground/60">—</span> : <span className="text-muted-foreground/60">—</span>)}
+                      </td>
+                      <td className="px-5 py-3 text-sm">
+                        {txId ? (
+                          <div className="flex items-center gap-1.5">
+                            <code
+                              title={txId}
+                              className="rounded bg-muted px-1.5 py-0.5 text-[11px] font-mono text-foreground"
+                            >
+                              {shortTx}
+                            </code>
+                            <button
+                              type="button"
+                              onClick={() => { navigator.clipboard?.writeText(txId); }}
+                              className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                              title="Copy ID"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            </button>
+                            {isStaff && (
+                              <a
+                                href={
+                                  pAny.stripe_payment_intent_id
+                                    ? `https://dashboard.stripe.com/payments/${pAny.stripe_payment_intent_id}`
+                                    : `https://dashboard.stripe.com/payments/${pAny.stripe_charge_id}`
+                                }
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                title="View in Stripe"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                              </a>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground/60">—</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3">
+                        <span className={`status-badge status-${p.status === "past_due" ? "past-due" : p.status}`}>
+                          {t(`paymentStatus.${p.status}`)}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          {pAny.receipt_url && (
+                            <a
+                              href={pAny.receipt_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                              title="View receipt"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            </a>
+                          )}
+                          <button
+                            onClick={() => setEditingPayment(p)}
+                            className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                            title={t("memberProfile.editPayment")}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeletePayment(p.id)}
+                            disabled={deletingId === p.id}
+                            className="rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50"
+                            title={t("memberProfile.deletePayment")}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
+
 
       {showPaymentModal && (
         <RecordPaymentModal

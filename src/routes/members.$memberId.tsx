@@ -141,19 +141,8 @@ function MemberProfilePage() {
   const [showEditMember, setShowEditMember] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  type RelatedMember = {
-    id: string;
-    name: string;
-    email: string | null;
-    phone: string | null;
-    subscription_active: boolean;
-    total: number;
-  };
-  const [paysFor, setPaysFor] = useState<RelatedMember[]>([]);
-  const [sponsoredBy, setSponsoredBy] = useState<RelatedMember[]>([]);
-  const [household, setHousehold] = useState<RelatedMember[]>([]);
-  const [relsLoading, setRelsLoading] = useState(true);
-  const [showRelDrawer, setShowRelDrawer] = useState(false);
+  const [payerNames, setPayerNames] = useState<Map<string, string>>(new Map());
+
 
   const fetchData = async () => {
     const [memberRes, paymentsRes, actsRes, socRes, notesRes, mergedRes] = await Promise.all([

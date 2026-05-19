@@ -93,14 +93,17 @@ async function findExistingStripePayment(
       .limit(1);
     if (data?.[0]?.id) return data[0].id;
   }
-  // Backward-compat: previously stored only "Stripe payment ID: <invoiceId>" in notes.
-  const fallbackId = externalIds.invoiceId ?? externalIds.piId ?? externalIds.chargeId;
-  if (fallbackId) {
+  // Backward-compat: previously stored only "Stripe payment ID: <invoiceId>" in notes,
+  // and CSV imports use payment_method='card'. Match any card/stripe payment for this member.
+  const candidates = [externalIds.piId, externalIds.chargeId, externalIds.invoiceId].filter(
+    (v): v is string => !!v,
+  );
+  for (const fallbackId of candidates) {
     const { data } = await supabaseAdmin
       .from("payments")
       .select("id")
       .eq("member_id", memberId)
-      .eq("payment_method", "stripe")
+      .in("payment_method", ["stripe", "card"])
       .ilike("notes", `%${fallbackId}%`)
       .limit(1);
     if (data?.[0]?.id) return data[0].id;

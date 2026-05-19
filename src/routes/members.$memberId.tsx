@@ -350,16 +350,6 @@ function MemberProfilePage() {
             points: s.status === "approved" ? (s.points ?? 0) : 0,
             icon: "🌐",
           })),
-          ...payments.map((p): HistoryItem => ({
-            id: `p-${p.id}`,
-            kind: "payment",
-            type: `${t("memberProfile.recordPayment")} · ${formatUSD(p.amount)}`,
-            source: PAYMENT_METHOD_LABEL[p.payment_method] ?? p.payment_method,
-            date: p.payment_date,
-            status: p.status,
-            points: 0,
-            icon: "💵",
-          })),
           ...pastoralNotes.map((n): HistoryItem => ({
             id: `n-${n.id}`,
             kind: "pastoral_note",

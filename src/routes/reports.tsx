@@ -214,7 +214,7 @@ function ReportsPage() {
 
   // Filter payments by name/method/status/member dropdown
   const filteredPayments = useMemo(() => {
-    return payments.filter((p) => {
+    const rows = payments.filter((p) => {
       if (memberIdFilter !== "all" && p.members?.id !== memberIdFilter) return false;
       if (nameFilter) {
         const q = nameFilter.toLowerCase();
@@ -237,6 +237,14 @@ function ReportsPage() {
         } else if (s !== statusFilter) return false;
       }
       return true;
+    });
+    // Alphabetical by member name, then most recent first as tiebreaker
+    return rows.sort((a, b) => {
+      const an = toTitleCase(a.members?.name ?? "");
+      const bn = toTitleCase(b.members?.name ?? "");
+      const cmp = an.localeCompare(bn);
+      if (cmp !== 0) return cmp;
+      return b.payment_date.localeCompare(a.payment_date);
     });
   }, [payments, memberIdFilter, nameFilter, methodFilter, statusFilter, statusByMember]);
 
@@ -340,7 +348,7 @@ function ReportsPage() {
       if (partnerId && partnerId !== id) cur.partners.add(partnerId);
       agg.set(id, cur);
     }
-    return Array.from(agg.values()).sort((a, b) => b.total - a.total);
+    return Array.from(agg.values()).sort((a, b) => a.name.localeCompare(b.name));
   };
 
   const payerRows = useMemo(() => buildRelRows("payer_member_id", "beneficiary_member_id"), [filteredPayments, memberById]);
@@ -367,13 +375,17 @@ function ReportsPage() {
   const handleMethodCardClick = (method: "card" | "cash") => {
     setMethodFilter((cur) => (cur === method ? "all" : method));
     setStatusFilter("all");
-    setShowAllMembers(false);
-    setGroupBy("transactions");
+    setShowAllMembers(true);
+    // Keep consolidated per-member view — never duplicate names from card clicks
+    setGroupBy("member");
   };
 
   const handleTotalPaymentsClick = () => {
-    setGroupBy((cur) => (cur === "transactions" ? "member" : "transactions"));
+    // Total Payments always shows the consolidated per-member summary
+    setGroupBy("member");
     setShowAllMembers(true);
+    setStatusFilter("all");
+    setMethodFilter("all");
   };
 
   const hasActiveFilter =

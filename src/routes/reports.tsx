@@ -688,6 +688,20 @@ function ReportsPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
+                      <th className="table-header px-3 py-3 text-left w-8">
+                        <input
+                          type="checkbox"
+                          aria-label="Select all"
+                          checked={memberRows.length > 0 && memberRows.every((g) => selectedIds.has(g.id))}
+                          onChange={(e) => {
+                            const next = new Set(selectedIds);
+                            if (e.target.checked) memberRows.forEach((g) => next.add(g.id));
+                            else memberRows.forEach((g) => next.delete(g.id));
+                            setSelectedIds(next);
+                          }}
+                          className="h-4 w-4 rounded border-input"
+                        />
+                      </th>
                       <th className="table-header px-5 py-3 text-left">Name</th>
                       <th className="table-header px-5 py-3 text-left">Status</th>
                       <th className="table-header px-5 py-3 text-right">Payments</th>
@@ -697,7 +711,25 @@ function ReportsPage() {
                   </thead>
                   <tbody>
                     {memberRows.map((g) => (
-                      <tr key={g.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                      <tr
+                        key={g.id}
+                        className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer"
+                        onClick={() => setDrawerMemberId(g.id)}
+                      >
+                        <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${g.name}`}
+                            checked={selectedIds.has(g.id)}
+                            onChange={(e) => {
+                              const next = new Set(selectedIds);
+                              if (e.target.checked) next.add(g.id);
+                              else next.delete(g.id);
+                              setSelectedIds(next);
+                            }}
+                            className="h-4 w-4 rounded border-input"
+                          />
+                        </td>
                         <td className="px-5 py-3 text-sm font-medium text-foreground">{g.name}</td>
                         <td className="px-5 py-3">
                           <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClasses(g.status)}`}>

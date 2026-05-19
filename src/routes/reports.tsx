@@ -491,10 +491,13 @@ function ReportsPage() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Users className="h-4 w-4" />Paid Members</div>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">{distinctPaidMembers}</p>
         </button>
-        <div className="stat-card">
+        <button
+          onClick={handleTotalPaymentsClick}
+          className={`stat-card text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${groupBy === "transactions" ? "ring-2 ring-primary" : ""}`}
+        >
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Receipt className="h-4 w-4" />Total Payments</div>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">{totalPayments}</p>
-        </div>
+        </button>
         <button
           onClick={() => handleStatusCardClick("late")}
           className={`stat-card text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${statusFilter === "late" ? "ring-2 ring-destructive" : ""}`}
@@ -509,14 +512,20 @@ function ReportsPage() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><UserX className="h-4 w-4" />No Payment Yet</div>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">{noPaymentCount}</p>
         </button>
-        <div className="stat-card">
+        <button
+          onClick={() => handleMethodCardClick("card")}
+          className={`stat-card text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${methodFilter === "card" ? "ring-2 ring-sky-500" : ""}`}
+        >
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><CreditCard className="h-4 w-4" />Card</div>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">{formatUSD(cardTotal)}</p>
-        </div>
-        <div className="stat-card">
+        </button>
+        <button
+          onClick={() => handleMethodCardClick("cash")}
+          className={`stat-card text-left transition-all hover:shadow-md hover:-translate-y-0.5 ${methodFilter === "cash" ? "ring-2 ring-emerald-600" : ""}`}
+        >
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><DollarSign className="h-4 w-4" />Cash</div>
           <p className="mt-1 font-display text-2xl font-semibold text-foreground">{formatUSD(cashTotal)}</p>
-        </div>
+        </button>
       </div>
 
       {/* Filters */}

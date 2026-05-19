@@ -37,6 +37,8 @@ import {
   type MemberFinancialSummary,
   type FinancialCardStats,
 } from "@/lib/financialLedger";
+import { computeFamilyRoleMap, getComputedFamilyRoleLabel, type ComputedFamilyRole, sortMembersByComputedFamilyRole } from "@/lib/familyComputedRoles";
+import { subscribeToFamilyFinancialsUpdated } from "@/lib/familySync";
 
 type LifecycleFilter = "active" | "inactive" | "all";
 
@@ -82,6 +84,9 @@ interface MemberWithStatus extends Member {
   monthly_pending: number;
   // Ledger-based financial truth (independent of Stripe retries).
   ledger: MemberFinancialSummary | null;
+  computed_family_role: ComputedFamilyRole;
+  sponsored_by: string | null;
+  pays_for: string[];
 }
 
 type FinBucket = "paid" | "past_due" | "failed" | "unpaid" | "cancelled";

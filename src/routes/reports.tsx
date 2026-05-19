@@ -340,7 +340,7 @@ function ReportsPage() {
       if (partnerId && partnerId !== id) cur.partners.add(partnerId);
       agg.set(id, cur);
     }
-    return Array.from(agg.values()).sort((a, b) => b.total - a.total);
+    return Array.from(agg.values()).sort((a, b) => a.name.localeCompare(b.name));
   };
 
   const payerRows = useMemo(() => buildRelRows("payer_member_id", "beneficiary_member_id"), [filteredPayments, memberById]);

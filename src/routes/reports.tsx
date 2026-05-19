@@ -12,6 +12,7 @@ import { PAYMENT_METHOD_LABEL } from "@/components/RecordPaymentModal";
 import { EditPaymentModal } from "@/components/EditPaymentModal";
 import { MemberFinancialDrawer } from "@/components/MemberFinancialDrawer";
 import type { Database } from "@/integrations/supabase/types";
+import { getFinancialSummary, type FinancialSummary } from "@/lib/financialSummary";
 
 interface ReportsSearch {
   range?: "this_month" | "last_month" | "all" | "custom";

@@ -39,6 +39,7 @@ import {
 } from "@/lib/financialLedger";
 import { computeFamilyRoleMap, getComputedFamilyRoleLabel, type ComputedFamilyRole, sortMembersByComputedFamilyRole } from "@/lib/familyComputedRoles";
 import { subscribeToFamilyFinancialsUpdated } from "@/lib/familySync";
+import { getThisMonthSummary, type FinancialSummary } from "@/lib/financialSummary";
 
 type LifecycleFilter = "active" | "inactive" | "all";
 

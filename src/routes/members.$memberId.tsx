@@ -15,7 +15,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { parseEmergencyContact, isLegacyEmergencyContact, type EmergencyContact } from "@/lib/emergencyContact";
 import { getBirthdayInfo } from "@/lib/birthday";
 import { formatLocalDateOnly } from "@/lib/datetime";
-import { FamilyHierarchyPanel } from "@/components/FamilyHierarchyPanel";
+// FamilyHierarchyPanel removed — individual member view only
 
 function FieldRow({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string | null | undefined }) {
   const { t } = useTranslation();

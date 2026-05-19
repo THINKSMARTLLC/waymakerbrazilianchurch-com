@@ -381,7 +381,8 @@ function ReportsPage() {
     nameFilter.trim() !== "" ||
     methodFilter !== "all" ||
     statusFilter !== "all" ||
-    showAllMembers;
+    showAllMembers ||
+    groupBy === "transactions";
 
   const clearFilters = () => {
     setMemberIdFilter("all");
@@ -389,6 +390,8 @@ function ReportsPage() {
     setMethodFilter("all");
     setStatusFilter("all");
     setShowAllMembers(false);
+    setGroupBy("member");
+    setSelectedIds(new Set());
   };
 
   return (

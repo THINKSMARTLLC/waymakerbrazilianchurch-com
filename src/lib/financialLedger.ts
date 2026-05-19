@@ -133,10 +133,12 @@ export async function getFinancialCardStats(activeMemberIds: string[]): Promise<
   // Stripe attempts: count of failed payment rows (raw Stripe events, NOT debt)
   let stripeAttempts = 0;
   if (activeMemberIds.length > 0) {
+    // Stripe failed attempts are surfaced as `past_due` payment rows
+    // (the payments table enum does not include 'failed').
     const { count } = await supabase
       .from("payments")
       .select("id", { count: "exact", head: true })
-      .eq("status", "failed")
+      .eq("status", "past_due")
       .in("member_id", activeMemberIds);
     stripeAttempts = count ?? 0;
   }

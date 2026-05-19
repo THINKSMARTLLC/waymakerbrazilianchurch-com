@@ -991,6 +991,17 @@ function MembersPage() {
                       <td className="px-5 py-3.5 text-sm text-muted-foreground hidden xl:table-cell">{formatPhoneDisplay(member.phone)}</td>
                       <td className="px-5 py-3.5 text-sm text-foreground text-right tabular-nums">{formatUSD(weekly)}</td>
                       <td className="px-5 py-3.5 text-sm text-muted-foreground text-right tabular-nums hidden md:table-cell" title="Sum of payments in current month">{formatUSD(member.monthly_total)}</td>
+                      <td className="px-5 py-3.5 text-sm text-right tabular-nums hidden md:table-cell">
+                        {(() => {
+                          const bal = member.ledger?.balance ?? 0;
+                          let cls = "text-muted-foreground";
+                          if (bal >= 0) cls = "text-emerald-700 dark:text-emerald-400 font-medium";
+                          else if (bal > -60) cls = "text-amber-700 dark:text-amber-400 font-medium";
+                          else if (bal > -120) cls = "text-red-700 dark:text-red-400 font-semibold";
+                          else cls = "text-red-900 dark:text-red-300 font-semibold";
+                          return <span className={cls}>{bal >= 0 ? "+" : "−"}{formatUSD(Math.abs(bal))}</span>;
+                        })()}
+                      </td>
                       <td className="px-5 py-3.5 text-sm text-muted-foreground hidden md:table-cell">
                         {member.last_payment_date ? new Date(member.last_payment_date).toLocaleDateString("en-US") : "—"}
                       </td>

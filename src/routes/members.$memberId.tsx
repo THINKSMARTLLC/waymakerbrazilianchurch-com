@@ -15,7 +15,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { parseEmergencyContact, isLegacyEmergencyContact, type EmergencyContact } from "@/lib/emergencyContact";
 import { getBirthdayInfo } from "@/lib/birthday";
 import { formatLocalDateOnly } from "@/lib/datetime";
-import { FinancialRelationshipsDrawer } from "@/components/FinancialRelationshipsDrawer";
+import { FamilyHierarchyPanel } from "@/components/FamilyHierarchyPanel";
 
 function FieldRow({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string | null | undefined }) {
   const { t } = useTranslation();
@@ -141,19 +141,8 @@ function MemberProfilePage() {
   const [showEditMember, setShowEditMember] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  type RelatedMember = {
-    id: string;
-    name: string;
-    email: string | null;
-    phone: string | null;
-    subscription_active: boolean;
-    total: number;
-  };
-  const [paysFor, setPaysFor] = useState<RelatedMember[]>([]);
-  const [sponsoredBy, setSponsoredBy] = useState<RelatedMember[]>([]);
-  const [household, setHousehold] = useState<RelatedMember[]>([]);
-  const [relsLoading, setRelsLoading] = useState(true);
-  const [showRelDrawer, setShowRelDrawer] = useState(false);
+  const [payerNames, setPayerNames] = useState<Map<string, string>>(new Map());
+
 
   const fetchData = async () => {
     const [memberRes, paymentsRes, actsRes, socRes, notesRes, mergedRes] = await Promise.all([
@@ -181,108 +170,27 @@ function MemberProfilePage() {
     setMergedRecords(((mergedRes.data || []) as Array<{ id: string; merge_date: string; restored: boolean; snapshot_data: { member?: { name?: string } } | null }>));
     setLoading(false);
 
-    // ---- Financial relationships (UI-only, computed from existing payments) ----
-    setRelsLoading(true);
-    try {
-      const [paysForRows, sponsoredRows] = await Promise.all([
-        supabase
-          .from("payments")
-          .select("beneficiary_member_id, amount, payer_member_id")
-          .eq("payer_member_id", memberId)
-          .neq("beneficiary_member_id", memberId),
-        supabase
-          .from("payments")
-          .select("payer_member_id, amount, beneficiary_member_id")
-          .eq("beneficiary_member_id", memberId)
-          .neq("payer_member_id", memberId),
-      ]);
-
-      const paysForTotals = new Map<string, number>();
-      for (const r of paysForRows.data || []) {
-        if (!r.beneficiary_member_id) continue;
-        paysForTotals.set(
-          r.beneficiary_member_id,
-          (paysForTotals.get(r.beneficiary_member_id) ?? 0) + Number(r.amount ?? 0),
-        );
-      }
-      const sponsoredTotals = new Map<string, number>();
-      for (const r of sponsoredRows.data || []) {
-        if (!r.payer_member_id) continue;
-        sponsoredTotals.set(
-          r.payer_member_id,
-          (sponsoredTotals.get(r.payer_member_id) ?? 0) + Number(r.amount ?? 0),
-        );
-      }
-
-      // Household: other beneficiaries (not self) of any payer who also pays for this member
-      const sponsorIds = Array.from(sponsoredTotals.keys());
-      let householdIds: string[] = [];
-      const householdTotals = new Map<string, number>();
-      if (sponsorIds.length > 0) {
-        const { data: hhRows } = await supabase
-          .from("payments")
-          .select("beneficiary_member_id, amount")
-          .in("payer_member_id", sponsorIds)
-          .neq("beneficiary_member_id", memberId);
-        for (const r of hhRows || []) {
-          if (!r.beneficiary_member_id) continue;
-          householdTotals.set(
-            r.beneficiary_member_id,
-            (householdTotals.get(r.beneficiary_member_id) ?? 0) + Number(r.amount ?? 0),
-          );
-        }
-        householdIds = Array.from(householdTotals.keys());
-      }
-
-      const allIds = Array.from(new Set([
-        ...paysForTotals.keys(),
-        ...sponsoredTotals.keys(),
-        ...householdIds,
-      ]));
-
-      const memberMap = new Map<string, { name: string; email: string | null; phone: string | null; subscription_active: boolean }>();
-      if (allIds.length > 0) {
-        const { data: mems } = await supabase
-          .from("members")
-          .select("id, name, email, phone, subscription_active")
-          .in("id", allIds);
-        for (const m of mems || []) {
-          memberMap.set(m.id, {
-            name: m.name,
-            email: m.email,
-            phone: m.phone,
-            subscription_active: !!m.subscription_active,
-          });
-        }
-      }
-
-      const build = (totals: Map<string, number>): RelatedMember[] =>
-        Array.from(totals.entries())
-          .map(([id, total]) => {
-            const info = memberMap.get(id);
-            return {
-              id,
-              name: info?.name ?? "—",
-              email: info?.email ?? null,
-              phone: info?.phone ?? null,
-              subscription_active: info?.subscription_active ?? false,
-              total,
-            };
-          })
-          .sort((a, b) => b.total - a.total);
-
-      setPaysFor(build(paysForTotals));
-      setSponsoredBy(build(sponsoredTotals));
-      setHousehold(build(householdTotals));
-    } catch (err) {
-      console.error("[member-profile] failed to load financial relationships", err);
-      setPaysFor([]);
-      setSponsoredBy([]);
-      setHousehold([]);
-    } finally {
-      setRelsLoading(false);
+    // Resolve payer names for "Paid by Sponsor" badges in payment history
+    const payerIds = Array.from(
+      new Set(
+        (paymentsRes.data ?? [])
+          .map((p) => p.payer_member_id as string | null)
+          .filter((id): id is string => !!id && id !== memberId),
+      ),
+    );
+    if (payerIds.length > 0) {
+      const { data: payerRows } = await supabase
+        .from("members")
+        .select("id, name")
+        .in("id", payerIds);
+      const map = new Map<string, string>();
+      for (const r of payerRows ?? []) map.set(r.id as string, r.name as string);
+      setPayerNames(map);
+    } else {
+      setPayerNames(new Map());
     }
   };
+
 
   useEffect(() => {
     fetchData();
@@ -417,88 +325,8 @@ function MemberProfilePage() {
         </div>
       </div>
 
-      <div className="card-elevated p-6">
-        <button
-          type="button"
-          onClick={() => setShowRelDrawer(true)}
-          className="flex items-center gap-2 mb-4 w-full text-left hover:opacity-80 transition-opacity group"
-          title={t("payerBeneficiary.financialRelationships")}
-        >
-          <UsersIcon className="h-4 w-4 text-primary" />
-          <h3 className="font-display text-base font-medium text-foreground group-hover:underline">
-            {t("payerBeneficiary.financialRelationships")}
-          </h3>
-          <span className="ml-auto text-xs text-muted-foreground">
-            {t("financialDrawer.openManage", { defaultValue: "Manage →" })}
-          </span>
-        </button>
-        {relsLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          </div>
-        ) : paysFor.length === 0 && sponsoredBy.length === 0 && household.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            {t("payerBeneficiary.noFinancialRelationships")}
-          </p>
-        ) : (
-          <div className="space-y-6">
-            {([
-              { key: "paysFor", title: t("payerBeneficiary.paysFor"), list: paysFor },
-              { key: "sponsoredBy", title: t("payerBeneficiary.sponsoredBy"), list: sponsoredBy },
-              { key: "household", title: t("payerBeneficiary.sharedHousehold"), list: household },
-            ] as const).map((section) =>
-              section.list.length === 0 ? null : (
-                <div key={section.key}>
-                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                    {section.title}
-                  </h4>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {section.list.map((rel) => (
-                      <Link
-                        key={`${section.key}-${rel.id}`}
-                        to="/members/$memberId"
-                        params={{ memberId: rel.id }}
-                        className="block rounded-lg border border-border p-3 hover:bg-muted/40 transition-colors"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium text-foreground">
-                              {toTitleCase(rel.name)}
-                            </p>
-                            <p className="truncate text-xs text-muted-foreground">
-                              {rel.email || t("payerBeneficiary.noEmail")}
-                            </p>
-                            <p className="truncate text-xs text-muted-foreground">
-                              {rel.phone ? formatPhoneDisplay(rel.phone) : t("payerBeneficiary.noPhone")}
-                            </p>
-                          </div>
-                          <span
-                            className={`shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                              rel.subscription_active
-                                ? "bg-success/15 text-success"
-                                : "bg-muted text-muted-foreground"
-                            }`}
-                          >
-                            {rel.subscription_active
-                              ? t("payerBeneficiary.activeSubscription")
-                              : t("payerBeneficiary.inactiveSubscription")}
-                          </span>
-                        </div>
-                        <div className="mt-2 flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">
-                            {t("payerBeneficiary.totalContributions")}
-                          </span>
-                          <span className="font-medium text-foreground">{formatUSD(rel.total)}</span>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ),
-            )}
-          </div>
-        )}
-      </div>
+      <FamilyHierarchyPanel memberId={memberId} onChanged={fetchData} />
+
 
       {(() => {
         const items: HistoryItem[] = [
@@ -685,8 +513,16 @@ function MemberProfilePage() {
                         {formatLocalDateOnly(p.payment_date)}
                       </td>
                       <td className="px-5 py-3 text-sm font-medium text-foreground tabular-nums">
-                        {formatUSD(p.amount)}
+                        <div className="flex flex-col gap-0.5">
+                          <span>{formatUSD(p.amount)}</span>
+                          {p.payer_member_id && p.payer_member_id !== memberId && payerNames.get(p.payer_member_id) && (
+                            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/40 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-200">
+                              <CreditCard className="h-2.5 w-2.5" /> Paid by {toTitleCase(payerNames.get(p.payer_member_id)!)}
+                            </span>
+                          )}
+                        </div>
                       </td>
+
                       <td className="px-5 py-3 text-sm text-muted-foreground capitalize">
                         {PAYMENT_METHOD_LABEL[p.payment_method] ?? p.payment_method}
                       </td>
@@ -800,12 +636,6 @@ function MemberProfilePage() {
           onSaved={fetchData}
         />
       )}
-      <FinancialRelationshipsDrawer
-        memberId={memberId}
-        open={showRelDrawer}
-        onClose={() => setShowRelDrawer(false)}
-        onChanged={fetchData}
-      />
     </div>
   );
 }

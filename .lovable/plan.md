@@ -1,90 +1,93 @@
-# Correção Estrutural do Módulo Financeiro
+# Plano — Relações Financeiras e Sponsor/Dependentes
 
-## Problema
+## Resumo do que muda
 
-Os cards (Paid / Past Due / Failed / Unpaid) hoje somam tentativas Stripe e retries, inflando valores. Precisamos separar **dívida do membro** (semanal fixa de $20) de **eventos Stripe** (tentativas/falhas).
+Hoje a relação financeira existe via `family_role` (`family_owner`, `family_member`, `sponsored`, `individual`) e via `payment_relationships`. O usuário quer transformar isso numa hierarquia clara **Sponsor → Dependentes → Individual**, com:
 
-## Solução: Ledger semanal por membro
+- a seção "Relações Financeiras" **expandida inline** no perfil do membro (sem modal/drawer "Manage");
+- **badges claras** (Sponsor / Dependent / Individual);
+- **Total Paid consolidado** do sponsor (próprio + dependentes);
+- distribuição automática de pagamento do sponsor entre ele e dependentes;
+- histórico individual preservado, com tag "Paid by Sponsor".
 
-### 1. Nova tabela `member_financial_ledger`
+## Escopo
 
-Uma linha por membro × semana (segunda-feira como `week_reference`):
+### 1. Banco (migration única)
 
-| Campo | Tipo |
-|---|---|
-| id | uuid |
-| member_id | uuid |
-| week_reference | date (segunda da semana) |
-| amount_due | numeric (default 20) |
-| amount_paid | numeric (default 0) |
-| balance | numeric generated (`amount_paid - amount_due`) |
-| payment_status | enum: `paid`, `partial`, `pending`, `overdue`, `failed` |
-| stripe_payment_intent | text nullable |
-| created_at, updated_at | timestamptz |
+**Aproveitar `family_role` existente** + adicionar enum `'sponsor'` e `'dependent'` (mantendo compat). Mapping:
+- `family_owner` / `sponsor` → **Sponsor**
+- `family_member` / `sponsored` / `dependent` → **Dependente**
+- `individual` → **Individual**
 
-Unique `(member_id, week_reference)`. RLS: staff manage all; member SELECT próprio.
+**Nova função `apply_payment_to_sponsor_family(_payment_id)`:**
+- Se o pagamento é de um sponsor (family_owner) e `amount > weekly_due próprio`, distribui o excedente entre dependentes da mesma família em ordem cronológica do ledger (semanas mais antigas primeiro).
+- Registra em `ledger_payment_applications` com `applied_to_member_id` para rastrear que foi "Paid by Sponsor".
+- Acrescentar coluna `applied_to_member_id uuid` em `ledger_payment_applications` (nullable) — quando NULL é o próprio member do pagamento, quando preenchido é dependente.
+- Trigger `trg_payments_to_ledger` passa a chamar a nova função no lugar de `apply_payment_to_ledger` para pagamentos de sponsor.
 
-### 2. Geração automática semanal
+**View `member_financial_summary`:**
+- `member_id, role (sponsor/dependent/individual), sponsor_id, total_paid_personal, total_paid_by_sponsor, total_paid_sponsor_family, balance, weeks_overdue, stripe_status`.
 
-- Função `generate_weekly_ledger_entries()`: para cada membro `active` (não arquivado), garante 1 entrada para a semana atual com `amount_due = weekly_contribution_usd OR 20`, status `pending`.
-- Função `backfill_member_ledger(member_id)`: cria entradas desde `created_at` (ou ativação) do membro até hoje.
-- Aplicação de pagamentos: função `apply_payment_to_ledger(payment_id)` que distribui `amount` em ordem cronológica nas semanas em débito, atualizando `amount_paid` e `payment_status`.
-- Trigger em `payments` (INSERT/UPDATE para status `paid`) chama `apply_payment_to_ledger`.
-- Trigger em `members` (INSERT active) chama backfill.
-- Backfill inicial via migration para todos os membros ativos atuais.
+### 2. Frontend — perfil do membro (`src/routes/members.$memberId.tsx`)
 
-Stripe retries **não** criam entradas no ledger — apenas atualizam `stripe_payment_intent` da última semana em aberto e marcam `failed` se a tentativa falhou definitivamente.
+- Substituir o card "Relações Financeiras" com o link **Manage →** por uma seção **inline expandida**:
+  - **Cabeçalho**: nome do membro + badge (Sponsor / Dependent / Individual).
+  - **Se Sponsor**: lista expandida de dependentes com status Stripe, total pago, balance, overdue. Mostra "Total Família: $X".
+  - **Se Dependent**: mostra "Paid by: [Nome do Sponsor]" + próprio balance/histórico.
+  - **Se Individual**: mostra apenas próprio status.
+- Manter o componente `FinancialRelationshipsDrawer` só para edição (botão "Edit relationships" pequeno), já que ele tem busca/add/remove/role-change.
 
-### 3. Status calculado
+### 3. Histórico de pagamentos do dependente
 
-Por membro, agregando ledger:
-- `weeks_overdue` = count de linhas com `balance < 0`
-- `balance_total` = sum(amount_paid) − sum(amount_due)
-- `status_financeiro`:
-  - `paid` se balance ≥ 0
-  - `overdue` se −20 ≥ balance > −60 (1–2 semanas)
-  - `late` se −60 ≥ balance > −120 (3–5 semanas)
-  - `critical` se balance ≤ −120 (6+ semanas)
+- Em `members.$memberId.tsx`, na tabela "Activity History"/pagamentos, quando `applied_to_member_id = current member` e pagamento original pertence a sponsor, exibir badge **"Paid by Sponsor"** + nome do sponsor.
 
-### 4. Cards do dashboard/members
+### 4. Lista de membros (`src/routes/members.index.tsx`)
 
-Recalcular usando agregações do ledger (membros únicos, nunca tentativas Stripe):
+- Coluna **Monthly** vira **Total Paid (consolidado)** para sponsors: soma próprio + dependentes.
+- No modo "Group by Family" já existente: cabeçalho mostra **Sponsor** primeiro, depois **Dependentes**, depois **Individual** (se houver). Badges visuais por linha.
+- Substituir o ícone rosa "coração" por badge text `Sponsor` (dourado) e `Dependent` (azul).
 
-- **Paid**: count de membros com balance ≥ 0; sum de `amount_paid` confirmado.
-- **Past Due**: count membros com balance < 0; sum de `weeks_overdue`; valor real devido (`−sum(balance<0)`).
-- **Failed**: count membros únicos com pelo menos 1 ledger `failed`; count tentativas Stripe (de `payments` com status failed); count semanas vencidas com falha; valor devido real. Clicável → abre tabela detalhada (Nome | Tentativas | Semanas | Devido).
-- **Unpaid**: membros com `amount_paid` total = 0 e pelo menos 1 semana acumulada.
+### 5. Distribuição automática de pagamento
 
-### 5. Tabela de membros
+Quando sponsor paga $60 e family weekly = $20:
+- Aplica $20 ao ledger do próprio sponsor (semana atual em aberto).
+- Aplica $20 ao ledger de cada dependente da família com semana em aberto, ordenado por overdue mais antigo primeiro.
+- Resto sobra como crédito no próprio sponsor (semana futura).
 
-Substituir colunas `Weekly`/`Monthly` por:
+Configurável por flag — começa **ativo por padrão** para sponsors.
 
-| Nome | Weekly Due | Balance | Status | Last Payment |
+### 6. Cálculo Total Paid Sponsor/Família
 
-Status colorido conforme regras acima (verde/amarelo/vermelho/vermelho-escuro).
+Nova helper `getSponsorFinancials(memberId)` em `src/lib/financialLedger.ts`:
+- retorna `{ personalPaid, dependentsPaid, familyTotal, dependents: [...] }`.
 
-### 6. Drawer "Failed" detalhado
+### 7. Exportações (`src/lib/dataExportImport.ts`)
 
-Ao clicar no card Failed, abrir modal com tabela de membros afetados e suas métricas reais (separa retries de dívida real).
+Adicionar 3 modos no export financeiro:
+- `individual` (já existe — manter)
+- `sponsor_summary` (uma linha por sponsor com totais agregados)
+- `family_summary` (uma linha por família)
 
-## Arquivos a alterar/criar
+## Fora do escopo
 
-1. **Migration** — `member_financial_ledger` + enum + RLS + funções `generate_weekly_ledger_entries`, `backfill_member_ledger`, `apply_payment_to_ledger` + triggers + backfill inicial.
-2. **`src/lib/financialLedger.ts`** (novo) — helpers de leitura: `getMemberBalance`, `getFinancialCardStats`, `getFailedMembersDetail`, classificador de status.
-3. **`src/routes/dashboard.tsx`** — cards Paid/Past Due/Failed/Unpaid usando novos stats; cards clicáveis com navegação.
-4. **`src/routes/members.index.tsx`** — colunas Weekly Due / Balance / Status / Last Payment; modal detalhado quando filtro `fin=failed`.
-5. **`src/components/FailedPaymentsDrawer.tsx`** (novo) — tabela detalhada por membro.
-6. **i18n** (en/pt/es) — novas chaves: `weeklyDue`, `balance`, `weeksOverdue`, `stripeAttempts`, `membersAffected`, status labels.
+- Não alterar auth, RLS de pagamentos individuais, Stripe webhook.
+- Não criar nova tabela `family_financial_relationships` — reutilizar `family_id` + `family_role` em `members` (mais simples e já populado).
+- Não alterar lógica de inadimplência/overdue.
 
-## Fora do escopo (não tocar)
+## Arquivos
 
-- Autenticação / login
-- Arquitetura Stripe / webhook / checkout
-- Relações familiares / `payment_relationships`
-- Outras rotas (portal, reports, engagement, etc.)
+1. **Migration**: enum extension + coluna `applied_to_member_id` + função `apply_payment_to_sponsor_family` + trigger update + view `member_financial_summary`.
+2. **`src/lib/financialLedger.ts`** — `getSponsorFinancials`, `getFamilyHierarchy`.
+3. **`src/routes/members.$memberId.tsx`** — nova seção inline de Relações Financeiras + badge "Paid by Sponsor" no histórico.
+4. **`src/routes/members.index.tsx`** — badges visuais Sponsor/Dependent + Total Paid consolidado no grupo.
+5. **`src/components/FinancialRelationshipsDrawer.tsx`** — manter, mas reduzir uso a "Edit" apenas.
+6. **`src/lib/dataExportImport.ts`** — adicionar exports Sponsor Summary + Family Summary.
+7. **i18n** (en/pt/es) — novas chaves: `sponsor`, `dependent`, `paidBySponsor`, `familyTotal`, `sponsoredAccount`, etc.
 
-## Observações técnicas
+## Risco / observações
 
-- Triggers usam `SECURITY DEFINER` + `SET search_path = public`.
-- `week_reference` é sempre a segunda-feira (`date_trunc('week', current_date)::date`).
-- `apply_payment_to_ledger` é idempotente (usa `payment_id` para evitar dupla aplicação — coluna `applied_payment_ids uuid[]` no ledger ou tabela `ledger_payment_applications`).
+- A mudança na trigger de pagamentos afeta TODOS os pagamentos de sponsors daqui pra frente. Backfill: aplicar a nova distribuição apenas para pagamentos **novos** (não reprocessar histórico) para evitar mexer em ledger já fechado.
+- Pagamentos existentes continuam com `applied_to_member_id = NULL` (interpretado como "próprio member" no histórico).
+- A view substitui várias queries ad-hoc; vou manter as queries antigas funcionando até a view ser usada pelo front.
+
+Confirma que posso seguir? Posso também já implementar tudo de uma vez se preferir.

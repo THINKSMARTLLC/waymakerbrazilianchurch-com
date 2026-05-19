@@ -843,7 +843,7 @@ function MembersPage() {
                   if (item.kind === "family") {
                     return (
                       <tr key={`fam-${item.familyId}`} className="bg-muted/40 border-b border-border">
-                        <td colSpan={11} className="px-3 py-2.5">
+                        <td colSpan={12} className="px-3 py-2.5">
                           <button
                             type="button"
                             onClick={() => toggleFamilyCollapse(item.familyId)}

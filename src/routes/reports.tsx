@@ -83,12 +83,28 @@ function ReportsPage() {
   const { isSuperAdmin } = useUserRole();
   const [exportingPayments, setExportingPayments] = useState(false);
   const [resyncing, setResyncing] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [drawerMemberId, setDrawerMemberId] = useState<string | null>(null);
 
-  const handleExportPayments = async (format: "csv" | "xlsx") => {
+  const buildExportOpts = (mode: "all" | "filtered" | "selected"): PaymentsExportOpts => {
+    if (mode === "all") return {};
+    const { start, end } = getDateRange(filter, customStart, customEnd);
+    const opts: PaymentsExportOpts = { start, end };
+    if (methodFilter !== "all") opts.method = methodFilter;
+    if (mode === "selected") opts.memberIds = Array.from(selectedIds);
+    else if (mode === "filtered") {
+      // visible member ids in the current member view
+      opts.memberIds = filteredMembersIds;
+    }
+    return opts;
+  };
+
+  const handleExportPayments = async (format: "csv" | "xlsx", mode: "all" | "filtered" | "selected" = "all") => {
     setExportingPayments(true);
     try {
-      if (format === "csv") await exportPaymentsCSV();
-      else await exportPaymentsXLSX();
+      const opts = buildExportOpts(mode);
+      if (format === "csv") await exportPaymentsCSV(opts);
+      else await exportPaymentsXLSX(opts);
     } finally {
       setExportingPayments(false);
     }

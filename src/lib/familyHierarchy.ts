@@ -1,6 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type ComputedFamilyRole = "sponsor" | "dependent" | "individual";
+export type ComputedFamilyRole =
+  | "sponsor"            // Active subscription + pays for at least one other member
+  | "individual_sponsor" // Active subscription, pays only for self (still in a family)
+  | "dependent"          // No own subscription; paid by another member
+  | "individual";        // Not part of a family at all
 
 export interface FamilyMemberSummary {
   id: string;
@@ -13,12 +17,20 @@ export interface FamilyMemberSummary {
   subscription_active: boolean;
   stripe_subscription_id: string | null;
   weekly_due: number;
-  /** Money this member contributed from their own pocket (payer = self or unknown). */
+  /** Members this sponsor pays for (excluding self). */
+  pays_for: string[];
+  /** Sponsor that pays for this member (if dependent). */
+  sponsored_by: string | null;
+  /** Sum of weekly_due across self + everyone this sponsor pays for. */
+  weekly_responsibility: number;
+  /** Money this member contributed from their own pocket (payer = self or payer null). */
   personal_paid: number;
-  /** Money paid BY others for this member (this member is beneficiary, payer is someone else). */
+  /** Money paid BY others for this member (beneficiary = this, payer = someone else). */
   paid_by_others: number;
-  /** Money paid for OTHERS by this member (this member is payer for someone else). */
+  /** Money paid for OTHERS by this member (payer = this, beneficiary = someone else in family). */
   paid_for_others: number;
+  /** Personal + Paid for Family (only meaningful for sponsors). */
+  sponsor_total: number;
   /** Ledger balance — negative = owes. */
   balance: number;
   weeks_overdue: number;
@@ -27,21 +39,45 @@ export interface FamilyMemberSummary {
 export interface FamilyHierarchy {
   familyId: string | null;
   familyName: string | null;
+  /** Backwards-compat: the first/primary sponsor of the family. */
   sponsorId: string | null;
+  /** All members of the family (sponsors first, then dependents). */
   members: FamilyMemberSummary[];
-  /** Total paid by the entire family (sum of payments for all family members). */
+  sponsors: FamilyMemberSummary[];
+  individualSponsors: FamilyMemberSummary[];
+  dependents: FamilyMemberSummary[];
+  /** Sum of personal_paid + paid_by_others across the entire family. */
   totalFamilyPaid: number;
+  /** Sum of weekly_due across every member of the family. */
+  familyWeeklyDue: number;
+}
+
+interface RawMember {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  profile_photo_url: string | null;
+  family_id: string | null;
+  family_role: string | null;
+  subscription_active: boolean | null;
+  stripe_subscription_id: string | null;
+  weekly_contribution_usd: number | null;
+  created_at?: string;
 }
 
 /**
- * Resolve the family hierarchy for a member. Returns the full family
- * (sponsor + dependents) if the member belongs to one, otherwise a single-
- * member "individual" hierarchy.
+ * Resolve the full family hierarchy. Supports multiple sponsors per family.
  *
- * Sponsor inference precedence:
- *  1. `family_role = 'family_owner'`
- *  2. Member of the family with the highest `paid_for_others` amount
- *  3. If still tied/zero — first member by created_at
+ * Computed role rules:
+ *  - `subscription_active` OR `stripe_subscription_id` → sponsor / individual_sponsor
+ *      (Stripe-active members are NEVER classified as dependent.)
+ *  - A member is a `sponsor` if they pay for at least one OTHER member of the family
+ *    (detected via `payment_relationships` where they are payer, or `family_role = 'family_owner'`).
+ *  - Otherwise active-subscription members are `individual_sponsor`.
+ *  - Members with no own subscription are `dependent`, attributed to a sponsor via
+ *    `payment_relationships` or fallback to the family's primary sponsor.
+ *  - Members with no family at all are `individual`.
  */
 export async function getFamilyHierarchy(memberId: string): Promise<FamilyHierarchy> {
   const { data: me } = await supabase
@@ -51,11 +87,11 @@ export async function getFamilyHierarchy(memberId: string): Promise<FamilyHierar
     .maybeSingle();
 
   if (!me) {
-    return { familyId: null, familyName: null, sponsorId: null, members: [], totalFamilyPaid: 0 };
+    return emptyHierarchy();
   }
 
   let familyName: string | null = null;
-  let familyMembers: typeof me[] = [me as never];
+  let familyMembers: RawMember[] = [me as RawMember];
 
   if (me.family_id) {
     const [{ data: fam }, { data: rows }] = await Promise.all([
@@ -67,13 +103,13 @@ export async function getFamilyHierarchy(memberId: string): Promise<FamilyHierar
         .order("created_at", { ascending: true }),
     ]);
     familyName = (fam?.name as string) ?? null;
-    familyMembers = (rows ?? [me]) as never;
+    familyMembers = (rows ?? [me]) as RawMember[];
   }
 
   const ids = familyMembers.map((m) => m.id);
 
-  // Aggregate payments
-  const [paymentsRes, ledgerRes] = await Promise.all([
+  // Fetch payments, ledger, and explicit payer relationships in parallel.
+  const [paymentsRes, ledgerRes, relRes] = await Promise.all([
     supabase
       .from("payments")
       .select("amount, member_id, payer_member_id, beneficiary_member_id, status")
@@ -86,11 +122,32 @@ export async function getFamilyHierarchy(memberId: string): Promise<FamilyHierar
       .from("member_financial_ledger")
       .select("member_id, amount_due, amount_paid, payment_status, week_reference")
       .in("member_id", ids),
+    supabase
+      .from("payment_relationships")
+      .select("payer_member_id, beneficiary_member_id")
+      .in("beneficiary_member_id", ids),
   ]);
 
   const personalPaid = new Map<string, number>();
   const paidByOthers = new Map<string, number>();
   const paidForOthers = new Map<string, number>();
+  // sponsor_id -> [dependent ids paid for]
+  const paysFor = new Map<string, Set<string>>();
+  // dependent_id -> sponsor_id
+  const sponsoredBy = new Map<string, string>();
+
+  // Seed sponsoredBy from explicit payment_relationships.
+  for (const r of relRes.data ?? []) {
+    const payer = r.payer_member_id as string;
+    const benef = r.beneficiary_member_id as string;
+    if (!payer || !benef || payer === benef) continue;
+    if (ids.includes(payer)) {
+      sponsoredBy.set(benef, payer);
+      const set = paysFor.get(payer) ?? new Set();
+      set.add(benef);
+      paysFor.set(payer, set);
+    }
+  }
 
   for (const p of paymentsRes.data ?? []) {
     if ((p.status ?? "paid") !== "paid") continue;
@@ -104,6 +161,13 @@ export async function getFamilyHierarchy(memberId: string): Promise<FamilyHierar
     } else {
       if (ids.includes(target)) {
         paidByOthers.set(target, (paidByOthers.get(target) ?? 0) + amount);
+        // Infer sponsorship from observed payments if not already mapped.
+        if (ids.includes(payer) && !sponsoredBy.has(target)) {
+          sponsoredBy.set(target, payer);
+          const set = paysFor.get(payer) ?? new Set();
+          set.add(target);
+          paysFor.set(payer, set);
+        }
       }
       if (ids.includes(payer)) {
         paidForOthers.set(payer, (paidForOthers.get(payer) ?? 0) + amount);
@@ -122,66 +186,150 @@ export async function getFamilyHierarchy(memberId: string): Promise<FamilyHierar
     }
   }
 
-  // Sponsor detection
-  let sponsorId: string | null = null;
-  const explicitOwner = familyMembers.find((m) => m.family_role === "family_owner");
-  if (explicitOwner) {
-    sponsorId = explicitOwner.id;
-  } else if (familyMembers.length > 1) {
-    let best: { id: string; amt: number } | null = null;
-    for (const m of familyMembers) {
-      const amt = paidForOthers.get(m.id) ?? 0;
-      if (amt > 0 && (!best || amt > best.amt)) best = { id: m.id, amt };
-    }
-    sponsorId = best?.id ?? familyMembers[0]?.id ?? null;
-  }
+  const hasOwnSubscription = (m: RawMember) =>
+    !!m.subscription_active || !!m.stripe_subscription_id;
 
-  const members: FamilyMemberSummary[] = familyMembers.map((m) => {
+  // First pass: classify each member.
+  const partial: Array<FamilyMemberSummary & { _raw: RawMember }> = familyMembers.map((m) => {
     let role: ComputedFamilyRole;
     if (!me.family_id || familyMembers.length === 1) {
       role = "individual";
-    } else if (m.id === sponsorId) {
-      role = "sponsor";
+    } else if (hasOwnSubscription(m) || m.family_role === "family_owner") {
+      // Sponsor candidate. Decide sponsor vs individual_sponsor in second pass
+      // once we know who pays for whom.
+      role = "individual_sponsor";
     } else {
       role = "dependent";
     }
+    const weekly = Number(m.weekly_contribution_usd ?? 0) || 20;
     return {
+      _raw: m,
       id: m.id,
-      name: m.name as string,
-      email: (m.email as string) ?? null,
-      phone: (m.phone as string) ?? null,
-      profile_photo_url: (m.profile_photo_url as string) ?? null,
-      family_role: (m.family_role as string) ?? null,
+      name: m.name,
+      email: m.email,
+      phone: m.phone,
+      profile_photo_url: m.profile_photo_url,
+      family_role: m.family_role,
       computed_role: role,
       subscription_active: !!m.subscription_active,
-      stripe_subscription_id: (m.stripe_subscription_id as string) ?? null,
-      weekly_due: Number(m.weekly_contribution_usd ?? 0),
+      stripe_subscription_id: m.stripe_subscription_id,
+      weekly_due: weekly,
+      pays_for: [],
+      sponsored_by: null,
+      weekly_responsibility: weekly,
       personal_paid: personalPaid.get(m.id) ?? 0,
       paid_by_others: paidByOthers.get(m.id) ?? 0,
       paid_for_others: paidForOthers.get(m.id) ?? 0,
+      sponsor_total: 0,
       balance: ledgerBalance.get(m.id) ?? 0,
       weeks_overdue: ledgerOverdue.get(m.id) ?? 0,
     };
   });
 
-  // Reorder so sponsor is first
-  members.sort((a, b) => {
-    if (a.computed_role === "sponsor" && b.computed_role !== "sponsor") return -1;
-    if (b.computed_role === "sponsor" && a.computed_role !== "sponsor") return 1;
-    return a.name.localeCompare(b.name);
-  });
+  // Determine the family's primary sponsor (used as fallback for dependents
+  // with no explicit payer link).
+  const sponsorCandidates = partial.filter(
+    (m) => m.computed_role === "individual_sponsor" || m.computed_role === "sponsor",
+  );
+  let primarySponsorId: string | null = null;
+  const explicitOwner = sponsorCandidates.find((m) => m.family_role === "family_owner");
+  if (explicitOwner) {
+    primarySponsorId = explicitOwner.id;
+  } else if (sponsorCandidates.length > 0) {
+    // Highest paid_for_others, else first by creation.
+    const sorted = [...sponsorCandidates].sort(
+      (a, b) => (b.paid_for_others ?? 0) - (a.paid_for_others ?? 0),
+    );
+    primarySponsorId = sorted[0]?.id ?? null;
+  }
+
+  // Assign dependents without an explicit sponsor to the primary sponsor.
+  for (const m of partial) {
+    if (m.computed_role !== "dependent") continue;
+    let sid = sponsoredBy.get(m.id) ?? null;
+    if (!sid && primarySponsorId && primarySponsorId !== m.id) {
+      sid = primarySponsorId;
+    }
+    if (sid) {
+      m.sponsored_by = sid;
+      const set = paysFor.get(sid) ?? new Set();
+      set.add(m.id);
+      paysFor.set(sid, set);
+    }
+  }
+
+  // Second pass: upgrade individual_sponsor → sponsor if they pay for anyone.
+  for (const m of partial) {
+    if (m.computed_role === "individual_sponsor") {
+      const set = paysFor.get(m.id);
+      if (set && set.size > 0) {
+        m.computed_role = "sponsor";
+      }
+    }
+  }
+
+  // Compute pays_for, weekly_responsibility, sponsor_total.
+  const memberById = new Map(partial.map((m) => [m.id, m]));
+  for (const m of partial) {
+    const set = paysFor.get(m.id);
+    if (set && set.size > 0) {
+      m.pays_for = Array.from(set);
+      const depWeekly = m.pays_for.reduce(
+        (s, did) => s + (memberById.get(did)?.weekly_due ?? 0),
+        0,
+      );
+      m.weekly_responsibility = m.weekly_due + depWeekly;
+    }
+    if (m.computed_role === "sponsor" || m.computed_role === "individual_sponsor") {
+      m.sponsor_total = m.personal_paid + m.paid_for_others;
+    }
+  }
+
+  // Strip internal _raw + sort sponsors first.
+  const members: FamilyMemberSummary[] = partial
+    .map(({ _raw, ...rest }) => rest)
+    .sort((a, b) => {
+      const order = { sponsor: 0, individual_sponsor: 1, dependent: 2, individual: 3 };
+      const oa = order[a.computed_role];
+      const ob = order[b.computed_role];
+      if (oa !== ob) return oa - ob;
+      return a.name.localeCompare(b.name);
+    });
+
+  const sponsors = members.filter((m) => m.computed_role === "sponsor");
+  const individualSponsors = members.filter((m) => m.computed_role === "individual_sponsor");
+  const dependents = members.filter((m) => m.computed_role === "dependent");
 
   const totalFamilyPaid = members.reduce(
     (s, m) => s + m.personal_paid + m.paid_by_others,
     0,
   );
+  const familyWeeklyDue = members.reduce((s, m) => s + m.weekly_due, 0);
 
   return {
     familyId: me.family_id ?? null,
     familyName,
-    sponsorId,
+    sponsorId: primarySponsorId,
     members,
+    sponsors,
+    individualSponsors,
+    dependents,
     totalFamilyPaid,
+    familyWeeklyDue,
+  };
+}
+
+function emptyHierarchy(): FamilyHierarchy {
+  return {
+    familyId: null,
+    familyName: null,
+    sponsorId: null,
+    members: [],
+    sponsors: [],
+    individualSponsors: [],
+    dependents: [],
+    totalFamilyPaid: 0,
+    familyWeeklyDue: 0,
   };
 }
 
@@ -189,6 +337,8 @@ export function roleBadgeClasses(role: ComputedFamilyRole): string {
   switch (role) {
     case "sponsor":
       return "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-200";
+    case "individual_sponsor":
+      return "bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-200";
     case "dependent":
       return "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-200";
     case "individual":
@@ -201,6 +351,8 @@ export function roleLabel(role: ComputedFamilyRole): string {
   switch (role) {
     case "sponsor":
       return "Sponsor";
+    case "individual_sponsor":
+      return "Individual Sponsor";
     case "dependent":
       return "Dependent";
     case "individual":

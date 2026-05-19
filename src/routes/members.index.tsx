@@ -28,6 +28,15 @@ import { DuplicateWarning } from "@/components/DuplicateWarning";
 import { MergeMembersModal } from "@/components/MergeMembersModal";
 import { DuplicateResolutionModal } from "@/components/DuplicateResolutionModal";
 import { FinancialRelationshipsDrawer } from "@/components/FinancialRelationshipsDrawer";
+import { FailedPaymentsDrawer } from "@/components/FailedPaymentsDrawer";
+import {
+  getMemberFinancialSummaries,
+  getFinancialCardStats,
+  FIN_STATUS_LABEL,
+  finStatusClasses,
+  type MemberFinancialSummary,
+  type FinancialCardStats,
+} from "@/lib/financialLedger";
 
 type LifecycleFilter = "active" | "inactive" | "all";
 

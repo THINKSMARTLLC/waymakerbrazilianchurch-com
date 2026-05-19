@@ -263,11 +263,12 @@ export function FinancialRelationshipsDrawer({ memberId, open, onClose, onChange
               onChange={(e) => setRole(n.id, e.target.value as FamilyRole)}
               disabled={saving}
               className="text-[11px] border border-input rounded-md bg-background px-1 py-1"
+              title="Role in family"
             >
-              <option value="individual">individual</option>
-              <option value="family_owner">owner</option>
-              <option value="family_member">member</option>
-              <option value="sponsored">sponsored</option>
+              <option value="family_owner">👑 Sponsor</option>
+              <option value="family_member">👑 Individual Sponsor</option>
+              <option value="sponsored">👤 Dependent</option>
+              <option value="individual">Individual</option>
             </select>
             <button
               onClick={() => removeFromFamily(n.id)}

@@ -152,7 +152,7 @@ function MembersPage() {
   const [whatsappTarget, setWhatsappTarget] = useState<WhatsAppMember | null>(null);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [families, setFamilies] = useState<Map<string, string>>(new Map());
-  const [groupByFamily, setGroupByFamily] = useState(groupParam === "family");
+  const [groupByFamily] = useState(false);
   const [collapsedFamilies, setCollapsedFamilies] = useState<Set<string>>(new Set());
   const [paidByMap, setPaidByMap] = useState<Map<string, { payerName: string; relationship: string | null }>>(new Map());
   const [relationsDrawerFor, setRelationsDrawerFor] = useState<string | null>(null);
@@ -775,19 +775,7 @@ function MembersPage() {
 
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() => setGroupByFamily((v) => !v)}
-          className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-            groupByFamily
-              ? "border-primary/40 bg-primary/10 text-primary"
-              : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
-          }`}
-          aria-pressed={groupByFamily}
-        >
-          <Users className="h-3.5 w-3.5" />
-          Group by Family
-        </button>
+        <div />
         {selectedMembers.length > 0 && (
           <div className="ml-auto flex flex-wrap items-center justify-end gap-3 rounded-lg border border-primary/40 bg-primary/10 px-4 py-2 text-sm shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
             <span className="font-medium text-foreground flex items-center gap-2">
@@ -813,6 +801,7 @@ function MembersPage() {
           </div>
         )}
       </div>
+
 
       <div className="card-elevated overflow-hidden">
         {loading ? (
@@ -940,45 +929,8 @@ function MembersPage() {
                                   </span>
                                 ) : null;
                               })()}
-                              {member.family_id && (() => {
-                                const famName = families.get(member.family_id) ?? "Family";
-                                const role = member.computed_family_role;
-                                const label = getComputedFamilyRoleLabel(role);
-                                const Icon = role === "dependent" ? Users : Crown;
-                                const cls = role === "sponsor"
-                                  ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-200 hover:bg-amber-200"
-                                  : role === "individual_sponsor"
-                                  ? "bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-200 hover:bg-violet-200"
-                                  : role === "dependent"
-                                  ? "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-200 hover:bg-blue-200"
-                                  : "bg-muted text-muted-foreground hover:bg-muted/80";
-                                return (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); setRelationsDrawerFor(member.id); }}
-                                    className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${cls}`}
-                                    title={`${famName} · ${label}`}
-                                  >
-                                    <Icon className="h-3 w-3" /> {label} · {famName}
-                                  </button>
-                                );
-                              })()}
+                              {/* Family role / Paid-by badges removed — individual members only */}
 
-                              {(() => {
-                                const pb = paidByMap.get(member.id);
-                                if (!pb) return null;
-                                const label = pb.relationship ? `${pb.payerName} · ${pb.relationship}` : pb.payerName;
-                                return (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); setRelationsDrawerFor(member.id); }}
-                                    className="inline-flex items-center gap-1 rounded-full bg-violet-100 dark:bg-violet-950/60 hover:bg-violet-200 px-1.5 py-0.5 text-[10px] font-semibold text-violet-800 dark:text-violet-200 transition-colors cursor-pointer"
-                                    title={`${t("portal.paidBy")}: ${label}`}
-                                  >
-                                    <CreditCard className="h-3 w-3" /> {t("portal.paidBy")}: {label}
-                                  </button>
-                                );
-                              })()}
                               {member.phone && (
                                 <button
                                   type="button"
@@ -1152,12 +1104,8 @@ function MembersPage() {
         onOpenChange={(open) => { if (!open) setWhatsappTarget(null); }}
         member={whatsappTarget}
       />
-      <FinancialRelationshipsDrawer
-        memberId={relationsDrawerFor}
-        open={!!relationsDrawerFor}
-        onClose={() => setRelationsDrawerFor(null)}
-        onChanged={fetchMembers}
-      />
+      {/* Financial Relationships drawer removed — individual members only */}
+
       <FailedPaymentsDrawer
         open={failedDrawerOpen}
         activeMemberIds={members.filter((m) => m.status === "active").map((m) => m.id)}

@@ -15,7 +15,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { parseEmergencyContact, isLegacyEmergencyContact, type EmergencyContact } from "@/lib/emergencyContact";
 import { getBirthdayInfo } from "@/lib/birthday";
 import { formatLocalDateOnly } from "@/lib/datetime";
-import { FamilyHierarchyPanel } from "@/components/FamilyHierarchyPanel";
+// FamilyHierarchyPanel removed — individual member view only
 
 function FieldRow({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string | null | undefined }) {
   const { t } = useTranslation();
@@ -325,7 +325,8 @@ function MemberProfilePage() {
         </div>
       </div>
 
-      <FamilyHierarchyPanel memberId={memberId} onChanged={fetchData} />
+
+
 
 
       {(() => {
@@ -503,15 +504,9 @@ function MemberProfilePage() {
                         {formatLocalDateOnly(p.payment_date)}
                       </td>
                       <td className="px-5 py-3 text-sm font-medium text-foreground tabular-nums">
-                        <div className="flex flex-col gap-0.5">
-                          <span>{formatUSD(p.amount)}</span>
-                          {p.payer_member_id && p.payer_member_id !== memberId && payerNames.get(p.payer_member_id) && (
-                            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/40 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-200">
-                              <CreditCard className="h-2.5 w-2.5" /> Paid by {toTitleCase(payerNames.get(p.payer_member_id)!)}
-                            </span>
-                          )}
-                        </div>
+                        <span>{formatUSD(p.amount)}</span>
                       </td>
+
 
                       <td className="px-5 py-3 text-sm text-muted-foreground capitalize">
                         {PAYMENT_METHOD_LABEL[p.payment_method] ?? p.payment_method}

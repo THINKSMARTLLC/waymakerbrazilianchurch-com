@@ -164,51 +164,8 @@ export function EditMemberModal({ member, onClose, onSaved }: EditMemberModalPro
             </div>
           </div>
 
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Family</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Family</label>
-                <select
-                  value={familyId}
-                  onChange={(e) => setFamilyId(e.target.value)}
-                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="">— None (individual)</option>
-                  {families.map((f) => (
-                    <option key={f.id} value={f.id}>{f.name}</option>
-                  ))}
-                  <option value="__new__">+ Create new family…</option>
-                </select>
-                {familyId === "__new__" && (
-                  <input
-                    type="text"
-                    placeholder="New family name"
-                    value={newFamilyName}
-                    onChange={(e) => setNewFamilyName(e.target.value)}
-                    className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
-                  />
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Role in family</label>
-                <select
-                  value={familyRole}
-                  onChange={(e) => setFamilyRole(e.target.value as FamilyRole)}
-                  disabled={!familyId}
-                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm disabled:opacity-50"
-                >
-                  <option value="family_owner">👑 Sponsor (pays for family)</option>
-                  <option value="family_member">👑 Individual Sponsor (pays own subscription)</option>
-                  <option value="sponsored">👤 Dependent (paid by sponsor)</option>
-                  <option value="individual">Individual (not in family)</option>
-                </select>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Members with an active Stripe subscription are automatically treated as sponsors and never shown as dependents.
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* Family / role-in-family UI removed — individual members only */}
+
 
           {error && <div className="text-sm text-destructive">{error}</div>}
 

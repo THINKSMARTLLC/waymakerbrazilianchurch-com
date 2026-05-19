@@ -136,30 +136,11 @@ function DashboardPage() {
         <RecentContributions />
       </div>
 
-      {/* Family stats + quick actions (kept from previous version) */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 grid gap-4 sm:grid-cols-3">
-          <StatCard
-            title={t("payerBeneficiary.activeFamilies")}
-            value={String(stats.activeFamilies)}
-            icon={Users}
-            onClick={() => navigate({ to: "/members", search: { group: "family" } as never })}
-          />
-          <StatCard
-            title={t("payerBeneficiary.payingForFamily")}
-            value={String(stats.payingForFamily)}
-            icon={Users}
-            onClick={() => navigate({ to: "/members", search: { group: "family" } as never })}
-          />
-          <StatCard
-            title={t("payerBeneficiary.totalSponsored")}
-            value={String(stats.sponsored)}
-            icon={Users}
-            onClick={() => navigate({ to: "/members", search: { group: "family" } as never })}
-          />
-        </div>
+      {/* Family stats removed — individual-only system */}
+      <div className="grid gap-6">
         <QuickActions />
       </div>
+
     </div>
   );
 }

@@ -307,11 +307,13 @@ export const resyncStripeData = createServerFn({ method: "POST" })
         }
 
         // Load charges once per customer to enrich invoices with card details.
+        // In some Stripe API versions `Charge.invoice` is typed away — we read it defensively.
         const chargesList = await stripe.charges.list({ customer: customer.id, limit: 100 });
         const chargesByInvoice = new Map<string, Stripe.Charge>();
         for (const ch of chargesList.data) {
           if (ch.status !== "succeeded") continue;
-          const invId = typeof ch.invoice === "string" ? ch.invoice : ch.invoice?.id ?? null;
+          const rawInv = (ch as unknown as { invoice?: string | { id: string } | null }).invoice ?? null;
+          const invId = typeof rawInv === "string" ? rawInv : rawInv?.id ?? null;
           if (invId && !chargesByInvoice.has(invId)) chargesByInvoice.set(invId, ch);
         }
 

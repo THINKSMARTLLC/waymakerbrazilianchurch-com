@@ -136,11 +136,26 @@ const TYPE_LABEL: Record<string, string> = {
   special_donation: "Special Donation", event_contribution: "Event Contribution", other: "Other",
 };
 
-async function buildPaymentsRows(): Promise<PaymentsExportRow[]> {
-  const { data } = await supabase
+export interface PaymentsExportOpts {
+  memberIds?: string[];
+  start?: string | null;
+  end?: string | null;
+  method?: string | null; // 'card' merges stripe+card
+}
+
+async function buildPaymentsRows(opts: PaymentsExportOpts = {}): Promise<PaymentsExportRow[]> {
+  let q = supabase
     .from("payments")
     .select("*, members(name, email)")
     .order("payment_date", { ascending: false });
+  if (opts.memberIds && opts.memberIds.length > 0) q = q.in("member_id", opts.memberIds);
+  if (opts.start) q = q.gte("payment_date", opts.start);
+  if (opts.end) q = q.lte("payment_date", opts.end);
+  if (opts.method && opts.method !== "all") {
+    if (opts.method === "card") q = q.in("payment_method", ["card", "stripe"]);
+    else q = q.eq("payment_method", opts.method as Payment["payment_method"]);
+  }
+  const { data } = await q;
   return (data ?? []).map((p) => ({
     "Member Name": (p as Payment & { members: { name: string; email: string | null } | null }).members?.name ?? "",
     Email: (p as Payment & { members: { name: string; email: string | null } | null }).members?.email ?? "",
@@ -155,15 +170,31 @@ async function buildPaymentsRows(): Promise<PaymentsExportRow[]> {
   }));
 }
 
-export async function exportPaymentsCSV(): Promise<number> {
-  const rows = await buildPaymentsRows();
+export async function exportPaymentsCSV(opts: PaymentsExportOpts = {}): Promise<number> {
+  const rows = await buildPaymentsRows(opts);
   downloadBlob(csvBlob(rows as unknown as Record<string, unknown>[]), `payments_${todayStamp()}.csv`);
   return rows.length;
 }
 
-export async function exportPaymentsXLSX(): Promise<number> {
-  const rows = await buildPaymentsRows();
+export async function exportPaymentsXLSX(opts: PaymentsExportOpts = {}): Promise<number> {
+  const rows = await buildPaymentsRows(opts);
   downloadBlob(xlsxBlob(rows as unknown as Record<string, unknown>[], "Payments"), `payments_${todayStamp()}.xlsx`);
+  return rows.length;
+}
+
+// ---------- single-member history ----------
+
+export async function exportMemberHistoryCSV(memberId: string, memberName: string): Promise<number> {
+  const rows = await buildPaymentsRows({ memberIds: [memberId] });
+  const safe = memberName.replace(/[^a-z0-9]+/gi, "_").toLowerCase() || "member";
+  downloadBlob(csvBlob(rows as unknown as Record<string, unknown>[]), `${safe}_history_${todayStamp()}.csv`);
+  return rows.length;
+}
+
+export async function exportMemberHistoryXLSX(memberId: string, memberName: string): Promise<number> {
+  const rows = await buildPaymentsRows({ memberIds: [memberId] });
+  const safe = memberName.replace(/[^a-z0-9]+/gi, "_").toLowerCase() || "member";
+  downloadBlob(xlsxBlob(rows as unknown as Record<string, unknown>[], "History"), `${safe}_history_${todayStamp()}.xlsx`);
   return rows.length;
 }
 

@@ -6,6 +6,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { EmergencyContactFields } from "@/components/EmergencyContactFields";
 import { parseEmergencyContact, serializeEmergencyContact } from "@/lib/emergencyContact";
 import { formatUSPhoneInput } from "@/lib/phone";
+import { emitFamilyFinancialsUpdated } from "@/lib/familySync";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type FamilyRole = Database["public"]["Enums"]["family_role"];
@@ -94,6 +95,7 @@ export function EditMemberModal({ member, onClose, onSaved }: EditMemberModalPro
       return;
     }
 
+    emitFamilyFinancialsUpdated({ memberId: member.id, action: "edit-member-family" });
     onSaved();
     onClose();
   };

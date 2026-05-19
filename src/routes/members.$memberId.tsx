@@ -325,7 +325,8 @@ function MemberProfilePage() {
         </div>
       </div>
 
-      <FamilyHierarchyPanel memberId={memberId} onChanged={fetchData} />
+
+
 
 
       {(() => {

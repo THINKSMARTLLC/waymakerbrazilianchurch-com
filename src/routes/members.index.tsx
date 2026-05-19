@@ -942,14 +942,16 @@ function MembersPage() {
                               })()}
                               {member.family_id && (() => {
                                 const famName = families.get(member.family_id) ?? "Family";
-                                const role = member.family_role;
-                                // Treat family_owner and sponsored as Sponsor; family_member as Dependent
-                                const isSponsor = role === "family_owner" || role === "sponsored";
-                                const Icon = isSponsor ? Crown : Users;
-                                const label = isSponsor ? "Sponsor" : "Dependent";
-                                const cls = isSponsor
+                                const role = member.computed_family_role;
+                                const label = getComputedFamilyRoleLabel(role);
+                                const Icon = role === "dependent" ? Users : Crown;
+                                const cls = role === "sponsor"
                                   ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-200 hover:bg-amber-200"
-                                  : "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-200 hover:bg-blue-200";
+                                  : role === "individual_sponsor"
+                                  ? "bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-200 hover:bg-violet-200"
+                                  : role === "dependent"
+                                  ? "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-200 hover:bg-blue-200"
+                                  : "bg-muted text-muted-foreground hover:bg-muted/80";
                                 return (
                                   <button
                                     type="button"

@@ -378,7 +378,21 @@ function AdminPage() {
   );
 }
 
-function RecoveryLinkModal({ email, link, onClose }: { email: string; link: string | null; onClose: () => void }) {
+function RecoveryLinkModal({
+  email,
+  state,
+  link,
+  error,
+  onRetry,
+  onClose,
+}: {
+  email: string;
+  state: "loading" | "success" | "error";
+  link: string | null;
+  error: string | null;
+  onRetry: () => void;
+  onClose: () => void;
+}) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const copy = async () => {
@@ -393,23 +407,55 @@ function RecoveryLinkModal({ email, link, onClose }: { email: string; link: stri
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <h2 className="font-display text-lg font-semibold">{t("admin.recoveryTitle")}</h2>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-5 w-5" />
+            <X className="h-5 w-5" />
           </button>
         </div>
         <div className="p-5 space-y-4">
           <p className="text-sm text-muted-foreground">
             {t("admin.recoveryBody", { email })}
           </p>
-          {!link ? (
-            <div className="text-sm text-muted-foreground">{t("admin.generatingLink")}</div>
-          ) : (
+
+          {state === "loading" && (
+            <div className="flex items-center gap-2 rounded-xl bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {t("admin.generatingLink")}
+            </div>
+          )}
+
+          {state === "error" && (
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+                <div className="min-w-0 break-words">{error ?? t("admin.generateLinkFailed")}</div>
+              </div>
+              <button onClick={onRetry} className="btn-google w-full">
+                {t("modals.tryAgain", { defaultValue: "Tentar novamente" })}
+              </button>
+            </div>
+          )}
+
+          {state === "success" && link && (
             <div className="flex items-stretch gap-2">
-              <input readOnly value={link} className="flex-1 rounded-xl border border-input bg-muted/30 px-3 py-2 text-xs font-mono" />
-              <button onClick={copy} className="px-3 rounded-xl border border-input bg-background hover:bg-muted text-sm">
+              <input
+                readOnly
+                value={link}
+                className="flex-1 rounded-xl border border-input bg-muted/30 px-3 py-2 text-xs font-mono"
+              />
+              <button
+                onClick={copy}
+                className="px-3 rounded-xl border border-input bg-background hover:bg-muted text-sm"
+              >
                 {copied ? t("admin.copied") : t("admin.copy")}
               </button>
             </div>
           )}
+
+          {state === "success" && (
+            <button onClick={onRetry} className="w-full text-sm text-muted-foreground hover:text-foreground">
+              {t("modals.resend", { defaultValue: "Gerar novo link" })}
+            </button>
+          )}
+
           <button onClick={onClose} className="btn-google w-full">{t("admin.close")}</button>
         </div>
       </div>

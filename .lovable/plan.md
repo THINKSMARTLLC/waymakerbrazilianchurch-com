@@ -1,93 +1,63 @@
-# Plano — Relações Financeiras e Sponsor/Dependentes
+# Plano: Admin CRM Inteligente
 
-## Resumo do que muda
+A maior parte da infraestrutura já existe no projeto (busca de membros, detecção de duplicidade, merge atômico, modais de duplicidade, logs de atividade). O trabalho real é (1) **corrigir o reset de senha que está travando em “Gerando link…”**, (2) **expandir a busca global no painel admin**, (3) **unificar o fluxo de duplicidade nas telas certas**, e (4) **fortalecer auditoria**. Sem retrabalho do que já funciona.
 
-Hoje a relação financeira existe via `family_role` (`family_owner`, `family_member`, `sponsored`, `individual`) e via `payment_relationships`. O usuário quer transformar isso numa hierarquia clara **Sponsor → Dependentes → Individual**, com:
+## 1. Corrigir reset de senha do Super Admin (URGENTE — bug visível na screenshot)
 
-- a seção "Relações Financeiras" **expandida inline** no perfil do membro (sem modal/drawer "Manage");
-- **badges claras** (Sponsor / Dependent / Individual);
-- **Total Paid consolidado** do sponsor (próprio + dependentes);
-- distribuição automática de pagamento do sponsor entre ele e dependentes;
-- histórico individual preservado, com tag "Paid by Sponsor".
+Hoje `generateRecoveryForEmail` chama `auth.admin.generateLink({ type: "magiclink", ... })`. Quando o email não existe ou o Supabase recusa, retorna `null` silenciosamente e o modal fica eternamente em “Gerando link…”.
 
-## Escopo
+Correções:
+- Trocar `type: "magiclink"` por `type: "recovery"` (é reset de senha, não login).
+- Propagar erro do Supabase em vez de retornar `null` (mostrar mensagem no modal).
+- Estado do modal: `loading | success(link) | error(message)`; nunca ficar pendurado.
+- Botão **Reenviar** dentro do próprio modal.
+- Logar `password_reset_link_generated` em `activity_logs` (já feito para outras ações).
 
-### 1. Banco (migration única)
+## 2. Busca global de membros no painel admin
 
-**Aproveitar `family_role` existente** + adicionar enum `'sponsor'` e `'dependent'` (mantendo compat). Mapping:
-- `family_owner` / `sponsor` → **Sponsor**
-- `family_member` / `sponsored` / `dependent` → **Dependente**
-- `individual` → **Individual**
+Já existe `searchMembers` (server fn) e `useCurrentMember`. Faltam:
+- Caixa de busca no topo de `/admin` (debounced 250 ms) cobrindo: `nome`, `email`, `telefone`, `id` exato, e também `user_profiles` (usuários do portal).
+- Server fn nova `adminGlobalSearch` que retorna union: `{ id, name, email, phone, status, source: 'member' | 'user_profile', created_at }`.
+- Resultado clicável → abre `MemberFinancialDrawer` ou perfil do usuário.
 
-**Nova função `apply_payment_to_sponsor_family(_payment_id)`:**
-- Se o pagamento é de um sponsor (family_owner) e `amount > weekly_due próprio`, distribui o excedente entre dependentes da mesma família em ordem cronológica do ledger (semanas mais antigas primeiro).
-- Registra em `ledger_payment_applications` com `applied_to_member_id` para rastrear que foi "Paid by Sponsor".
-- Acrescentar coluna `applied_to_member_id uuid` em `ledger_payment_applications` (nullable) — quando NULL é o próprio member do pagamento, quando preenchido é dependente.
-- Trigger `trg_payments_to_ledger` passa a chamar a nova função no lugar de `apply_payment_to_ledger` para pagamentos de sponsor.
+## 3. Modal de duplicidade unificado
 
-**View `member_financial_summary`:**
-- `member_id, role (sponsor/dependent/individual), sponsor_id, total_paid_personal, total_paid_by_sponsor, total_paid_sponsor_family, balance, weeks_overdue, stripe_status`.
+`DuplicateResolutionModal` + `MergeMembersModal` já existem e são usados em `/members`. Falta:
+- Usar o mesmo modal no fluxo de **criação de usuário** (`CreateUserModal`) — hoje só dispara `alert("Este email já está cadastrado")`.
+- Quando `createManagedUser` retornar `reason: "email_exists"`, abrir o modal com as ações: **Ver cadastro**, **Reenviar acesso**, **Mesclar**, **Criar mesmo assim (override)**.
+- Mostrar origem (`member` / `user_profile` / `auth.users`) e data de criação em cada linha.
 
-### 2. Frontend — perfil do membro (`src/routes/members.$memberId.tsx`)
+## 4. Merge e auditoria
 
-- Substituir o card "Relações Financeiras" com o link **Manage →** por uma seção **inline expandida**:
-  - **Cabeçalho**: nome do membro + badge (Sponsor / Dependent / Individual).
-  - **Se Sponsor**: lista expandida de dependentes com status Stripe, total pago, balance, overdue. Mostra "Total Família: $X".
-  - **Se Dependent**: mostra "Paid by: [Nome do Sponsor]" + próprio balance/histórico.
-  - **Se Individual**: mostra apenas próprio status.
-- Manter o componente `FinancialRelationshipsDrawer` só para edição (botão "Edit relationships" pequeno), já que ele tem busca/add/remove/role-change.
+O RPC `merge_members_by_id` já existe (SECURITY DEFINER) e move pagamentos/assinaturas/atividades/visitas/notas. Apenas:
+- Garantir que `mergeMembers()` em `src/lib/duplicates.ts` grava `activity_logs` com `action: "members_merged"` e `metadata: { winner_id, loser_id, performed_by }` (hoje o RPC roda mas não escreve log explícito do lado do app).
+- Idem para `archiveMember` (já loga) e para o novo botão de reset de senha.
 
-### 3. Histórico de pagamentos do dependente
+## 5. Regra central: nunca bloquear, sempre oferecer ação
 
-- Em `members.$memberId.tsx`, na tabela "Activity History"/pagamentos, quando `applied_to_member_id = current member` e pagamento original pertence a sponsor, exibir badge **"Paid by Sponsor"** + nome do sponsor.
+Auditar os pontos onde hoje usamos `alert(...)` ou `throw` opaco:
+- `CreateUserModal` quando email duplica → abrir modal de duplicidade.
+- `EditMemberModal` quando salva e bate em conflito → idem.
+- `RecoveryLinkModal` em erro → mostrar erro + botão **Tentar de novo**.
 
-### 4. Lista de membros (`src/routes/members.index.tsx`)
+## Arquivos afetados (estimativa)
 
-- Coluna **Monthly** vira **Total Paid (consolidado)** para sponsors: soma próprio + dependentes.
-- No modo "Group by Family" já existente: cabeçalho mostra **Sponsor** primeiro, depois **Dependentes**, depois **Individual** (se houver). Badges visuais por linha.
-- Substituir o ícone rosa "coração" por badge text `Sponsor` (dourado) e `Dependent` (azul).
+```text
+src/lib/adminUsers.functions.ts     # type: "recovery", erros propagados, log
+src/routes/admin.tsx                # modal robusto + busca global no header
+src/lib/admin-search.functions.ts   # NOVO — busca cross-table
+src/components/CreateUserModal.tsx  # integrar DuplicateResolutionModal
+src/lib/duplicates.ts               # log explícito em mergeMembers
+```
 
-### 5. Distribuição automática de pagamento
+Sem mudanças em schema, RLS, pagamentos ou Stripe.
 
-Quando sponsor paga $60 e family weekly = $20:
-- Aplica $20 ao ledger do próprio sponsor (semana atual em aberto).
-- Aplica $20 ao ledger de cada dependente da família com semana em aberto, ordenado por overdue mais antigo primeiro.
-- Resto sobra como crédito no próprio sponsor (semana futura).
+## Ordem de entrega
 
-Configurável por flag — começa **ativo por padrão** para sponsors.
+1. Bug do reset de senha (item 1) — entrega isolada, testável de imediato.
+2. Busca global (item 2).
+3. Modal de duplicidade em criação de usuário (item 3).
+4. Logs de merge / reset (item 4).
+5. Limpeza de `alert()` (item 5).
 
-### 6. Cálculo Total Paid Sponsor/Família
-
-Nova helper `getSponsorFinancials(memberId)` em `src/lib/financialLedger.ts`:
-- retorna `{ personalPaid, dependentsPaid, familyTotal, dependents: [...] }`.
-
-### 7. Exportações (`src/lib/dataExportImport.ts`)
-
-Adicionar 3 modos no export financeiro:
-- `individual` (já existe — manter)
-- `sponsor_summary` (uma linha por sponsor com totais agregados)
-- `family_summary` (uma linha por família)
-
-## Fora do escopo
-
-- Não alterar auth, RLS de pagamentos individuais, Stripe webhook.
-- Não criar nova tabela `family_financial_relationships` — reutilizar `family_id` + `family_role` em `members` (mais simples e já populado).
-- Não alterar lógica de inadimplência/overdue.
-
-## Arquivos
-
-1. **Migration**: enum extension + coluna `applied_to_member_id` + função `apply_payment_to_sponsor_family` + trigger update + view `member_financial_summary`.
-2. **`src/lib/financialLedger.ts`** — `getSponsorFinancials`, `getFamilyHierarchy`.
-3. **`src/routes/members.$memberId.tsx`** — nova seção inline de Relações Financeiras + badge "Paid by Sponsor" no histórico.
-4. **`src/routes/members.index.tsx`** — badges visuais Sponsor/Dependent + Total Paid consolidado no grupo.
-5. **`src/components/FinancialRelationshipsDrawer.tsx`** — manter, mas reduzir uso a "Edit" apenas.
-6. **`src/lib/dataExportImport.ts`** — adicionar exports Sponsor Summary + Family Summary.
-7. **i18n** (en/pt/es) — novas chaves: `sponsor`, `dependent`, `paidBySponsor`, `familyTotal`, `sponsoredAccount`, etc.
-
-## Risco / observações
-
-- A mudança na trigger de pagamentos afeta TODOS os pagamentos de sponsors daqui pra frente. Backfill: aplicar a nova distribuição apenas para pagamentos **novos** (não reprocessar histórico) para evitar mexer em ledger já fechado.
-- Pagamentos existentes continuam com `applied_to_member_id = NULL` (interpretado como "próprio member" no histórico).
-- A view substitui várias queries ad-hoc; vou manter as queries antigas funcionando até a view ser usada pelo front.
-
-Confirma que posso seguir? Posso também já implementar tudo de uma vez se preferir.
+Posso executar tudo de uma vez ou apenas o item 1 (urgente) primeiro — me diga qual prefere.

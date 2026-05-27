@@ -67,6 +67,33 @@ async function generateMagicLink(email: string): Promise<string | null> {
   return data?.properties?.action_link ?? null;
 }
 
+/**
+ * Generate a true password-recovery link (not a magic login link).
+ * Throws a descriptive error on failure so the caller can surface it
+ * to the user instead of silently hanging on a null result.
+ */
+async function generateRecoveryLink(email: string): Promise<string> {
+  const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+    type: "recovery",
+    email,
+    options: {
+      redirectTo: `${APP_ORIGIN}/reset-password`,
+    },
+  });
+  if (error) {
+    throw new Error(
+      `Não foi possível gerar o link de redefinição: ${error.message}`,
+    );
+  }
+  const link = data?.properties?.action_link;
+  if (!link) {
+    throw new Error(
+      "O Supabase não retornou um link de redefinição. Verifique se o e-mail existe e se o recurso de recovery está habilitado.",
+    );
+  }
+  return link;
+}
+
 
 interface CreateUserInput {
   full_name: string;
@@ -307,8 +334,9 @@ export const sendAccessEmail = createServerFn({ method: "POST" })
   });
 
 /**
- * Backwards-compatible alias kept so existing callers don't break.
- * Internally returns a magic link (not a recovery link).
+ * Generate a real password-recovery link for an existing user.
+ * Throws a clear error instead of returning null, so the admin UI
+ * never gets stuck on "generating…".
  */
 export const generateRecoveryForEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -327,7 +355,16 @@ export const generateRecoveryForEmail = createServerFn({ method: "POST" })
     );
     if (!isStaff) throw new Error("Sem permissão");
 
-    const magicLink = await generateMagicLink(data.email);
-    return { recoveryLink: magicLink };
+    const recoveryLink = await generateRecoveryLink(data.email);
+
+    // Audit
+    await supabaseAdmin.from("activity_logs").insert({
+      user_id: userId,
+      action: "password_reset_link_generated",
+      metadata: { target_email: data.email },
+    });
+
+    return { recoveryLink };
   });
+
 

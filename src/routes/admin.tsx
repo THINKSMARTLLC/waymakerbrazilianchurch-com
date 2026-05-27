@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Shield, UserCheck, UserX, Trash2, ArrowLeft, UserPlus, KeyRound, Mail, Search } from "lucide-react";
+import { Shield, UserCheck, UserX, Trash2, ArrowLeft, UserPlus, KeyRound, Mail, Search, Loader2, X, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { logActivity } from "@/lib/activityLog";

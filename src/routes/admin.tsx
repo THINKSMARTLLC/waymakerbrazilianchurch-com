@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Shield, UserCheck, UserX, Trash2, ArrowLeft, UserPlus, KeyRound, Mail, Search } from "lucide-react";
+import { Shield, UserCheck, UserX, Trash2, ArrowLeft, UserPlus, KeyRound, Mail, Search, Loader2, X, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { logActivity } from "@/lib/activityLog";
@@ -40,19 +40,35 @@ function AdminPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [recoveryFor, setRecoveryFor] = useState<{ email: string; link: string | null } | null>(null);
+  const [recoveryFor, setRecoveryFor] = useState<{
+    email: string;
+    state: "loading" | "success" | "error";
+    link: string | null;
+    error: string | null;
+  } | null>(null);
   const sendRecovery = useServerFn(generateRecoveryForEmail);
   const sendAccess = useServerFn(sendAccessEmail);
+  const runGlobalSearch = useServerFn(adminGlobalSearch);
   const [sendingAccessFor, setSendingAccessFor] = useState<string | null>(null);
 
+  // Global search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<AdminSearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const requestRecovery = async (email: string) => {
-    setRecoveryFor({ email, link: null });
+    setRecoveryFor({ email, state: "loading", link: null, error: null });
     try {
       const res = await sendRecovery({ data: { email } });
-      setRecoveryFor({ email, link: res.recoveryLink });
+      setRecoveryFor({ email, state: "success", link: res.recoveryLink, error: null });
     } catch (err) {
-      setRecoveryFor({ email, link: null });
-      alert(err instanceof Error ? err.message : t("admin.generateLinkFailed"));
+      setRecoveryFor({
+        email,
+        state: "error",
+        link: null,
+        error: err instanceof Error ? err.message : t("admin.generateLinkFailed"),
+      });
     }
   };
 
@@ -67,6 +83,33 @@ function AdminPage() {
       setSendingAccessFor(null);
     }
   };
+
+  // Debounced global search
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    const q = searchQuery.trim();
+    if (q.length < 2) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const res = await runGlobalSearch({ data: { query: q, limit: 20 } });
+        setSearchResults(res.results);
+      } catch (err) {
+        console.error("Global search failed", err);
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 250);
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, [searchQuery, runGlobalSearch]);
+
 
   const load = async () => {
     setLoading(true);
@@ -155,6 +198,79 @@ function AdminPage() {
           {t("admin.createUser")}
         </button>
       </div>
+
+      {/* Global search */}
+      <div className="card-elevated p-4 space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t("admin.searchPlaceholder", {
+              defaultValue: "Buscar por nome, email, telefone ou ID…",
+            })}
+            className="w-full rounded-xl border border-input bg-background pl-9 pr-9 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Limpar busca"
+            >
+              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+            </button>
+          )}
+        </div>
+        {searchQuery.trim().length >= 2 && (
+          <div className="rounded-xl border border-border divide-y divide-border max-h-80 overflow-y-auto">
+            {searching && searchResults.length === 0 && (
+              <div className="p-4 text-sm text-muted-foreground">{t("common.loading")}</div>
+            )}
+            {!searching && searchResults.length === 0 && (
+              <div className="p-4 text-sm text-muted-foreground">
+                {t("admin.noResults", { defaultValue: "Nenhum registro encontrado." })}
+              </div>
+            )}
+            {searchResults.map((r) => (
+              <div
+                key={`${r.source}-${r.id}`}
+                className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-muted/40"
+              >
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{r.name}</div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {r.email ?? "—"}
+                    {r.phone ? ` · ${r.phone}` : ""}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs rounded-md bg-muted px-2 py-0.5 text-muted-foreground">
+                    {r.source === "member" ? "Membro" : "Conta"}
+                  </span>
+                  {r.status && (
+                    <span className="text-xs rounded-md bg-primary/10 text-primary px-2 py-0.5">
+                      {r.status}
+                    </span>
+                  )}
+                  {r.email && (
+                    <button
+                      onClick={() => requestRecovery(r.email!)}
+                      title={t("admin.generateRecoveryLink")}
+                      className="p-1.5 rounded-md hover:bg-primary/10 text-primary"
+                    >
+                      <KeyRound className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+
 
       <div className="card-elevated overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
@@ -251,7 +367,10 @@ function AdminPage() {
       {recoveryFor && (
         <RecoveryLinkModal
           email={recoveryFor.email}
+          state={recoveryFor.state}
           link={recoveryFor.link}
+          error={recoveryFor.error}
+          onRetry={() => requestRecovery(recoveryFor.email)}
           onClose={() => setRecoveryFor(null)}
         />
       )}
@@ -259,7 +378,21 @@ function AdminPage() {
   );
 }
 
-function RecoveryLinkModal({ email, link, onClose }: { email: string; link: string | null; onClose: () => void }) {
+function RecoveryLinkModal({
+  email,
+  state,
+  link,
+  error,
+  onRetry,
+  onClose,
+}: {
+  email: string;
+  state: "loading" | "success" | "error";
+  link: string | null;
+  error: string | null;
+  onRetry: () => void;
+  onClose: () => void;
+}) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const copy = async () => {
@@ -274,23 +407,55 @@ function RecoveryLinkModal({ email, link, onClose }: { email: string; link: stri
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <h2 className="font-display text-lg font-semibold">{t("admin.recoveryTitle")}</h2>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-5 w-5" />
+            <X className="h-5 w-5" />
           </button>
         </div>
         <div className="p-5 space-y-4">
           <p className="text-sm text-muted-foreground">
             {t("admin.recoveryBody", { email })}
           </p>
-          {!link ? (
-            <div className="text-sm text-muted-foreground">{t("admin.generatingLink")}</div>
-          ) : (
+
+          {state === "loading" && (
+            <div className="flex items-center gap-2 rounded-xl bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {t("admin.generatingLink")}
+            </div>
+          )}
+
+          {state === "error" && (
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+                <div className="min-w-0 break-words">{error ?? t("admin.generateLinkFailed")}</div>
+              </div>
+              <button onClick={onRetry} className="btn-google w-full">
+                {t("modals.tryAgain", { defaultValue: "Tentar novamente" })}
+              </button>
+            </div>
+          )}
+
+          {state === "success" && link && (
             <div className="flex items-stretch gap-2">
-              <input readOnly value={link} className="flex-1 rounded-xl border border-input bg-muted/30 px-3 py-2 text-xs font-mono" />
-              <button onClick={copy} className="px-3 rounded-xl border border-input bg-background hover:bg-muted text-sm">
+              <input
+                readOnly
+                value={link}
+                className="flex-1 rounded-xl border border-input bg-muted/30 px-3 py-2 text-xs font-mono"
+              />
+              <button
+                onClick={copy}
+                className="px-3 rounded-xl border border-input bg-background hover:bg-muted text-sm"
+              >
                 {copied ? t("admin.copied") : t("admin.copy")}
               </button>
             </div>
           )}
+
+          {state === "success" && (
+            <button onClick={onRetry} className="w-full text-sm text-muted-foreground hover:text-foreground">
+              {t("modals.resend", { defaultValue: "Gerar novo link" })}
+            </button>
+          )}
+
           <button onClick={onClose} className="btn-google w-full">{t("admin.close")}</button>
         </div>
       </div>

@@ -97,7 +97,7 @@ function AdminPage() {
     searchTimer.current = setTimeout(async () => {
       try {
         const res = await runGlobalSearch({ data: { query: q, limit: 20 } });
-        setSearchResults(res.results);
+        setSearchResults(Array.isArray(res?.results) ? res.results : []);
       } catch (err) {
         console.error("Global search failed", err);
         setSearchResults([]);
@@ -105,6 +105,7 @@ function AdminPage() {
         setSearching(false);
       }
     }, 250);
+
     return () => {
       if (searchTimer.current) clearTimeout(searchTimer.current);
     };

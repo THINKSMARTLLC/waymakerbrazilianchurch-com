@@ -367,7 +367,10 @@ function AdminPage() {
       {recoveryFor && (
         <RecoveryLinkModal
           email={recoveryFor.email}
+          state={recoveryFor.state}
           link={recoveryFor.link}
+          error={recoveryFor.error}
+          onRetry={() => requestRecovery(recoveryFor.email)}
           onClose={() => setRecoveryFor(null)}
         />
       )}

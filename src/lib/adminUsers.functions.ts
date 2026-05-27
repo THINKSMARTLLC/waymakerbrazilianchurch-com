@@ -334,8 +334,9 @@ export const sendAccessEmail = createServerFn({ method: "POST" })
   });
 
 /**
- * Backwards-compatible alias kept so existing callers don't break.
- * Internally returns a magic link (not a recovery link).
+ * Generate a real password-recovery link for an existing user.
+ * Throws a clear error instead of returning null, so the admin UI
+ * never gets stuck on "generating…".
  */
 export const generateRecoveryForEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -354,7 +355,16 @@ export const generateRecoveryForEmail = createServerFn({ method: "POST" })
     );
     if (!isStaff) throw new Error("Sem permissão");
 
-    const magicLink = await generateMagicLink(data.email);
-    return { recoveryLink: magicLink };
+    const recoveryLink = await generateRecoveryLink(data.email);
+
+    // Audit
+    await supabaseAdmin.from("activity_logs").insert({
+      user_id: userId,
+      action: "password_reset_link_generated",
+      metadata: { target_email: data.email },
+    });
+
+    return { recoveryLink };
   });
+
 

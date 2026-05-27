@@ -1,13 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Shield, UserCheck, UserX, Trash2, ArrowLeft, UserPlus, KeyRound, Mail } from "lucide-react";
+import { Shield, UserCheck, UserX, Trash2, ArrowLeft, UserPlus, KeyRound, Mail, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { logActivity } from "@/lib/activityLog";
 import { CreateUserModal } from "@/components/CreateUserModal";
 import { useServerFn } from "@tanstack/react-start";
 import { generateRecoveryForEmail, sendAccessEmail } from "@/lib/adminUsers.functions";
+import { adminGlobalSearch, type AdminSearchResult } from "@/lib/admin-search.functions";
 import { formatDate, formatDateTime } from "@/lib/datetime";
 import type { Database } from "@/integrations/supabase/types";
 

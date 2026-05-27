@@ -40,19 +40,35 @@ function AdminPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [recoveryFor, setRecoveryFor] = useState<{ email: string; link: string | null } | null>(null);
+  const [recoveryFor, setRecoveryFor] = useState<{
+    email: string;
+    state: "loading" | "success" | "error";
+    link: string | null;
+    error: string | null;
+  } | null>(null);
   const sendRecovery = useServerFn(generateRecoveryForEmail);
   const sendAccess = useServerFn(sendAccessEmail);
+  const runGlobalSearch = useServerFn(adminGlobalSearch);
   const [sendingAccessFor, setSendingAccessFor] = useState<string | null>(null);
 
+  // Global search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<AdminSearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const requestRecovery = async (email: string) => {
-    setRecoveryFor({ email, link: null });
+    setRecoveryFor({ email, state: "loading", link: null, error: null });
     try {
       const res = await sendRecovery({ data: { email } });
-      setRecoveryFor({ email, link: res.recoveryLink });
+      setRecoveryFor({ email, state: "success", link: res.recoveryLink, error: null });
     } catch (err) {
-      setRecoveryFor({ email, link: null });
-      alert(err instanceof Error ? err.message : t("admin.generateLinkFailed"));
+      setRecoveryFor({
+        email,
+        state: "error",
+        link: null,
+        error: err instanceof Error ? err.message : t("admin.generateLinkFailed"),
+      });
     }
   };
 
@@ -67,6 +83,33 @@ function AdminPage() {
       setSendingAccessFor(null);
     }
   };
+
+  // Debounced global search
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    const q = searchQuery.trim();
+    if (q.length < 2) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const res = await runGlobalSearch({ data: { query: q, limit: 20 } });
+        setSearchResults(res.results);
+      } catch (err) {
+        console.error("Global search failed", err);
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 250);
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, [searchQuery, runGlobalSearch]);
+
 
   const load = async () => {
     setLoading(true);

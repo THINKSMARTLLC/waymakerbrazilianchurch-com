@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getFallbackDevotional, dayOfYearFromISODate } from "@/lib/devotionalFallback";
 
 function todayNYC(): string {
@@ -12,6 +13,7 @@ function todayNYC(): string {
 }
 
 export const getOrGenerateTodayDevotional = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: { language: "pt" | "en" | "es" }) => input)
   .handler(async ({ data }) => {
     const date = todayNYC();

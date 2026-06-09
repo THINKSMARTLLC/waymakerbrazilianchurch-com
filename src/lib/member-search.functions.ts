@@ -1,20 +1,34 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const searchInput = z.object({
   query: z.string().min(1).max(120),
   limit: z.number().int().min(1).max(20).optional(),
 });
 
+const STAFF_ROLES = ["super_admin", "admin", "church_admin", "finance_manager"];
+
 export const searchMembers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(searchInput)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const isStaff = (roles ?? []).some((r) => STAFF_ROLES.includes(r.role as string));
+    if (!isStaff) {
+      throw new Error("Sem permissão");
+    }
+
     const q = data.query.trim();
     const limit = data.limit ?? 10;
     if (!q) return { results: [] as Array<{ id: string; name: string; email: string | null; phone: string | null }> };
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const digits = q.replace(/\D/g, "");
     const like = `%${q}%`;

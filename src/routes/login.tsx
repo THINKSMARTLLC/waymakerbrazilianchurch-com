@@ -10,6 +10,9 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
 
 export const Route = createFileRoute("/login")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s.next === "string" && s.next.startsWith("/") && !s.next.startsWith("//") ? s.next : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Login — Way Maker Church" },

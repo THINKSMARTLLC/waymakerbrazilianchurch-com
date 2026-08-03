@@ -48,6 +48,7 @@ import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -251,6 +252,11 @@ const Char91DotmcpChar93InvokeToolToolRoute =
     path: '/.mcp/invoke-tool/$tool',
     getParentRoute: () => rootRouteImport,
   } as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
     id: '/lovable/email/transactional/send',
@@ -307,6 +313,7 @@ export interface FileRoutesByFullPath {
   '/engagement/': typeof EngagementIndexRoute
   '/members/': typeof MembersIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -350,6 +357,7 @@ export interface FileRoutesByTo {
   '/engagement': typeof EngagementIndexRoute
   '/members': typeof MembersIndexRoute
   '/portal': typeof PortalIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -395,6 +403,7 @@ export interface FileRoutesById {
   '/engagement/': typeof EngagementIndexRoute
   '/members/': typeof MembersIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -441,6 +450,7 @@ export interface FileRouteTypes {
     | '/engagement/'
     | '/members/'
     | '/portal/'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/stripe-webhook'
     | '/lovable/email/suppression'
@@ -484,6 +494,7 @@ export interface FileRouteTypes {
     | '/engagement'
     | '/members'
     | '/portal'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/stripe-webhook'
     | '/lovable/email/suppression'
@@ -528,6 +539,7 @@ export interface FileRouteTypes {
     | '/engagement/'
     | '/members/'
     | '/portal/'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/stripe-webhook'
     | '/lovable/email/suppression'
@@ -569,6 +581,7 @@ export interface RootRouteChildren {
   SettingsChurchRoute: typeof SettingsChurchRoute
   EngagementIndexRoute: typeof EngagementIndexRoute
   MembersIndexRoute: typeof MembersIndexRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
@@ -852,6 +865,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/transactional/send': {
       id: '/lovable/email/transactional/send'
       path: '/lovable/email/transactional/send'
@@ -927,6 +947,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsChurchRoute: SettingsChurchRoute,
   EngagementIndexRoute: EngagementIndexRoute,
   MembersIndexRoute: MembersIndexRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,

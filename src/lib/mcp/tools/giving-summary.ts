@@ -25,7 +25,7 @@ export default defineTool({
 
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
 
-    const rows = (data ?? []).filter((p) => p.status !== "failed");
+    const rows = (data ?? []).filter((p) => p.status === "paid");
     const byMethod: Record<string, number> = {};
     const byType: Record<string, number> = {};
     let total = 0;

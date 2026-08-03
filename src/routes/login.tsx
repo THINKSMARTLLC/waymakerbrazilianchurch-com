@@ -52,6 +52,10 @@ function LoginPage() {
       await supabase.from("user_profiles").update({ last_login_at: new Date().toISOString() }).eq("user_id", user.id);
       await logActivity("login");
     }
+    if (next) {
+      window.location.href = next;
+      return;
+    }
     navigate({ to: "/dashboard" });
   };
 

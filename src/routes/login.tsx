@@ -10,6 +10,10 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import wayMakerLogo from "@/assets/waymaker-logo.png";
 
 export const Route = createFileRoute("/login")({
+  validateSearch: (s: Record<string, unknown>): { next?: string } =>
+    typeof s.next === "string" && s.next.startsWith("/") && !s.next.startsWith("//")
+      ? { next: s.next }
+      : {},
   head: () => ({
     meta: [
       { title: "Login — Way Maker Church" },
@@ -22,6 +26,7 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
   const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -47,6 +52,10 @@ function LoginPage() {
     if (user) {
       await supabase.from("user_profiles").update({ last_login_at: new Date().toISOString() }).eq("user_id", user.id);
       await logActivity("login");
+    }
+    if (next) {
+      window.location.href = next;
+      return;
     }
     navigate({ to: "/dashboard" });
   };

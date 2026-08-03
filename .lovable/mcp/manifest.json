@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.1",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://hlnslyatjtumrwauxczq.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "way-maker-church",
+      "version": "0.1.0",
+      "title": "Way Maker Church"
+    },
+    "tools": [
+      {
+        "name": "search_members",
+        "title": "Search members",
+        "description": "Search church members by name, email or phone. Returns basic contact and status info the signed-in user is allowed to see.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Partial name, email or phone to search for."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "Max results (default 20)."
+            },
+            "include_archived": {
+              "type": "boolean",
+              "description": "Include archived members (default false)."
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_member",
+        "title": "Get member details",
+        "description": "Fetch a single church member by id, including status, discipleship stage and giving info.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "member_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The member's UUID."
+            }
+          },
+          "required": [
+            "member_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_payments",
+        "title": "List contributions",
+        "description": "List recorded contributions/payments, optionally filtered by member and date range. Returns amount, date, method and status.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "member_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Only payments for this member."
+            },
+            "from_date": {
+              "type": "string",
+              "description": "Start date, ISO YYYY-MM-DD (inclusive)."
+            },
+            "to_date": {
+              "type": "string",
+              "description": "End date, ISO YYYY-MM-DD (inclusive)."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Max rows (default 25)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "giving_summary",
+        "title": "Giving summary",
+        "description": "Summarize total contributions for a date range, broken down by payment method and contribution type.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "from_date": {
+              "type": "string",
+              "description": "Start date, ISO YYYY-MM-DD (inclusive)."
+            },
+            "to_date": {
+              "type": "string",
+              "description": "End date, ISO YYYY-MM-DD (inclusive)."
+            }
+          },
+          "required": [
+            "from_date",
+            "to_date"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

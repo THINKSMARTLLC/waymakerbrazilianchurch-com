@@ -19,6 +19,7 @@ import { Route as PortalRouteImport } from './routes/portal'
 import { Route as PendingRouteImport } from './routes/pending'
 import { Route as PastoralRouteImport } from './routes/pastoral'
 import { Route as OfertaRouteImport } from './routes/oferta'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ImportExportRouteImport } from './routes/import-export'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
@@ -42,8 +43,11 @@ import { Route as EngagementVisitsRouteImport } from './routes/engagement.visits
 import { Route as EngagementReviewRouteImport } from './routes/engagement.review'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as ApiBibleRouteImport } from './routes/api/bible'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
+import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -96,6 +100,11 @@ const PastoralRoute = PastoralRouteImport.update({
 const OfertaRoute = OfertaRouteImport.update({
   id: '/oferta',
   path: '/oferta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -214,6 +223,18 @@ const ApiBibleRoute = ApiBibleRouteImport.update({
   path: '/api/bible',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char91DotmcpChar93ListToolsRoute =
+  Char91DotmcpChar93ListToolsRouteImport.update({
+    id: '/.mcp/list-tools',
+    path: '/.mcp/list-tools',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   id: '/lovable/email/suppression',
   path: '/lovable/email/suppression',
@@ -224,6 +245,12 @@ const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
   path: '/api/public/stripe-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotmcpChar93InvokeToolToolRoute =
+  Char91DotmcpChar93InvokeToolToolRouteImport.update({
+    id: '/.mcp/invoke-tool/$tool',
+    path: '/.mcp/invoke-tool/$tool',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
     id: '/lovable/email/transactional/send',
@@ -254,6 +281,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/import-export': typeof ImportExportRoute
   '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
   '/oferta': typeof OfertaRoute
   '/pastoral': typeof PastoralRoute
   '/pending': typeof PendingRoute
@@ -264,6 +292,8 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/success': typeof SuccessRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/api/bible': typeof ApiBibleRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/engagement/review': typeof EngagementReviewRoute
@@ -277,6 +307,7 @@ export interface FileRoutesByFullPath {
   '/engagement/': typeof EngagementIndexRoute
   '/members/': typeof MembersIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -294,6 +325,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/import-export': typeof ImportExportRoute
   '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
   '/oferta': typeof OfertaRoute
   '/pastoral': typeof PastoralRoute
   '/pending': typeof PendingRoute
@@ -303,6 +335,8 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/success': typeof SuccessRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/api/bible': typeof ApiBibleRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/engagement/review': typeof EngagementReviewRoute
@@ -316,6 +350,7 @@ export interface FileRoutesByTo {
   '/engagement': typeof EngagementIndexRoute
   '/members': typeof MembersIndexRoute
   '/portal': typeof PortalIndexRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -334,6 +369,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/import-export': typeof ImportExportRoute
   '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
   '/oferta': typeof OfertaRoute
   '/pastoral': typeof PastoralRoute
   '/pending': typeof PendingRoute
@@ -344,6 +380,8 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/success': typeof SuccessRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/api/bible': typeof ApiBibleRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/engagement/review': typeof EngagementReviewRoute
@@ -357,6 +395,7 @@ export interface FileRoutesById {
   '/engagement/': typeof EngagementIndexRoute
   '/members/': typeof MembersIndexRoute
   '/portal/': typeof PortalIndexRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -376,6 +415,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/import-export'
     | '/login'
+    | '/mcp'
     | '/oferta'
     | '/pastoral'
     | '/pending'
@@ -386,6 +426,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/success'
     | '/unsubscribe'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/api/bible'
     | '/email/unsubscribe'
     | '/engagement/review'
@@ -399,6 +441,7 @@ export interface FileRouteTypes {
     | '/engagement/'
     | '/members/'
     | '/portal/'
+    | '/.mcp/invoke-tool/$tool'
     | '/api/public/stripe-webhook'
     | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
@@ -416,6 +459,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/import-export'
     | '/login'
+    | '/mcp'
     | '/oferta'
     | '/pastoral'
     | '/pending'
@@ -425,6 +469,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/success'
     | '/unsubscribe'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/api/bible'
     | '/email/unsubscribe'
     | '/engagement/review'
@@ -438,6 +484,7 @@ export interface FileRouteTypes {
     | '/engagement'
     | '/members'
     | '/portal'
+    | '/.mcp/invoke-tool/$tool'
     | '/api/public/stripe-webhook'
     | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
@@ -455,6 +502,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/import-export'
     | '/login'
+    | '/mcp'
     | '/oferta'
     | '/pastoral'
     | '/pending'
@@ -465,6 +513,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/success'
     | '/unsubscribe'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/api/bible'
     | '/email/unsubscribe'
     | '/engagement/review'
@@ -478,6 +528,7 @@ export interface FileRouteTypes {
     | '/engagement/'
     | '/members/'
     | '/portal/'
+    | '/.mcp/invoke-tool/$tool'
     | '/api/public/stripe-webhook'
     | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
@@ -496,6 +547,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ImportExportRoute: typeof ImportExportRoute
   LoginRoute: typeof LoginRoute
+  McpRoute: typeof McpRoute
   OfertaRoute: typeof OfertaRoute
   PastoralRoute: typeof PastoralRoute
   PendingRoute: typeof PendingRoute
@@ -506,6 +558,8 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   SuccessRoute: typeof SuccessRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
+  Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   ApiBibleRoute: typeof ApiBibleRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EngagementReviewRoute: typeof EngagementReviewRoute
@@ -515,6 +569,7 @@ export interface RootRouteChildren {
   SettingsChurchRoute: typeof SettingsChurchRoute
   EngagementIndexRoute: typeof EngagementIndexRoute
   MembersIndexRoute: typeof MembersIndexRoute
+  Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -592,6 +647,13 @@ declare module '@tanstack/react-router' {
       path: '/oferta'
       fullPath: '/oferta'
       preLoaderRoute: typeof OfertaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -755,6 +817,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBibleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.mcp/list-tools': {
+      id: '/.mcp/list-tools'
+      path: '/.mcp/list-tools'
+      fullPath: '/.mcp/list-tools'
+      preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/suppression': {
       id: '/lovable/email/suppression'
       path: '/lovable/email/suppression'
@@ -767,6 +843,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/stripe-webhook'
       fullPath: '/api/public/stripe-webhook'
       preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.mcp/invoke-tool/$tool': {
+      id: '/.mcp/invoke-tool/$tool'
+      path: '/.mcp/invoke-tool/$tool'
+      fullPath: '/.mcp/invoke-tool/$tool'
+      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lovable/email/transactional/send': {
@@ -821,6 +904,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   ImportExportRoute: ImportExportRoute,
   LoginRoute: LoginRoute,
+  McpRoute: McpRoute,
   OfertaRoute: OfertaRoute,
   PastoralRoute: PastoralRoute,
   PendingRoute: PendingRoute,
@@ -831,6 +915,9 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   SuccessRoute: SuccessRoute,
   UnsubscribeRoute: UnsubscribeRoute,
+  Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   ApiBibleRoute: ApiBibleRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EngagementReviewRoute: EngagementReviewRoute,
@@ -840,6 +927,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsChurchRoute: SettingsChurchRoute,
   EngagementIndexRoute: EngagementIndexRoute,
   MembersIndexRoute: MembersIndexRoute,
+  Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
